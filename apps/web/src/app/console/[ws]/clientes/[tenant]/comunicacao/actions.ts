@@ -40,7 +40,10 @@ function unwrap<T>(r: { ok: true; data: T } | { ok: false; error: string }): T {
 }
 
 function revalidate(ctx: CommunicationContext) {
-  revalidatePath(`/console/${ctx.workspace.slug}/clientes/${ctx.tenant.slug}/comunicacao`, "layout");
+  revalidatePath(
+    `/console/${ctx.workspace.slug}/clientes/${ctx.tenant.slug}/comunicacao`,
+    "layout",
+  );
 }
 
 async function ensureProject(ctx: CommunicationContext, projectId?: string | null) {
@@ -354,7 +357,10 @@ export const deleteChannel = defineAction(
   async ({ tenant, id }) => {
     const ctx = await requireCommunication(tenant, "ADMIN");
     const running = await ctx.db.messageCampaign.count({
-      where: { channelId: id, status: { in: ["RUNNING", "WAITING_WINDOW", "PAUSED", "SCHEDULED"] } },
+      where: {
+        channelId: id,
+        status: { in: ["RUNNING", "WAITING_WINDOW", "PAUSED", "SCHEDULED"] },
+      },
     });
     if (running)
       throw new AppError("Há envios em andamento por este canal. Cancele-os antes de remover.");
@@ -623,7 +629,12 @@ export const pauseCampaignAction = defineAction(campaignRef, async ({ tenant, id
       actor: ctx.viewer.user.name,
     }),
   );
-  await audit({ ...actor(ctx), action: "messaging.campaign.pause", entityType: "MessageCampaign", entityId: id });
+  await audit({
+    ...actor(ctx),
+    action: "messaging.campaign.pause",
+    entityType: "MessageCampaign",
+    entityId: id,
+  });
   revalidate(ctx);
   return null;
 });
@@ -631,7 +642,12 @@ export const pauseCampaignAction = defineAction(campaignRef, async ({ tenant, id
 export const resumeCampaignAction = defineAction(campaignRef, async ({ tenant, id }) => {
   const ctx = await requireCommunication(tenant, "MANAGER");
   unwrap(await resumeCampaign(prisma, { tenantId: ctx.tenantId, campaignId: id }));
-  await audit({ ...actor(ctx), action: "messaging.campaign.resume", entityType: "MessageCampaign", entityId: id });
+  await audit({
+    ...actor(ctx),
+    action: "messaging.campaign.resume",
+    entityType: "MessageCampaign",
+    entityId: id,
+  });
   revalidate(ctx);
   return null;
 });
@@ -735,18 +751,16 @@ export const campaignLive = defineAction(
         finishedAt: summary.finishedAt?.toISOString() ?? null,
       },
       matched,
-      rows: rows.map(
-        (d): LiveDelivery => ({
-          id: d.id,
-          name: d.recipientName,
-          target: d.target,
-          status: d.status,
-          error: d.error,
-          sentAt: d.sentAt?.toISOString() ?? null,
-          deliveredAt: d.deliveredAt?.toISOString() ?? null,
-          readAt: d.readAt?.toISOString() ?? null,
-        }),
-      ),
+      rows: rows.map((d): LiveDelivery => ({
+        id: d.id,
+        name: d.recipientName,
+        target: d.target,
+        status: d.status,
+        error: d.error,
+        sentAt: d.sentAt?.toISOString() ?? null,
+        deliveredAt: d.deliveredAt?.toISOString() ?? null,
+        readAt: d.readAt?.toISOString() ?? null,
+      })),
     };
   },
 );

@@ -35,7 +35,10 @@ export default async function TemplatesPage({
     scope: t.projectId ? (projectName.get(t.projectId) ?? "Projeto") : null,
     hasEmail: !!(t.emailSubject.trim() && t.emailBody.trim()),
     hasWhatsapp: !!t.whatsappBody.trim(),
-    preview: (t.emailSubject || t.whatsappBody || t.emailBody).replace(/\{\{\s*(\w+)\s*\}\}/g, "[$1]"),
+    preview: (t.emailSubject || t.whatsappBody || t.emailBody).replace(
+      /\{\{\s*(\w+)\s*\}\}/g,
+      "[$1]",
+    ),
     uses: byTemplate.get(t.id)?._count._all ?? 0,
     lastUsedAt: byTemplate.get(t.id)?._max.createdAt?.toISOString() ?? null,
     updatedAt: t.updatedAt.toISOString(),

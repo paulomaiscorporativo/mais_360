@@ -130,7 +130,15 @@ export default async function CommunicationOverview({
                 ? `Servidor da plataforma · ${g.email.from}`
                 : "Nenhum servidor configurado"
           }
-          source={email ? (email.smtpHost ? "Servidor próprio" : "Remetente próprio") : g.email ? "Padrão" : null}
+          source={
+            email
+              ? email.smtpHost
+                ? "Servidor próprio"
+                : "Remetente próprio"
+              : g.email
+                ? "Padrão"
+                : null
+          }
         />
         <ChannelCard
           icon={<MessageCircle />}
@@ -150,8 +158,18 @@ export default async function CommunicationOverview({
 
       <Panel>
         <div className="divide-border grid grid-cols-2 divide-x divide-y md:grid-cols-4 md:divide-y-0">
-          <Stat className="p-5" label="E-mails enviados" value={nf.format(emailSent)} hint="últimos 30 dias" />
-          <Stat className="p-5" label="WhatsApp enviados" value={nf.format(waSent)} hint="últimos 30 dias" />
+          <Stat
+            className="p-5"
+            label="E-mails enviados"
+            value={nf.format(emailSent)}
+            hint="últimos 30 dias"
+          />
+          <Stat
+            className="p-5"
+            label="WhatsApp enviados"
+            value={nf.format(waSent)}
+            hint="últimos 30 dias"
+          />
           <Stat
             className="p-5"
             label="Leitura no WhatsApp"
@@ -201,7 +219,8 @@ export default async function CommunicationOverview({
                     </div>
                     <CampaignProgress sent={c.sent} failed={c.failed} total={c.total} />
                     <p className="text-fg-subtle text-xs">
-                      {CHANNEL_LABEL[c.channel]} · {c.statusReason || `próximo envio ${fmtDateTime(c.nextSendAt)}`}
+                      {CHANNEL_LABEL[c.channel]} ·{" "}
+                      {c.statusReason || `próximo envio ${fmtDateTime(c.nextSendAt)}`}
                     </p>
                   </Link>
                 </li>
