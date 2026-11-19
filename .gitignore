@@ -12,3 +12,6 @@ storage/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+
+# Estado local do Claude Code
+.claude/
