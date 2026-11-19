@@ -80,8 +80,26 @@ importação grande como job; storage dos documentos usar a camada de arquivos d
 - Variáveis de mensagem condicionadas a recursos (`availableMessageFields`,
   `unavailableFieldsIn`); o editor esconde as indisponíveis e avisa.
 
-**Onda 2 — par 2 (próximo):** linha direta/viagens corporativas (solicitação, cotação, política,
-aprovação, área do associado) e scripts de migração de dados ABIEC/ABRADILAN.
+**Onda 2 — par 2:**
+
+- `f2-linha-direta` (Mais 360 Travel, viagens corporativas): regras puras em
+  `@mais/core/corporate-travel` (solicitação multitrecho, protocolo `VC-AAAA-NNNNNN`, status,
+  política de viagem com violações em português, aprovação por alçada em níveis, cotações
+  comparáveis) com testes; console `clientes/<cliente>/viagens-corporativas` (fila com filtros,
+  registro pela equipe, detalhe com responsável, cotações lado a lado com linhas por serviço,
+  envio por e-mail/WhatsApp via fila, escolha em nome do solicitante, aprovação, reserva manual
+  com localizadores e anexos, linha do tempo; aprovações; política e modo de aprovação; acessos
+  dos associados); área do associado `/t/<cliente>/viagens` (sessão PERSON revogável, troca da
+  senha provisória, minhas solicitações, nova solicitação, escolha com justificativa,
+  cancelamento, documentos). Sem mudança de schema. Demo em `docs/USUARIOS-DEMO.md`.
+- Scripts de migração de dados ABIEC/ABRADILAN (frente `migracao`).
+
+**Pendências da linha direta:** aviso ao aprovador e à equipe por e-mail (o motor de comunicação
+só envia a Person/inscrição; hoje eles veem na fila e na caixa de aprovações); edição da
+solicitação pelo associado enquanto nova; link de aprovação por e-mail (`TravelApproval.tokenHash`);
+reenvio da senha provisória por e-mail; modelos de mensagem do cliente para as finalidades
+`TRAVEL_*` (hoje o texto é fixo no código); fase 6: centros de custo, várias etapas e alçadas por
+valor na tela, despesas e relatórios de conformidade.
 
 Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
 

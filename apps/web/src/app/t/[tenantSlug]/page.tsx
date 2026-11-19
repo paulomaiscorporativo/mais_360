@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Mail, MessageCircle, QrCode } from "lucide-react";
+import { ArrowRight, Mail, MessageCircle, QrCode } from "lucide-react";
 import { Avatar } from "@/components/ui";
 import { LoginForm } from "@/app/(auth)/entrar/login-form";
 import { termsWithDefaults } from "@/config/terms";
 import { prisma } from "@/server/db";
 import { resolveBrand } from "@/server/brand";
+import { modulesForTenant } from "@/server/modules";
+import { tenantPublicBase } from "@/server/public-links";
 import { resolvePublicTenant } from "@/server/tenant-resolve";
 
 export async function generateMetadata({
@@ -24,6 +26,9 @@ export default async function TenantHome({ params }: { params: Promise<{ tenantS
   const brand = resolveBrand(tenant);
   const t = termsWithDefaults(await prisma.tenantTerm.findMany({ where: { tenantId: tenant.id } }));
   const consolePath = `/console/${tenant.workspace.slug}/clientes/${tenant.slug}`;
+  const memberArea = (await modulesForTenant(tenant)).has("CORPORATE_TRAVEL")
+    ? `${await tenantPublicBase(tenant)}/viagens`
+    : null;
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
@@ -71,6 +76,20 @@ export default async function TenantHome({ params }: { params: Promise<{ tenantS
             participantes recebem o acesso pelo próprio convite.
           </p>
           <LoginForm next={consolePath} />
+          {memberArea && (
+            <a
+              href={memberArea}
+              className="border-border hover:border-fg-faint/60 focus-visible:outline-brand-ring mt-8 flex items-center justify-between gap-3 rounded-md border px-4 py-3 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              <span>
+                <span className="block font-medium">
+                  Área do {t["member.singular"].toLowerCase()}
+                </span>
+                <span className="text-fg-muted text-sm">Peça viagens e acompanhe as cotações.</span>
+              </span>
+              <ArrowRight className="text-fg-subtle size-4 shrink-0" />
+            </a>
+          )}
         </div>
       </section>
     </div>
