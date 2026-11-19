@@ -3,10 +3,12 @@ import { audit } from "@/server/audit";
 import { AppError } from "@/server/errors";
 import { companiesCsv, guestsCsv, loadInviteReport } from "@/server/invite-reports";
 import { requireProjectFeature } from "@/server/projects";
+import { projectSorting, sortParam } from "@/server/sorting";
 
 /**
  * Exportação CSV dos relatórios de convites.
  *   ?tipo=convidados|empresas   &codificacao=utf-8 (padrão) | windows-1252
+ *   &ordem=<SortSpec em JSON> (opcional; sem ele vale o padrão do projeto/cliente)
  * Dados pessoais: exige acesso ao projeto e fica registrado na auditoria.
  */
 export async function GET(
@@ -21,8 +23,12 @@ export async function GET(
   try {
     const p = await requireProjectFeature(ws, tenant, project, "INVITES");
     const tz = p.project.timezone ?? p.tenant.timezone;
-    const data = await loadInviteReport(p.db, p.projectId);
-    const text = kind === "empresas" ? companiesCsv(data.companies) : guestsCsv(data.guests, tz);
+    const sorting = await projectSorting(p, sortParam(url));
+    const data = await loadInviteReport(p.db, p.projectId, sorting.spec);
+    const text =
+      kind === "empresas"
+        ? companiesCsv(data.companies)
+        : guestsCsv(data.guests, tz, { tables: p.features.has("TABLES") });
     await audit({
       action: "event.report.export",
       userId: p.viewer.user.id,
@@ -33,6 +39,7 @@ export async function GET(
       data: {
         kind,
         encoding,
+        sort: sorting.label,
         rows: kind === "empresas" ? data.companies.length : data.guests.length,
       },
     });

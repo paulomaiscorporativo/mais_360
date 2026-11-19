@@ -1,10 +1,12 @@
-import { BarChart3, Download } from "lucide-react";
+import { BarChart3, Download, Printer } from "lucide-react";
 import type { InviteStatus } from "@mais/core";
-import { buttonVariants, DataTable, EmptyState, Stat, type Column } from "@/components/ui";
+import { BatchSortBar } from "@/components/sorting/batch-sort-bar";
+import { DataTable, EmptyState, Stat, type Column } from "@/components/ui";
 import { INVITE_STATUS_UI } from "@/components/events/labels";
 import { guard } from "@/server/auth";
 import { loadInviteReport } from "@/server/invite-reports";
 import { projectBase, requireProjectFeature } from "@/server/projects";
+import { batchSortProps } from "@/server/sorting";
 import { cn } from "@/lib/cn";
 
 type CompanyRow = Awaited<ReturnType<typeof loadInviteReport>>["companies"][number];
@@ -29,8 +31,12 @@ export default async function InviteReportsPage({
 }) {
   const { ws, tenant, project } = await params;
   const p = await guard(requireProjectFeature(ws, tenant, project, "INVITES"));
-  const { totals, companies } = await loadInviteReport(p.db, p.projectId);
-  const exportBase = `${projectBase(ws, tenant, project)}/convites/relatorios/exportar`;
+  const [{ totals, companies }, sorting] = await Promise.all([
+    loadInviteReport(p.db, p.projectId),
+    batchSortProps(p),
+  ]);
+  const base = projectBase(ws, tenant, project);
+  const exportBase = `${base}/convites/relatorios/exportar`;
 
   if (totals.active === 0 && totals.CANCELED === 0)
     return (
@@ -110,28 +116,31 @@ export default async function InviteReportsPage({
           <h2 id="resumo" className="text-md font-semibold">
             Confirmações e presença
           </h2>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`${exportBase}?tipo=convidados`}
-              className={buttonVariants({ variant: "secondary", size: "md" })}
-            >
-              <Download /> Convidados (CSV)
-            </a>
-            <a
-              href={`${exportBase}?tipo=empresas`}
-              className={buttonVariants({ variant: "secondary", size: "md" })}
-            >
-              <Download /> Empresas (CSV)
-            </a>
-            <a
-              href={`${exportBase}?tipo=convidados&codificacao=windows-1252`}
-              className={buttonVariants({ variant: "ghost", size: "md" })}
-              title="Para Excel antigo ou sistemas que não leem UTF-8"
-            >
-              Excel antigo (Windows-1252)
-            </a>
-          </div>
         </div>
+
+        <BatchSortBar
+          {...sorting}
+          links={[
+            {
+              label: "Convidados (CSV)",
+              href: `${exportBase}?tipo=convidados`,
+              icon: <Download />,
+            },
+            { label: "Empresas (CSV)", href: `${exportBase}?tipo=empresas`, icon: <Download /> },
+            {
+              label: "Lista de check-in",
+              href: `${base}/convites/checkin/lista`,
+              icon: <Printer />,
+              newTab: true,
+            },
+            {
+              label: "Excel antigo (Windows-1252)",
+              href: `${exportBase}?tipo=convidados&codificacao=windows-1252`,
+              variant: "ghost",
+              title: "Para Excel antigo ou sistemas que não leem UTF-8",
+            },
+          ]}
+        />
 
         <div className="border-border bg-surface grid grid-cols-2 gap-6 rounded-md border p-5 shadow-sm sm:grid-cols-4">
           <Stat

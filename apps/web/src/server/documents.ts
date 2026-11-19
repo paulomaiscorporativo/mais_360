@@ -484,6 +484,8 @@ export async function renderForRegistrations(
     purpose?: RenderPurpose;
     actor: { type: ActorType; label: string; userId?: string | null; kioskId?: string | null };
     autoPrint?: boolean;
+    /** Projeto sem mapa de mesas: mesa e cadeira saem em branco no documento. */
+    hideSeats?: boolean;
   },
 ): Promise<RenderResult> {
   if (!registrationIds.length) throw new AppError("Escolha ao menos uma inscrição.");
@@ -493,7 +495,13 @@ export async function renderForRegistrations(
   const data = await registrationData(opts.tenantId, registrationIds);
   const missing = registrationIds.filter((id) => !data.has(id));
   if (missing.length) throw notFound("Alguma inscrição não pertence a este cliente.");
-  const records = registrationIds.map((id) => data.get(id)!);
+  // A ordem do arquivo é a ordem recebida (quem chama aplica a ordenação do projeto)
+  const records = registrationIds.map((id) => {
+    const rec = data.get(id)!;
+    return opts.hideSeats && rec.registration
+      ? { ...rec, registration: { ...rec.registration, table: undefined, seat: undefined } }
+      : rec;
+  });
   const projectIds = new Set(records.map(() => template.projectId).filter(Boolean));
   return renderAndLog({
     tenantId: opts.tenantId,

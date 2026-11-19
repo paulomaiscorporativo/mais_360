@@ -1,6 +1,7 @@
 "use client";
 
-import { FileSpreadsheet, MoreHorizontal, Search, UserPlus, Users, X } from "lucide-react";
+import { FileSpreadsheet, MoreHorizontal, Printer, Search, UserPlus, Users, X } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Badge, Button, EmptyState, Input, Notice } from "@/components/ui";
@@ -60,6 +61,8 @@ export function RegistrationsManager(props: {
   truncated: boolean;
   categories: Label[];
   groups: Label[];
+  /** Documentos em lote (null = módulo de documentos não contratado). */
+  batchHref: string | null;
   filters: { q: string; status: string; cat: string };
 }) {
   const { rows, categories, groups, canEdit, tenant, projectId } = props;
@@ -174,18 +177,29 @@ export function RegistrationsManager(props: {
                 className="md:w-48"
               />
             </div>
-            {canEdit && (
+            {(canEdit || props.batchHref) && (
               <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setImporting(true)}
-                  className="flex-1 md:flex-none"
-                >
-                  <FileSpreadsheet /> Importar
-                </Button>
-                <Button onClick={() => setAdding(true)} className="flex-1 md:flex-none">
-                  <UserPlus /> Adicionar
-                </Button>
+                {props.batchHref && (
+                  <Button asChild variant="secondary" className="flex-1 md:flex-none">
+                    <Link href={props.batchHref}>
+                      <Printer /> Documentos em lote
+                    </Link>
+                  </Button>
+                )}
+                {canEdit && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setImporting(true)}
+                      className="flex-1 md:flex-none"
+                    >
+                      <FileSpreadsheet /> Importar
+                    </Button>
+                    <Button onClick={() => setAdding(true)} className="flex-1 md:flex-none">
+                      <UserPlus /> Adicionar
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>

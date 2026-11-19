@@ -1,5 +1,6 @@
 import { apiError } from "@/server/documents";
 import { requireProjectFeature } from "@/server/projects";
+import { projectSorting, sortParam } from "@/server/sorting";
 import { projectTz, roomingList } from "@/server/travel";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -9,13 +10,14 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
  * própria, sem o console em volta, com a impressão aberta automaticamente.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: RouteContext<"/console/[ws]/clientes/[tenant]/projetos/[project]/hospedagem/rooming">,
 ) {
   try {
     const { ws, tenant, project } = await ctx.params;
     const p = await requireProjectFeature(ws, tenant, project, "ACCOMMODATION");
-    const hotels = await roomingList(p.db, p.projectId, projectTz(p));
+    const sorting = await projectSorting(p, sortParam(new URL(req.url)));
+    const hotels = await roomingList(p.db, p.projectId, projectTz(p), sorting.spec);
     const body = hotels.length
       ? hotels
           .map(

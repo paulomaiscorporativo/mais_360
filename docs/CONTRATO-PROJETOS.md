@@ -99,6 +99,24 @@ Hoje: `settings.form` (formulário público). Um módulo que precise de configur
 acrescenta a **própria chave** ao schema (ex.: `invites`), sempre com `default`,
 e grava com `{ ...readProjectSettings(raw), invites: … }` — nunca sobrescreva o objeto.
 
+## 6.1 Ordenação das listas (`settings.sorting`)
+
+Toda saída em lote (relatórios, CSV, documentos, check-in, vouchers, rooming) usa a
+mesma regra: `@mais/core/sorting` (`SortSpec`, presets, `sortRegistrations`,
+`groupRegistrations`). Cascata: plataforma (`PLATFORM_DEFAULT_SORT`, empresa › nome)
+→ cliente (`Tenant.settings.sorting`) → projeto (`Project.settings.sorting`) →
+escolha na hora (`?ordem=<SortSpec em JSON>`). No servidor:
+
+```ts
+const sorting = await projectSorting(p, sortParam(url)); // spec efetivo + avisos
+const regs = await p.db.registration.findMany({ where, include: SORT_ROW_INCLUDE });
+const ids = sortRegistrations(regs.map(toSortRow), sorting.spec).map((r) => r.id);
+```
+
+Campos sem recurso no projeto (mesa sem `TABLES`, empresa da cota sem `INVITES`,
+categoria/grupo inexistentes) são descartados com aviso. Na tela, `BatchSortBar`
+(`components/sorting`) mostra o padrão efetivo e leva a escolha nos links.
+
 ## 7. Arquivos
 
 - Upload: `saveUpload({ tenantId, file, kind: "image" | "pdf" | "document", visibility, uploadedBy })`

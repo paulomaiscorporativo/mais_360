@@ -68,6 +68,18 @@ importação grande como job; storage dos documentos usar a camada de arquivos d
   recuperação de senha da empresa feita pela organização.
 - Banco de dev sem projetos de viagem/evento com dados: telas não testadas com dados reais.
 
+**Frente `f2-ordenacao` — ordenação configurável das listas (19/11/2026):**
+
+- Regra pura `@mais/core/sorting` (SortSpec até 3 níveis, agrupamento, quebra de página,
+  presets, comparação pt-BR, vazios no fim, ajuste aos recursos do projeto) com testes.
+- Cascata plataforma → cliente (`Tenant.settings`, migração `configuracoes_do_cliente`) →
+  projeto (`Project.settings.sorting`) → escolha na hora (`?ordem=`). Telas: aba
+  "Ordenação" do cliente e seção nas configurações do projeto; `BatchSortBar` na geração.
+- Aplicada em relatórios/CSV de convites (sem coluna de mesa sem `TABLES`), lista de
+  check-in impressa, documentos em lote (`inscricoes/documentos`), vouchers e rooming.
+- Variáveis de mensagem condicionadas a recursos (`availableMessageFields`,
+  `unavailableFieldsIn`); o editor esconde as indisponíveis e avisa.
+
 **Onda 2 — par 2 (próximo):** linha direta/viagens corporativas (solicitação, cotação, política,
 aprovação, área do associado) e scripts de migração de dados ABIEC/ABRADILAN.
 

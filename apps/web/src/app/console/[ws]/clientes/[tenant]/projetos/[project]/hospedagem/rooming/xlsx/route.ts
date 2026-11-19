@@ -1,17 +1,19 @@
 import * as XLSX from "xlsx";
 import { apiError } from "@/server/documents";
 import { requireProjectFeature } from "@/server/projects";
+import { projectSorting, sortParam } from "@/server/sorting";
 import { projectTz, roomingList } from "@/server/travel";
 
 /** Rooming list em planilha (uma linha por hóspede), no formato que os hotéis pedem. */
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: RouteContext<"/console/[ws]/clientes/[tenant]/projetos/[project]/hospedagem/rooming/xlsx">,
 ) {
   try {
     const { ws, tenant, project } = await ctx.params;
     const p = await requireProjectFeature(ws, tenant, project, "ACCOMMODATION");
-    const hotels = await roomingList(p.db, p.projectId, projectTz(p));
+    const sorting = await projectSorting(p, sortParam(new URL(req.url)));
+    const hotels = await roomingList(p.db, p.projectId, projectTz(p), sorting.spec);
     const rows: (string | number)[][] = [
       [
         "Hotel",

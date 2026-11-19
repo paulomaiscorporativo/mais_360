@@ -1,3 +1,4 @@
+import { MODULES, type ModuleKey, type ProjectFeature } from "../modules/catalog";
 import { calendarDaysUntil, formatDateBR, formatTimeBR } from "./timezone";
 
 /**
@@ -17,7 +18,11 @@ export type MessageFieldDefinition = {
   example: string;
   /** Campo é um link (o editor mostra como botão/ícone) */
   isLink?: boolean;
+  /** Recurso de projeto ou módulo do cliente sem o qual o campo fica sempre vazio. */
+  requires?: FieldRequirement;
 };
+
+export type FieldRequirement = { feature: ProjectFeature } | { module: ModuleKey };
 
 export const MESSAGE_FIELDS: readonly MessageFieldDefinition[] = [
   // Pessoa
@@ -81,20 +86,40 @@ export const MESSAGE_FIELDS: readonly MessageFieldDefinition[] = [
   // Cliente
   { key: "cliente", label: "Nome do cliente", context: "cliente", example: "ABIEC" },
   // Convite
-  { key: "mesa", label: "Mesa e cadeira", context: "convite", example: "Mesa 5, cadeira 3" },
-  { key: "traje", label: "Traje", context: "convite", example: "Esporte fino" },
+  {
+    key: "mesa",
+    label: "Mesa e cadeira",
+    context: "convite",
+    example: "Mesa 5, cadeira 3",
+    requires: { feature: "TABLES" },
+  },
+  {
+    key: "traje",
+    label: "Traje",
+    context: "convite",
+    example: "Esporte fino",
+    requires: { feature: "INVITES" },
+  },
   {
     key: "empresa_convidante",
     label: "Empresa que convidou",
     context: "convite",
     example: "Distribuidora Exemplo",
+    requires: { feature: "INVITES" },
   },
-  { key: "data_limite", label: "Data-limite das cotas", context: "convite", example: "31/10/2026" },
+  {
+    key: "data_limite",
+    label: "Data-limite das cotas",
+    context: "convite",
+    example: "31/10/2026",
+    requires: { feature: "INVITES" },
+  },
   {
     key: "login",
     label: "Login da plataforma",
     context: "convite",
     example: "distribuidoraexemplo",
+    requires: { feature: "INVITES" },
   },
   {
     key: "link_plataforma",
@@ -102,6 +127,7 @@ export const MESSAGE_FIELDS: readonly MessageFieldDefinition[] = [
     context: "convite",
     example: "https://abiec.mais.tur.br",
     isLink: true,
+    requires: { feature: "INVITES" },
   },
   // Viagem (linha direta)
   {
@@ -109,16 +135,36 @@ export const MESSAGE_FIELDS: readonly MessageFieldDefinition[] = [
     label: "Protocolo da solicitação",
     context: "viagem",
     example: "LD-2026-0042",
+    requires: { module: "CORPORATE_TRAVEL" },
   },
-  { key: "origem", label: "Origem", context: "viagem", example: "São Paulo (GRU)" },
-  { key: "data_ida", label: "Data de ida", context: "viagem", example: "02/12/2026" },
-  { key: "data_volta", label: "Data de volta", context: "viagem", example: "08/12/2026" },
+  {
+    key: "origem",
+    label: "Origem",
+    context: "viagem",
+    example: "São Paulo (GRU)",
+    requires: { module: "CORPORATE_TRAVEL" },
+  },
+  {
+    key: "data_ida",
+    label: "Data de ida",
+    context: "viagem",
+    example: "02/12/2026",
+    requires: { module: "CORPORATE_TRAVEL" },
+  },
+  {
+    key: "data_volta",
+    label: "Data de volta",
+    context: "viagem",
+    example: "08/12/2026",
+    requires: { module: "CORPORATE_TRAVEL" },
+  },
   {
     key: "link_solicitacao",
     label: "Link da solicitação",
     context: "viagem",
     example: "https://…/app/solicitacoes/…",
     isLink: true,
+    requires: { module: "CORPORATE_TRAVEL" },
   },
 ];
 
@@ -133,6 +179,60 @@ export const FIELD_CONTEXT_LABELS: Record<FieldContextKind, string> = {
 
 const FIELD_KEYS = new Set(MESSAGE_FIELDS.map((f) => f.key));
 export const isKnownField = (key: string) => FIELD_KEYS.has(key);
+
+// ---------------------------------------------------------------------------
+// Disponibilidade por recurso
+// ---------------------------------------------------------------------------
+
+/**
+ * Onde o modelo será usado. Com `projectFeatures`, vale o que o projeto ligou;
+ * sem projeto (modelo do cliente), vale o que os módulos contratados liberam.
+ */
+export type FieldScope = {
+  modules: Iterable<ModuleKey>;
+  projectFeatures?: Iterable<ProjectFeature> | null;
+};
+
+const FEATURE_LABEL: Partial<Record<ProjectFeature, string>> = {
+  TABLES: "mapa de mesas",
+  INVITES: "convites com cota",
+};
+
+/** Por que o campo fica vazio nesse escopo (null = disponível). */
+export function fieldUnavailableReason(
+  field: MessageFieldDefinition,
+  scope: FieldScope,
+): string | null {
+  const req = field.requires;
+  if (!req) return null;
+  const modules = new Set(scope.modules);
+  if ("module" in req)
+    return modules.has(req.module) ? null : `o cliente não contratou ${MODULES[req.module].name}`;
+  const label = FEATURE_LABEL[req.feature] ?? req.feature;
+  if (scope.projectFeatures)
+    return new Set(scope.projectFeatures).has(req.feature) ? null : `o projeto não usa ${label}`;
+  const offered = [...modules].some((m) => MODULES[m].features.includes(req.feature));
+  return offered ? null : `o cliente não contratou ${label}`;
+}
+
+/** Campos que fazem sentido no escopo (o editor esconde os demais). */
+export function availableMessageFields(scope: FieldScope): MessageFieldDefinition[] {
+  return MESSAGE_FIELDS.filter((f) => !fieldUnavailableReason(f, scope));
+}
+
+/** Campos conhecidos usados no texto que ficariam vazios nesse escopo. */
+export function unavailableFieldsIn(
+  keys: Iterable<string>,
+  scope: FieldScope,
+): { key: string; label: string; reason: string }[] {
+  const out: { key: string; label: string; reason: string }[] = [];
+  for (const key of new Set(keys)) {
+    const f = MESSAGE_FIELDS.find((x) => x.key === key);
+    const reason = f && fieldUnavailableReason(f, scope);
+    if (f && reason) out.push({ key, label: f.label, reason });
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------------------
 // Contexto
