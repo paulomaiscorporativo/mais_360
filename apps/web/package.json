@@ -36,7 +36,8 @@
     "zod": "^4.4.3",
     "class-variance-authority": "^0.7.1",
     "next-themes": "^0.4.6",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "@mais/messaging": "*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
