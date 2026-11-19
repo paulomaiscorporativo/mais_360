@@ -70,8 +70,12 @@ Plataforma (o SaaS)                       ← superadmin e suporte do produto
                stands, voos, hospedagem, vouchers…), limitados pelos módulos do cliente
 ```
 
-**Resolução do tenant:** por subdomínio (`abiec.mais.tur.br`) ou domínio próprio;
-o painel master acessa todos. Todas as tabelas de negócio têm `tenantId`, e o acesso
+**Domínios:** console e produto em **`360.mais.tur.br`**; cada cliente em
+`<slug>.mais.tur.br` (preservando `abiec.mais.tur.br` e `abradilanviagens.mais.tur.br`, já em
+produção, com QR codes impressos); domínio próprio do cliente opcional. Certificado curinga
+`*.mais.tur.br`. Slugs reservados (`360`, `www`, `app`, `api`, `admin`, `mail`…) nunca viram cliente.
+
+**Resolução do tenant:** pelo hostname (subdomínio ou domínio próprio); o console acessa todos. Todas as tabelas de negócio têm `tenantId`, e o acesso
 passa por uma camada única que injeta o filtro (sem consultas "soltas").
 
 **Dicionário de termos por cliente** (exemplo):
