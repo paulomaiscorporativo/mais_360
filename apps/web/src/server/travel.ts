@@ -11,7 +11,7 @@ import {
 import type { FlightView } from "@/components/travel/flight-route";
 import { enqueueJob } from "@mais/messaging";
 import { prisma } from "./db";
-import { forbidden, notFound } from "./errors";
+import { forbidden, invalidFields, notFound } from "./errors";
 import { requireProjectWriter } from "./projects";
 import type { TenantDb } from "./tenant-db";
 
@@ -178,4 +178,37 @@ export async function assertRegistrations(db: TenantDb, projectId: string, ids: 
   if (!ids.length) return;
   const n = await db.registration.count({ where: { projectId, id: { in: ids } } });
   if (n !== new Set(ids).size) throw forbidden("Há pessoas que não pertencem a este projeto.");
+}
+
+/** Grupos, categorias e pessoas do projeto para o seletor de público. */
+export async function audienceOptions(db: TenantDb, projectId: string) {
+  const [groups, categories, people] = await Promise.all([
+    db.projectGroup.findMany({ where: { projectId }, orderBy: { name: "asc" } }),
+    db.registrationCategory.findMany({ where: { projectId }, orderBy: { sortOrder: "asc" } }),
+    travelersOf(db, projectId),
+  ]);
+  return {
+    groups: groups.map((g) => ({ id: g.id, name: g.name, color: g.color })),
+    categories: categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
+    people: people.map((p) => ({ id: p.id, name: p.name })),
+  };
+}
+
+/** Valida o alvo do público dentro do projeto; devolve o audienceId normalizado. */
+export async function checkAudience(
+  db: TenantDb,
+  projectId: string,
+  audience: "ALL" | "STAFF" | "GROUP" | "CATEGORY" | "INDIVIDUAL",
+  audienceId: string | null,
+): Promise<string | null> {
+  if (audience === "ALL" || audience === "STAFF") return null;
+  if (!audienceId) throw invalidFields({ audience: "Escolha para quem." });
+  const found =
+    audience === "GROUP"
+      ? await db.projectGroup.count({ where: { id: audienceId, projectId } })
+      : audience === "CATEGORY"
+        ? await db.registrationCategory.count({ where: { id: audienceId, projectId } })
+        : await db.registration.count({ where: { id: audienceId, projectId } });
+  if (!found) throw invalidFields({ audience: "Escolha para quem." });
+  return audienceId;
 }

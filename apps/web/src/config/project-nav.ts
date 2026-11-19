@@ -61,14 +61,14 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     ready: true,
   },
   // ── Onda 2: viagens de grupo ──
-  { key: "flights", label: "Voos", href: "/voos", icon: Plane, feature: "FLIGHTS", ready: false },
+  { key: "flights", label: "Voos", href: "/voos", icon: Plane, feature: "FLIGHTS", ready: true },
   {
     key: "accommodation",
     label: "Hospedagem",
     href: "/hospedagem",
     icon: BedDouble,
     feature: "ACCOMMODATION",
-    ready: false,
+    ready: true,
   },
   {
     key: "itinerary",
@@ -76,7 +76,7 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     href: "/roteiro",
     icon: CalendarRange,
     feature: "ITINERARY",
-    ready: false,
+    ready: true,
   },
   {
     key: "checklist",
@@ -84,7 +84,7 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     href: "/checklist",
     icon: ListChecks,
     feature: "CHECKLIST",
-    ready: false,
+    ready: true,
   },
   { key: "mural", label: "Mural", href: "/mural", icon: Megaphone, feature: "MURAL", ready: false },
   {
