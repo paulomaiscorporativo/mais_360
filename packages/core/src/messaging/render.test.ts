@@ -125,7 +125,7 @@ describe("e-mail", () => {
   it("white-label esconde a marca da plataforma", () => {
     expect(
       renderEmail(tpl, ctx, { primaryColor: "#123f6d", showPlatformBrand: false }, now).html,
-    ).not.toContain("Comitiva");
+    ).not.toContain("Mais 360");
   });
 });
 

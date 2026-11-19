@@ -134,7 +134,7 @@ export async function sendTest(
           subject: `[TESTE] ${r.subject}`,
           html: r.html,
           text: r.text,
-          headers: { "X-Comitiva-Test": randomUUID() },
+          headers: { "X-Mais360-Test": randomUUID() },
         });
       } finally {
         provider.close?.();

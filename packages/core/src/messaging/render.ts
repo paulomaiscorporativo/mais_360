@@ -11,7 +11,7 @@ import { buildFieldValues, isKnownField, type MessageContext } from "./fields";
  *   {{campo}}     → valor do campo (desconhecido ou vazio vira "")
  */
 
-export const PLATFORM_NAME = "Comitiva";
+export const PLATFORM_NAME = "Mais 360";
 
 const FIELD_RE = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi;
 
@@ -50,7 +50,7 @@ export type EmailBranding = {
   logoUrl?: string;
   bannerUrl?: string;
   footer?: string;
-  /** "Enviado com Comitiva · Mais Corporativo" — desligado em white-label */
+  /** "Enviado com Mais 360 · Mais Corporativo" — desligado em white-label */
   showPlatformBrand?: boolean;
 };
 
