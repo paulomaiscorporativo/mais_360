@@ -54,8 +54,10 @@
 ## 3. Hierarquia multiempresa
 
 ```
-Plataforma (Mais Corporativo)            ← usuário MASTER
- └─ Cliente / Companhia (tenant)          ← ABIEC, ABRADILAN, SIRAN, FECOFAR, Grupo Martins…
+Plataforma (o SaaS)                       ← superadmin e suporte do produto
+ └─ Assinante (workspace)                 ← Mais Corporativo, outras agências, organizadoras,
+     │                                       associações que contratam direto (plano + add-ons)
+     └─ Cliente / Companhia (tenant)      ← ABIEC, ABRADILAN, SIRAN, FECOFAR, Grupo Martins…
      ├─ Identidade visual e domínio       ← logo, cores, fonte, subdomínio, remetente de e-mail,
      │                                       instância de WhatsApp, timbrado, termos (dicionário)
      ├─ Módulos contratados (+ limites e vigência)
@@ -268,7 +270,27 @@ Os QR codes já emitidos dependem do domínio atual: os links antigos serão red
 
 ---
 
-## 12. Decisões
+## 12. Produto SaaS
+
+A plataforma é um **produto comercial**, não só a ferramenta interna da Mais. Isso implica:
+
+| Tema | Como fica |
+|---|---|
+| **Assinantes** | Agências, organizadoras e associações assinam; cada uma gerencia os próprios clientes. A Mais Corporativo é o primeiro assinante. |
+| **Planos** | Essencial · Profissional · Enterprise, com módulos e limites (clientes, projetos ativos, inscrições/mês, WhatsApp/mês, totens, usuários, armazenamento). Módulos avulsos como add-on. |
+| **Cobrança** | Provedor atrás de interface (Asaas como padrão no Brasil: boleto, Pix, cartão, nota fiscal; Stripe para internacional). Atraso → avisos → somente leitura, nunca perda de dados. |
+| **Medição** | `UsageRecord` diário por assinante/cliente/métrica, base para limites e cobrança por consumo. |
+| **Onboarding** | Teste grátis, assistente de criação do primeiro cliente e projeto, modelos de projeto prontos por tipologia. |
+| **White-label** | Planos superiores escondem a marca da plataforma; domínio próprio por cliente. |
+| **Confiança** | Isolamento por tenant testado, auditoria, LGPD (consentimentos, exportação e exclusão de dados do titular), backups, SLA e página de status. |
+| **Experiência** | Interface de nível premiado (ver `docs/DESIGN.md`), mobile-first e responsiva em toda tela. |
+| **Escala** | Workers horizontais (fila com SKIP LOCKED), arquivos em S3 compatível, banco dedicado como opção Enterprise. |
+
+Pendente: **nome comercial do produto** e domínio próprio do SaaS.
+
+---
+
+## 13. Decisões
 
 ### Tomadas (18/11/2026)
 
