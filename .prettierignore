@@ -5,3 +5,5 @@ coverage
 package-lock.json
 *.docx
 packages/db/prisma/migrations
+apps/web/public/pdf.worker.min.mjs
+apps/web/next-env.d.ts

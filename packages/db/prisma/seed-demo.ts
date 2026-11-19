@@ -40,25 +40,79 @@ const USERS: DemoUser[] = [
   { email: "suporte@demo.test", name: "Sofia Suporte", platformRole: "SUPPORT" },
 
   // Assinante Mais Corporativo
-  { email: "admin.assinante@demo.test", name: "Alice Admin do Assinante", workspace: { slug: "mais-corporativo", role: "ADMIN" } },
-  { email: "operador.assinante@demo.test", name: "Otávio Operador", workspace: { slug: "mais-corporativo", role: "OPERATOR" }, tenants: [{ slug: "abiec", role: "OPERATOR" }] },
-  { email: "financeiro.assinante@demo.test", name: "Fernanda Financeiro", workspace: { slug: "mais-corporativo", role: "FINANCE" } },
+  {
+    email: "admin.assinante@demo.test",
+    name: "Alice Admin do Assinante",
+    workspace: { slug: "mais-corporativo", role: "ADMIN" },
+  },
+  {
+    email: "operador.assinante@demo.test",
+    name: "Otávio Operador",
+    workspace: { slug: "mais-corporativo", role: "OPERATOR" },
+    tenants: [{ slug: "abiec", role: "OPERATOR" }],
+  },
+  {
+    email: "financeiro.assinante@demo.test",
+    name: "Fernanda Financeiro",
+    workspace: { slug: "mais-corporativo", role: "FINANCE" },
+  },
 
   // Cliente ABIEC — um usuário por papel
-  { email: "admin.abiec@demo.test", name: "Ana Admin ABIEC", tenants: [{ slug: "abiec", role: "ADMIN" }] },
-  { email: "gestor.abiec@demo.test", name: "Gustavo Gestor ABIEC", tenants: [{ slug: "abiec", role: "MANAGER" }] },
-  { email: "aprovador.abiec@demo.test", name: "Paula Aprovadora ABIEC", tenants: [{ slug: "abiec", role: "APPROVER" }] },
-  { email: "operador.abiec@demo.test", name: "Oscar Operador ABIEC", tenants: [{ slug: "abiec", role: "OPERATOR" }] },
-  { email: "balcao.abiec@demo.test", name: "Bruna Balcão ABIEC", tenants: [{ slug: "abiec", role: "DESK" }] },
-  { email: "leitor.abiec@demo.test", name: "Lucas Leitor ABIEC", tenants: [{ slug: "abiec", role: "SCANNER" }] },
-  { email: "vendas.abiec@demo.test", name: "Vitor Vendas ABIEC", tenants: [{ slug: "abiec", role: "SALES" }] },
-  { email: "visualizador.abiec@demo.test", name: "Vera Visualizadora ABIEC", tenants: [{ slug: "abiec", role: "VIEWER" }] },
+  {
+    email: "admin.abiec@demo.test",
+    name: "Ana Admin ABIEC",
+    tenants: [{ slug: "abiec", role: "ADMIN" }],
+  },
+  {
+    email: "gestor.abiec@demo.test",
+    name: "Gustavo Gestor ABIEC",
+    tenants: [{ slug: "abiec", role: "MANAGER" }],
+  },
+  {
+    email: "aprovador.abiec@demo.test",
+    name: "Paula Aprovadora ABIEC",
+    tenants: [{ slug: "abiec", role: "APPROVER" }],
+  },
+  {
+    email: "operador.abiec@demo.test",
+    name: "Oscar Operador ABIEC",
+    tenants: [{ slug: "abiec", role: "OPERATOR" }],
+  },
+  {
+    email: "balcao.abiec@demo.test",
+    name: "Bruna Balcão ABIEC",
+    tenants: [{ slug: "abiec", role: "DESK" }],
+  },
+  {
+    email: "leitor.abiec@demo.test",
+    name: "Lucas Leitor ABIEC",
+    tenants: [{ slug: "abiec", role: "SCANNER" }],
+  },
+  {
+    email: "vendas.abiec@demo.test",
+    name: "Vitor Vendas ABIEC",
+    tenants: [{ slug: "abiec", role: "SALES" }],
+  },
+  {
+    email: "visualizador.abiec@demo.test",
+    name: "Vera Visualizadora ABIEC",
+    tenants: [{ slug: "abiec", role: "VIEWER" }],
+  },
 
   // Cliente ABRADILAN — para testar isolamento entre clientes
-  { email: "admin.abradilan@demo.test", name: "Artur Admin ABRADILAN", tenants: [{ slug: "abradilan", role: "ADMIN" }] },
+  {
+    email: "admin.abradilan@demo.test",
+    name: "Artur Admin ABRADILAN",
+    tenants: [{ slug: "abradilan", role: "ADMIN" }],
+  },
 
   // Outro assinante (agência concorrente) — não pode ver nada da Mais Corporativo
-  { email: "dono.outraagencia@demo.test", name: "Diego Dono Outra Agência", workspace: { slug: "outra-agencia-demo", role: "OWNER" }, tenants: [{ slug: "cliente-outra-agencia", role: "ADMIN" }] },
+  {
+    email: "dono.outraagencia@demo.test",
+    name: "Diego Dono Outra Agência",
+    workspace: { slug: "outra-agencia-demo", role: "OWNER" },
+    tenants: [{ slug: "cliente-outra-agencia", role: "ADMIN" }],
+  },
 ];
 
 async function main() {
@@ -78,7 +132,11 @@ async function main() {
   }
   const otherTenant = await prisma.tenant.upsert({
     where: { slug: "cliente-outra-agencia" },
-    create: { slug: "cliente-outra-agencia", name: "Cliente da Outra Agência", workspaceId: other.id },
+    create: {
+      slug: "cliente-outra-agencia",
+      name: "Cliente da Outra Agência",
+      workspaceId: other.id,
+    },
     update: {},
   });
   await prisma.tenantBranding.upsert({
@@ -99,7 +157,10 @@ async function main() {
     (await prisma.tenant.findMany({ select: { id: true, slug: true } })).map((t) => [t.slug, t.id]),
   );
   const workspaceBySlug = new Map(
-    (await prisma.workspace.findMany({ select: { id: true, slug: true } })).map((w) => [w.slug, w.id]),
+    (await prisma.workspace.findMany({ select: { id: true, slug: true } })).map((w) => [
+      w.slug,
+      w.id,
+    ]),
   );
 
   for (const u of USERS) {
@@ -116,7 +177,8 @@ async function main() {
     });
     if (u.workspace) {
       const workspaceId = workspaceBySlug.get(u.workspace.slug);
-      if (!workspaceId) throw new Error(`Assinante ${u.workspace.slug} não existe — rode o seed principal.`);
+      if (!workspaceId)
+        throw new Error(`Assinante ${u.workspace.slug} não existe — rode o seed principal.`);
       await prisma.workspaceMember.upsert({
         where: { workspaceId_userId: { workspaceId, userId: user.id } },
         create: { workspaceId, userId: user.id, role: u.workspace.role },

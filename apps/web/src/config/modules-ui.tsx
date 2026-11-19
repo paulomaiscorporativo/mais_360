@@ -25,7 +25,12 @@ export const MODULE_UI: Record<
   ModuleKey,
   { slug: string; icon: LucideIcon; line?: Line; path?: string }
 > = {
-  COMMUNICATION: { slug: "comunicacao", icon: MessagesSquare, line: "connect", path: "comunicacao" },
+  COMMUNICATION: {
+    slug: "comunicacao",
+    icon: MessagesSquare,
+    line: "connect",
+    path: "comunicacao",
+  },
   CORPORATE_TRAVEL: { slug: "viagens-corporativas", icon: Briefcase, line: "travel" },
   GROUP_TRAVEL: { slug: "viagens-de-grupo", icon: Plane, line: "travel" },
   EVENTS_INVITES: { slug: "eventos", icon: MailOpen, line: "events" },

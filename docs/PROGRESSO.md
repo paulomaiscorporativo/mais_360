@@ -6,6 +6,7 @@ interrupção por limite de uso). Atualizado a cada etapa concluída.
 ## Estado em 19/11/2026
 
 ### Concluído e integrado no `main` — Fase 1 (fundação) completa
+
 - Fundação do monorepo, CI (unitários + integração + build), ADRs 0001–0003, `CLAUDE.md`,
   `docs/DESIGN.md`, `docs/BLUEPRINT.md`, `docs/MAPEAMENTO-LEGADO.md`.
 - **Frente 1 — Interface:** design system, shell responsivo, autenticação com sessão revogável,
@@ -19,6 +20,7 @@ interrupção por limite de uso). Atualizado a cada etapa concluída.
   ou `npm run dev`. Login inicial: `SEED_MASTER_EMAIL` / `SEED_MASTER_PASSWORD` do `.env`.
 
 ### Pendências conhecidas da Fase 1
+
 - Upload de arquivos (logo, banner) e rota `/api/files/<id>`.
 - Rota HTTP do webhook de status do WhatsApp/Meta.
 - Edição/suspensão de assinante e plano.
@@ -29,6 +31,7 @@ interrupção por limite de uso). Atualizado a cada etapa concluída.
 ## Fase 2 — em andamento
 
 **Onda 1 — concluída e integrada (19/11/2026):**
+
 - Projetos (assistente por tipologia), pessoas (dedupe, LGPD), inscrições (importação XLSX/CSV,
   lote), formulário público com QR, arquivos `/api/files`, webhook do WhatsApp, 404 real.
   Contrato da Onda 2 em `docs/CONTRATO-PROJETOS.md` (`requireProject*`, `PROJECT_NAV` com `ready`).
@@ -37,25 +40,47 @@ interrupção por limite de uso). Atualizado a cada etapa concluída.
   (`renderForRegistrations`).
 - 132 testes unitários; tipos, lint e build limpos. Usuários demo: `docs/USUARIOS-DEMO.md`.
 
-**Pendências da Onda 1:** job do worker que executa as réguas; página `/c/<token>` (credencial
-digital); paginação real das listas; importação grande como job; storage dos documentos usar a
-camada de arquivos da 2A (`server/files.ts`).
+**Pendências da Onda 1:** job do worker que executa as réguas; paginação real das listas;
+importação grande como job; storage dos documentos usar a camada de arquivos da 2A
+(`server/files.ts`). (A credencial `/c/<token>` foi resolvida na Onda 2.)
 
-**Onda 2 — em andamento, dois agentes por vez** (limite de uso):
-- Par 1 (rodando): `d-grupos` (branch `f2-d-grupos`: voos, hospedagem/rooming, roteiro,
-  checklist, mural, suporte, documentos, vouchers, portal do viajante `/t/<cliente>/v`) e
-  `e-convites` (branch `f2-e-convites`: empresas com cota, convites, mapa de mesas, convite/credencial
-  `/t/<cliente>/c/<token>`, portal da empresa, check-in do evento, relatórios).
-- Par 2 (depois): linha direta/viagens corporativas (solicitação, cotação, política, aprovação,
-  área do associado) e scripts de migração de dados ABIEC/ABRADILAN.
-- Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
+**Onda 2 — par 1 concluído e integrado (19/11/2026):**
+
+- `d-grupos`: voos (fuso por aeroporto, status ao vivo), hospedagem e rooming (impressão e XLSX),
+  roteiro com público segmentado, checklist, mural com aviso por e-mail/WhatsApp, suporte,
+  documentos do viajante (exigências, validade de passaporte), vouchers (lote > 10 vira job
+  `vouchers.issue`) e portal do viajante `/t/<cliente>/v` (link pessoal por e-mail).
+- `e-convites`: empresas com cota, convites, mapa de mesas (toque e teclado), convite/credencial
+  `/t/<cliente>/c/<token>` com RSVP e agenda, portal da empresa `/t/<cliente>/empresa` (sessão
+  COMPANY própria), check-in idempotente com leitor de QR, relatórios com CSV.
+- Sem mudança de schema. 183 testes unitários + 27 de integração (22 no db, 5 de check-in no web);
+  check, build limpos. Formatação de docs normalizada; `pdf.worker.min.mjs` e `next-env.d.ts`
+  fora do Prettier.
+
+**Pendências do par 1:**
+
+- Worker sem handler de `flights.refresh`; fila `vouchers.issue` consumida pela web (mover render
+  para pacote e handler para o worker).
+- Suporte sem envio de anexo pela conversa; upload limitado a 6 MB na tela (limite das actions).
+- Rooming impressa fora dos tokens do design system.
+- Falta integração com banco para portal do viajante e vouchers.
+- Convites: sem mensagem automática ao confirmar, sem reenvio pelo portal da empresa,
+  recuperação de senha da empresa feita pela organização.
+- Banco de dev sem projetos de viagem/evento com dados: telas não testadas com dados reais.
+
+**Onda 2 — par 2 (próximo):** linha direta/viagens corporativas (solicitação, cotação, política,
+aprovação, área do associado) e scripts de migração de dados ABIEC/ABRADILAN.
+
+Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
 
 ## Como retomar
+
 Ler este arquivo e `docs/BLUEPRINT.md` (seção 11, roteiro). Trabalho em frentes paralelas:
 criar worktrees fora do projeto (`../plataforma_mais_wt/<frente>`), cada frente com arquivos
 próprios, integrar com `git merge --no-ff` e rodar `npm run check` + build.
 
 ## Próximas etapas (depois da interface)
+
 - Rotas HTTP pendentes: webhook de status do WhatsApp/Meta, arquivos públicos `/api/files/<id>`.
 - Telas dos módulos: comunicação (modelos, campanhas), editor visual de documentos.
 - Fase 2 do roteiro: migrar a ABIEC (viagens de grupo, convites, linha direta) sobre a fundação.

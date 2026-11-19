@@ -9,9 +9,9 @@ calma** — denso onde se trabalha, generoso onde se recebe.
 
 Duas personalidades, um sistema:
 
-| Superfície | Quem usa | Tom |
-|---|---|---|
-| **Console** (assinante, cliente, projeto) | Equipe de operação | Denso, rápido, teclado, tabelas, painéis laterais |
+| Superfície                                                                            | Quem usa                       | Tom                                                      |
+| ------------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------- |
+| **Console** (assinante, cliente, projeto)                                             | Equipe de operação             | Denso, rápido, teclado, tabelas, painéis laterais        |
 | **Experiência** (convite, inscrição, área do participante, totem, portal do viajante) | Convidado, viajante, visitante | Editorial, generoso, marca do cliente em destaque, toque |
 
 ## Tipografia
