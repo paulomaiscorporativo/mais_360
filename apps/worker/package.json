@@ -3,16 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Processo contínuo: fila de jobs (disparos, réguas, expirações)",
+  "description": "Processo contínuo: fila de jobs (disparos, réguas, expirações, status de voos)",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@mais/core": "*",
     "@mais/db": "*",
     "@mais/messaging": "*",
     "dotenv": "^16.5.0",
-    "tsx": "^4.19.4"
+    "tsx": "^4.19.4",
+    "zod": "^4.4.3"
   }
 }

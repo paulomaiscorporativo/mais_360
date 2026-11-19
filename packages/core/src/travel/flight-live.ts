@@ -3,6 +3,7 @@
  * flight-status-tracker) para um formato estável, usado pelo console, pelo
  * portal do viajante e pelo worker. Puro: sem I/O.
  */
+import { toLocalDate } from "./datetime";
 
 export type LivePhase =
   | "SCHEDULED"
@@ -207,4 +208,79 @@ export function staleFlights<
       : liveCacheTtlMs(parseFlightLive(f.liveData), f.departureAt, now);
     return age > ttl;
   });
+}
+
+// ---------------------------------------------------------------------------
+// Planejamento da consulta à fonte (o worker só faz o I/O)
+// ---------------------------------------------------------------------------
+
+/**
+ * Janela da varredura automática: de 6 h antes da partida até 2 h depois da
+ * chegada (sem chegada cadastrada, até 20 h depois da partida). Fora dela o
+ * status só é consultado quando alguém abre a tela de voos.
+ */
+export function inLiveSweepWindow(
+  departureAt: Date | null,
+  arrivalAt: Date | null,
+  now = new Date(),
+): boolean {
+  if (!departureAt) return false;
+  const start = departureAt.getTime() - 6 * 3_600_000;
+  const end =
+    (arrivalAt ?? new Date(departureAt.getTime() + 18 * 3_600_000)).getTime() + 2 * 3_600_000;
+  const t = now.getTime();
+  return t >= start && t <= end;
+}
+
+export type LiveRefreshGroup = {
+  /** "" = a fonte escolhe a operação atual/próxima do número de voo */
+  date: string;
+  flightIds: string[];
+  /** Números normalizados, sem repetição, para uma única chamada */
+  numbers: string[];
+};
+
+/**
+ * Agrupa os voos a consultar por data de operação (no fuso do aeroporto de
+ * origem), para fazer uma única chamada à fonte por data.
+ */
+export function planLiveRefresh(
+  flights: { id: string; flightNumber: string; departureAt: Date | null; originTimeZone: string }[],
+  now = new Date(),
+): LiveRefreshGroup[] {
+  const groups = new Map<string, LiveRefreshGroup>();
+  for (const f of flights) {
+    const number = normalizeFlightNumber(f.flightNumber);
+    if (!number) continue;
+    const day = f.departureAt ? toLocalDate(f.departureAt, f.originTimeZone) : "";
+    const date = operationDate(f.departureAt, day, now);
+    const g = groups.get(date) ?? { date, flightIds: [], numbers: [] };
+    g.flightIds.push(f.id);
+    if (!g.numbers.includes(number)) g.numbers.push(number);
+    groups.set(date, g);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * Casa as linhas devolvidas pela fonte com os voos do grupo. Voo sem linha
+ * correspondente recebe "Sem dados ao vivo" (a consulta foi feita).
+ */
+export function matchLiveRows(
+  flights: { id: string; flightNumber: string }[],
+  rows: Record<string, unknown>[],
+  now = new Date(),
+): Map<string, FlightLive> {
+  const byNumber = new Map<string, Record<string, unknown>>();
+  for (const r of rows) {
+    const raw = r.requestedFlight;
+    const key = typeof raw === "string" ? normalizeFlightNumber(raw) : "";
+    if (key && !byNumber.has(key)) byNumber.set(key, r);
+  }
+  const out = new Map<string, FlightLive>();
+  for (const f of flights) {
+    const row = byNumber.get(normalizeFlightNumber(f.flightNumber));
+    out.set(f.id, row ? normalizeFlightRow(row, now) : emptyFlightLive(now));
+  }
+  return out;
 }

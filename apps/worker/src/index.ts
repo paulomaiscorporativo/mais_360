@@ -9,6 +9,10 @@ const { prisma } = await import("@mais/db");
 const { defaultDeps, messagingJobHandlers, recoverStaleDeliveries } =
   await import("@mais/messaging");
 const { JobRunner, newWorkerId } = await import("./runner");
+const { apifyFlightSource, flightJobHandlers, sweepLiveFlights } = await import("./flights");
+
+// Status de voo ao vivo só funciona com o token da Apify
+const apifyToken = process.env.APIFY_TOKEN?.trim() ?? "";
 
 const workerId = newWorkerId();
 const runner = new JobRunner({
@@ -17,6 +21,7 @@ const runner = new JobRunner({
   concurrency: Number(process.env.WORKER_CONCURRENCY || 4),
   handlers: {
     ...messagingJobHandlers(prisma, defaultDeps({ workerId })),
+    ...(apifyToken ? flightJobHandlers(prisma, apifyFlightSource(apifyToken)) : {}),
   },
 });
 
@@ -34,6 +39,18 @@ const housekeeping = setInterval(async () => {
   }
 }, 60_000);
 
+// Voos perto da partida ou em andamento: atualiza sozinho a cada 5 min
+const flightSweep = apifyToken
+  ? setInterval(async () => {
+      try {
+        await sweepLiveFlights(prisma);
+      } catch (e) {
+        console.error("[worker] erro na varredura de voos:", e);
+      }
+    }, 5 * 60_000)
+  : null;
+if (!apifyToken) console.info("[worker] APIFY_TOKEN ausente: status de voo ao vivo desligado.");
+
 runner.start();
 
 let stopping = false;
@@ -42,6 +59,7 @@ async function shutdown(signal: string) {
   stopping = true;
   console.info(`[worker] ${signal} recebido: terminando os jobs em andamento…`);
   clearInterval(housekeeping);
+  if (flightSweep) clearInterval(flightSweep);
   const force = setTimeout(() => {
     console.error("[worker] tempo esgotado; encerrando à força.");
     process.exit(1);
