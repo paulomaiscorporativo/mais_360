@@ -70,8 +70,8 @@ export default async function AccommodationPage({
       canEdit={p.canEdit}
       hotels={data}
       travelers={travelers}
-      reportHref={`${projectBase(ws, tenant, project)}/relatorios/rooming`}
-      xlsxHref={`${projectBase(ws, tenant, project)}/relatorios/rooming/xlsx`}
+      reportHref={`${projectBase(ws, tenant, project)}/hospedagem/rooming`}
+      xlsxHref={`${projectBase(ws, tenant, project)}/hospedagem/rooming/xlsx`}
     />
   );
 }

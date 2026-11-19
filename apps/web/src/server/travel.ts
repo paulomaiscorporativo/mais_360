@@ -6,6 +6,7 @@ import {
   formatDuration,
   formatInZone,
   parseFlightLive,
+  ROOM_TYPE_LABEL,
   type AudienceViewer,
   type PersonDocumentKind,
   type ProjectFeature,
@@ -294,4 +295,50 @@ export async function syncPersonFromDocument(
       data: { passportNumber: number, passportExpiry: expiresAt },
     });
   else if (kind === "RG") await db.person.update({ where: { id: personId }, data: { rg: number } });
+}
+
+/** Rooming list do projeto (uma linha por quarto), para impressão e planilha. */
+export async function roomingList(db: TenantDb, projectId: string, tz: string) {
+  const hotels = await db.accommodation.findMany({
+    where: { projectId },
+    orderBy: [{ checkIn: "asc" }, { name: "asc" }],
+    include: {
+      rooms: {
+        orderBy: [{ number: "asc" }, { id: "asc" }],
+        include: {
+          occupants: {
+            include: {
+              registration: {
+                select: {
+                  shortCode: true,
+                  person: {
+                    select: { firstName: true, lastName: true, dietary: true, medicalNotes: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  return hotels.map((h) => ({
+    name: h.name,
+    city: h.city,
+    checkIn: formatInZone(h.checkIn, tz, "date"),
+    checkOut: formatInZone(h.checkOut, tz, "date"),
+    rooms: h.rooms.map((r) => ({
+      number: r.number,
+      type: r.typeLabel || ROOM_TYPE_LABEL[r.type],
+      checkIn: formatInZone(r.checkIn ?? h.checkIn, tz, "date"),
+      checkOut: formatInZone(r.checkOut ?? h.checkOut, tz, "date"),
+      confirmation: r.confirmation,
+      notes: r.notes,
+      occupants: r.occupants.map((o) => ({
+        name: `${o.registration.person.firstName} ${o.registration.person.lastName}`.trim(),
+        shortCode: o.registration.shortCode,
+        dietary: o.registration.person.dietary,
+      })),
+    })),
+  }));
 }
