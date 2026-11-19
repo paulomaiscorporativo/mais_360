@@ -44,4 +44,5 @@ jobs:
           DATABASE_URL="$TEST_DATABASE_URL" npx prisma db push --skip-generate --schema packages/db/prisma/schema
           npm run test:integration -w @mais/messaging
           npm run test:integration -w @mais/web
+          npm run test:integration -w @mais/migrate
       - run: npm run build -w @mais/web
