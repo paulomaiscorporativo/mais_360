@@ -192,10 +192,13 @@ export const FieldEditor = forwardRef<FieldEditorHandle, Props>(function FieldEd
 export function FieldPicker({
   onPick,
   contexts,
+  fields = MESSAGE_FIELDS,
   className,
 }: {
   onPick: (key: string) => void;
   contexts?: FieldContextKind[];
+  /** Campos oferecidos (padrão: todos). O editor passa só os que o projeto/cliente tem. */
+  fields?: readonly MessageFieldDefinition[];
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -207,13 +210,13 @@ export function FieldPicker({
       f.label.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().includes(term) ||
       f.key.includes(term);
     const out = new Map<FieldContextKind, MessageFieldDefinition[]>();
-    for (const f of MESSAGE_FIELDS) {
+    for (const f of fields) {
       if (contexts && !contexts.includes(f.context)) continue;
       if (!match(f)) continue;
       out.set(f.context, [...(out.get(f.context) ?? []), f]);
     }
     return [...out];
-  }, [q, contexts]);
+  }, [q, contexts, fields]);
 
   return (
     <PopoverPrimitive.Root

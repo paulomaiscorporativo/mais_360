@@ -31,6 +31,13 @@ import {
   saveTemplate,
   sendTestAction,
 } from "@/app/console/[ws]/clientes/[tenant]/comunicacao/actions";
+import {
+  availableMessageFields,
+  extractFields,
+  unavailableFieldsIn,
+  type FieldScope,
+} from "@mais/core/messaging";
+import type { ModuleKey, ProjectFeature } from "@mais/core/modules";
 import { FieldEditor, FieldPicker, type FieldEditorHandle } from "./field-editor";
 import { PURPOSE_LABEL } from "./labels";
 import { MessagePreview, type PreviewData } from "./message-preview";
@@ -70,6 +77,7 @@ export function TemplateEditor({
   fromLabel,
   defaultTestEmail,
   canEdit,
+  fieldScope,
 }: {
   tenant: string;
   base: string;
@@ -78,6 +86,8 @@ export function TemplateEditor({
   fromLabel: string;
   defaultTestEmail: string;
   canEdit: boolean;
+  /** Módulos do cliente e recursos ligados de cada projeto (variáveis disponíveis). */
+  fieldScope: { modules: ModuleKey[]; projects: Record<string, ProjectFeature[]> };
 }) {
   const router = useRouter();
   const [t, setT] = useState<TemplateDraft>(initial ?? EMPTY);
@@ -92,6 +102,24 @@ export function TemplateEditor({
   const emailRef = useRef<FieldEditorHandle>(null);
   const waRef = useRef<FieldEditorHandle>(null);
   const lastFocused = useRef<"subject" | "email" | "wa">("email");
+
+  // Variáveis que fazem sentido onde o modelo será usado (cliente todo ou um projeto)
+  const scope: FieldScope = useMemo(
+    () => ({
+      modules: fieldScope.modules,
+      projectFeatures: t.projectId ? (fieldScope.projects[t.projectId] ?? []) : null,
+    }),
+    [fieldScope, t.projectId],
+  );
+  const fields = useMemo(() => availableMessageFields(scope), [scope]);
+  const unavailable = useMemo(
+    () =>
+      unavailableFieldsIn(
+        extractFields([t.emailSubject, t.emailBody, t.whatsappBody].join(" ")),
+        scope,
+      ),
+    [scope, t.emailSubject, t.emailBody, t.whatsappBody],
+  );
 
   const set = <K extends keyof TemplateDraft>(k: K, v: TemplateDraft[K]) => {
     setT((s) => ({ ...s, [k]: v }));
@@ -314,7 +342,7 @@ export function TemplateEditor({
                   <Mail className="text-fg-subtle size-4" /> E-mail
                 </span>
               }
-              actions={canEdit && <FieldPicker onPick={insert} />}
+              actions={canEdit && <FieldPicker onPick={insert} fields={fields} />}
             />
             <PanelBody className="flex flex-col gap-4">
               <Field label="Assunto" error={errors.emailSubject}>
@@ -386,7 +414,11 @@ export function TemplateEditor({
                     >
                       <Copy /> Copiar do e-mail
                     </Button>
-                    <FieldPicker onPick={insert} className="hidden sm:inline-flex" />
+                    <FieldPicker
+                      onPick={insert}
+                      fields={fields}
+                      className="hidden sm:inline-flex"
+                    />
                   </>
                 )
               }
@@ -410,6 +442,18 @@ export function TemplateEditor({
               </p>
             </PanelBody>
           </Panel>
+
+          {unavailable.length > 0 && (
+            <Notice tone="warning" title="Variáveis que ficarão em branco">
+              <ul className="list-disc pl-4">
+                {unavailable.map((u) => (
+                  <li key={u.key}>
+                    {u.label} ({`{{${u.key}}}`}): {u.reason}.
+                  </li>
+                ))}
+              </ul>
+            </Notice>
+          )}
 
           {unknown.length > 0 && (
             <Notice tone="warning" title="Campos que não existem">
