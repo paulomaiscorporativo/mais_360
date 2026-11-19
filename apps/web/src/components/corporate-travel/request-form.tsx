@@ -147,6 +147,7 @@ export function TravelRequestForm({
   doneHref: string;
 }) {
   const router = useRouter();
+  const offset = mode === "staff" ? 1 : 0;
   const [pending, start] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -320,7 +321,7 @@ export function TravelRequestForm({
       }}
     >
       {mode === "staff" && (
-        <Step n={0} title="Solicitante" description="Quem pede e recebe as opções.">
+        <Step n={1} title="Solicitante" description="Quem pede e recebe as opções.">
           <Field label="Pessoa" error={err("requester")}>
             {(a) => (
               <Select
@@ -376,7 +377,7 @@ export function TravelRequestForm({
         </Step>
       )}
 
-      <Step n={1} title="Roteiro" description="Para onde e quando.">
+      <Step n={1 + offset} title="Roteiro" description="Para onde e quando.">
         <ChoiceCards
           label="Tipo de viagem"
           value={tripType}
@@ -520,7 +521,11 @@ export function TravelRequestForm({
         </label>
       </Step>
 
-      <Step n={2} title="Passageiros" description="Nomes como estão no documento de viagem.">
+      <Step
+        n={2 + offset}
+        title="Passageiros"
+        description="Nomes como estão no documento de viagem."
+      >
         {passengers.map((p, i) => (
           <fieldset key={p.key} className="border-border rounded-md border p-4">
             <legend className="text-fg-muted px-1 text-xs font-semibold">
@@ -634,7 +639,11 @@ export function TravelRequestForm({
         )}
       </Step>
 
-      <Step n={3} title="Serviços" description="Marque o que precisa; detalhe o que importar.">
+      <Step
+        n={3 + offset}
+        title="Serviços"
+        description="Marque o que precisa; detalhe o que importar."
+      >
         <div role="group" aria-label="Serviços pedidos" className="flex flex-wrap gap-2">
           {REQUEST_SERVICES.map((s) => {
             const Icon = SERVICE_ICON[s];
@@ -839,7 +848,7 @@ export function TravelRequestForm({
           ))}
       </Step>
 
-      <Step n={4} title="Motivo e orçamento">
+      <Step n={4 + offset} title="Motivo e orçamento">
         <TextField
           label="Motivo da viagem"
           multiline
