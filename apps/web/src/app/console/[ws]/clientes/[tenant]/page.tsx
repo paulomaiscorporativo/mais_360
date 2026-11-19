@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, History } from "lucide-react";
 import { MODULES } from "@mais/core";
 import { Button, EmptyState, Panel, PanelHeader, Stat } from "@/components/ui";
-import { MODULE_UI } from "@/config/modules-ui";
+import { MODULE_UI, moduleHref } from "@/config/modules-ui";
 import { termsWithDefaults } from "@/config/terms";
 import { guard, requireTenant } from "@/server/auth";
 import { prisma } from "@/server/db";
@@ -91,7 +91,7 @@ export default async function TenantOverview({
                 return (
                   <li key={m} className={i >= 2 ? "sm:border-border sm:border-t" : undefined}>
                     <Link
-                      href={`${base}/m/${MODULE_UI[m].slug}`}
+                      href={moduleHref(base, m)}
                       className="group hover:bg-surface-muted flex items-start gap-3 px-5 py-4 transition-colors"
                     >
                       <span className="bg-brand-subtle text-brand-subtle-fg grid size-8 shrink-0 place-items-center rounded-sm [&_svg]:size-4">

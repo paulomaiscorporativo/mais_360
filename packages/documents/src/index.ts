@@ -14,4 +14,4 @@ export {
   type PreparedPage,
 } from "./prepare";
 export { layoutSections } from "./sections";
-export { fontMeasurer, fontsDir } from "./fonts";
+export { fontMeasurer, fontsDir, fontBytes, CSS_FAMILIES } from "./fonts";

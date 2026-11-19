@@ -351,7 +351,7 @@ export async function renderPdf(
   const def = parseDefinition(definition);
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  doc.setCreator("Comitiva · Mais Corporativo");
+  doc.setCreator("Mais 360 · Mais Corporativo");
   doc.setProducer("@mais/documents");
   if (opts.title) doc.setTitle(opts.title);
   if (opts.author) doc.setAuthor(opts.author);
