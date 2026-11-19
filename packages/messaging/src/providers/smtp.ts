@@ -64,3 +64,21 @@ export function createSmtpProvider(
     },
   };
 }
+
+/** Testa conexão e autenticação no servidor SMTP (botão "Testar conexão" do painel). */
+export async function verifySmtpConnection(smtp: SmtpSettings): Promise<void> {
+  const transport = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    connectionTimeout: 10_000,
+    ...(smtp.user ? { auth: { user: smtp.user, pass: smtp.pass } } : {}),
+  });
+  try {
+    await transport.verify();
+  } catch (e) {
+    throw classify(e as SmtpError);
+  } finally {
+    transport.close();
+  }
+}

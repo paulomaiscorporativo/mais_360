@@ -6,8 +6,15 @@ loadMonorepoEnv();
 
 const nextConfig: NextConfig = {
   // Pacotes do monorepo são TypeScript puro: o Next transpila.
-  transpilePackages: ["@mais/core", "@mais/db", "@mais/documents"],
-  serverExternalPackages: ["@prisma/client", "bcryptjs", "pdf-lib", "@pdf-lib/fontkit", "qrcode"],
+  transpilePackages: ["@mais/core", "@mais/db", "@mais/documents", "@mais/messaging"],
+  serverExternalPackages: [
+    "@prisma/client",
+    "bcryptjs",
+    "nodemailer",
+    "pdf-lib",
+    "@pdf-lib/fontkit",
+    "qrcode",
+  ],
   // Fontes TTF do motor de documentos (lidas do disco na geração de PDF/HTML).
   outputFileTracingIncludes: { "/**": ["../../packages/documents/fonts/**"] },
   poweredByHeader: false,

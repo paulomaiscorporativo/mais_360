@@ -7,7 +7,7 @@ import { createWebhookProvider } from "./webhook";
 
 export * from "./types";
 export * from "./fake";
-export { createSmtpProvider } from "./smtp";
+export { createSmtpProvider, verifySmtpConnection } from "./smtp";
 export { createEvolutionProvider, evolutionAdmin } from "./evolution";
 export { createMetaCloudProvider } from "./meta-cloud";
 export { createWebhookProvider } from "./webhook";

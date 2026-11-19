@@ -38,7 +38,11 @@
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.0",
     "vaul": "^1.1.2",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "class-variance-authority": "^0.7.1",
+    "next-themes": "^0.4.6",
+    "server-only": "^0.0.1",
+    "@mais/messaging": "*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

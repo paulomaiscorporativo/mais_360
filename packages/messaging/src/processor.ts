@@ -372,7 +372,7 @@ function emailFor(
     subject: rendered.subject,
     html: rendered.html,
     text: rendered.text,
-    headers: { "X-Comitiva-Delivery": deliveryId },
+    headers: { "X-Mais360-Delivery": deliveryId },
   };
 }
 

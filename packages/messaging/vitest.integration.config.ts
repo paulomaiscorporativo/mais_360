@@ -31,7 +31,7 @@ export default defineConfig({
       SMTP_SECURE: "false",
       SMTP_USER: "",
       SMTP_PASS: "",
-      SMTP_FROM: "Comitiva Testes <testes@mais.tur.br>",
+      SMTP_FROM: "Mais 360 Testes <testes@mais.tur.br>",
       MAILPIT_API: process.env.MAILPIT_API ?? "http://localhost:8025",
       EVOLUTION_URL: "",
       EVOLUTION_APIKEY: "",
