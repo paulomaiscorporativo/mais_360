@@ -29,6 +29,14 @@ type Result = {
 
 const MAX_ROWS = 5000;
 
+function decodeText(buf: ArrayBuffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buf).replace(/^﻿/, "");
+  } catch {
+    return new TextDecoder("windows-1252").decode(buf);
+  }
+}
+
 /**
  * Importação em três passos: arquivo → conferir colunas → resultado.
  * A planilha é lida NO NAVEGADOR (SheetJS); o servidor recebe só as linhas
@@ -72,7 +80,12 @@ export function ImportSheet({
     setReading(true);
     try {
       const XLSX = await import("xlsx");
-      const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
+      const buf = await file.arrayBuffer();
+      // CSV: o SheetJS assume Windows-1252; decodificamos como UTF-8 e, se o
+      // arquivo não for UTF-8 válido (CSV salvo pelo Excel), como Windows-1252.
+      const wb = /\.(csv|txt)$/i.test(file.name)
+        ? XLSX.read(decodeText(buf), { type: "string", raw: true })
+        : XLSX.read(buf, { type: "array", cellDates: false });
       const sheet = wb.Sheets[wb.SheetNames[0] ?? ""];
       if (!sheet) throw new Error("A planilha está vazia.");
       const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {

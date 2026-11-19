@@ -107,7 +107,7 @@ export function ProjectWizard({
   const ordered = useMemo(() => {
     const tpl = type ? projectTemplate(type).features : [];
     return [...PROJECT_FEATURES].sort((a, b) => {
-      const rank = (f: ProjectFeature) => (tpl.includes(f) ? 0 : avail.has(f) ? 1 : 2);
+      const rank = (f: ProjectFeature) => (!avail.has(f) ? 2 : tpl.includes(f) ? 0 : 1);
       return rank(a) - rank(b);
     });
   }, [type, avail]);
