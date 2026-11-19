@@ -10,7 +10,7 @@ import { calendarDaysUntil, formatDateBR, formatTimeBR } from "./timezone";
 export type FieldContextKind =
   "pessoa" | "inscricao" | "projeto" | "cliente" | "convite" | "viagem";
 
-export type FieldDefinition = {
+export type MessageFieldDefinition = {
   key: string;
   label: string;
   context: FieldContextKind;
@@ -19,7 +19,7 @@ export type FieldDefinition = {
   isLink?: boolean;
 };
 
-export const MESSAGE_FIELDS: readonly FieldDefinition[] = [
+export const MESSAGE_FIELDS: readonly MessageFieldDefinition[] = [
   // Pessoa
   { key: "nome", label: "Nome completo", context: "pessoa", example: "Maria Fernanda Souza" },
   { key: "primeiro_nome", label: "Primeiro nome", context: "pessoa", example: "Maria" },
