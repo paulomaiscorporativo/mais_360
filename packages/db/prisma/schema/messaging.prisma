@@ -168,6 +168,9 @@ model MessageDelivery {
   lockedAt          DateTime?
   lockedBy          String         @default("")
   providerMessageId String         @default("")
+  // Remetente que efetivamente enviou ("evolution:<instância>", "meta:<phoneId>", "smtp:<conta>").
+  // O limite diário do WhatsApp é por NÚMERO, não por cliente: o número global é compartilhado.
+  senderKey         String         @default("")
   subject           String         @default("") // como foi enviado
   bodyPreview       String         @default("")
   error             String         @default("")
@@ -181,7 +184,7 @@ model MessageDelivery {
 
   @@index([campaignId, status])
   @@index([tenantId, registrationId])
-  @@index([tenantId, channel, sentAt]) // limite diário por número
+  @@index([channel, senderKey, sentAt]) // limite diário por número remetente
   @@index([providerMessageId])
 }
 

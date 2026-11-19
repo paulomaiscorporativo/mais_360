@@ -1,0 +1,202 @@
+import type { EmailBranding, MessageContext } from "@mais/core/messaging";
+import type { Prisma, PrismaClient } from "@mais/db";
+import { appUrl, defaultTimeZone } from "./env";
+
+/**
+ * Monta o contexto de renderização a partir do banco. É chamado NA HORA DO
+ * ENVIO: um disparo que dura dias usa os dados atuais ("faltam N dias",
+ * confirmação, categoria), não os do momento em que foi criado.
+ */
+
+const tenantInclude = {
+  branding: true,
+  domains: { where: { primary: true }, take: 1 },
+  workspace: { select: { whiteLabel: true } },
+} satisfies Prisma.TenantInclude;
+
+type TenantForContext = Prisma.TenantGetPayload<{ include: typeof tenantInclude }>;
+type ProjectForContext = {
+  name: string;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  timezone: string | null;
+  venueName: string;
+  venueAddress: string;
+  destination: string;
+  bannerFileId: string | null;
+  logoFileId: string | null;
+  primaryColor: string | null;
+};
+
+export type LoadedContext = {
+  ctx: MessageContext;
+  branding: EmailBranding;
+  tenantId: string;
+  projectId: string | null;
+};
+
+/** URL pública do cliente: domínio principal cadastrado ou APP_URL. */
+export function publicBaseUrl(tenant: Pick<TenantForContext, "domains">): string {
+  const host = tenant.domains[0]?.hostname;
+  return host ? `https://${host}` : appUrl();
+}
+
+/** Arquivo público (logo, banner) servido pela aplicação web. */
+export const publicFileUrl = (fileId: string | null | undefined) =>
+  fileId ? `${appUrl()}/api/files/${fileId}` : undefined;
+
+export function brandingFor(
+  tenant: TenantForContext,
+  project?: ProjectForContext | null,
+): EmailBranding {
+  const b = tenant.branding;
+  return {
+    primaryColor: project?.primaryColor || b?.primaryColor || "#002042",
+    accentColor: b?.accentColor,
+    logoUrl: publicFileUrl(project?.logoFileId ?? b?.logoFileId),
+    bannerUrl: publicFileUrl(project?.bannerFileId),
+    footer: b?.emailFooter || undefined,
+    showPlatformBrand: !tenant.workspace.whiteLabel && (b?.showMaisBrand ?? true),
+  };
+}
+
+function projectContext(p: ProjectForContext): NonNullable<MessageContext["project"]> {
+  return {
+    name: p.name,
+    startsAt: p.startsAt,
+    endsAt: p.endsAt,
+    venueName: p.venueName,
+    venueAddress: p.venueAddress,
+    destination: p.destination,
+  };
+}
+
+const projectSelect = {
+  name: true,
+  startsAt: true,
+  endsAt: true,
+  timezone: true,
+  venueName: true,
+  venueAddress: true,
+  destination: true,
+  bannerFileId: true,
+  logoFileId: true,
+  primaryColor: true,
+} satisfies Prisma.ProjectSelect;
+
+const personInclude = {
+  organizations: {
+    where: { primary: true },
+    include: { organization: { select: { name: true } } },
+    take: 1,
+  },
+} satisfies Prisma.PersonInclude;
+
+type PersonForContext = Prisma.PersonGetPayload<{ include: typeof personInclude }>;
+
+function personContext(
+  p: PersonForContext,
+  overrides: { company?: string; jobTitle?: string } = {},
+): MessageContext["person"] {
+  const primary = p.organizations[0];
+  return {
+    firstName: p.firstName,
+    lastName: p.lastName,
+    badgeName: p.badgeName,
+    email: p.email,
+    phone: p.phone,
+    company: overrides.company || primary?.organization.name || "",
+    jobTitle: overrides.jobTitle || primary?.role || p.jobTitle,
+  };
+}
+
+export async function loadRegistrationContext(
+  db: PrismaClient,
+  registrationId: string,
+): Promise<LoadedContext | null> {
+  const r = await db.registration.findUnique({
+    where: { id: registrationId },
+    include: {
+      person: { include: personInclude },
+      category: { select: { name: true } },
+      project: { select: { ...projectSelect, tenant: { include: tenantInclude } } },
+    },
+  });
+  if (!r) return null;
+  const tenant = r.project.tenant;
+  const base = publicBaseUrl(tenant);
+  const badgeUrl = `${base}/c/${r.token}`;
+  return {
+    tenantId: r.tenantId,
+    projectId: r.projectId,
+    branding: brandingFor(tenant, r.project),
+    ctx: {
+      timeZone: r.project.timezone || tenant.timezone || defaultTimeZone(),
+      tenant: { name: tenant.name },
+      person: personContext(r.person, { company: r.displayCompany, jobTitle: r.displayJobTitle }),
+      registration: {
+        status: r.status,
+        checkedIn: !!r.checkedInAt,
+        category: r.category?.name,
+        shortCode: r.shortCode,
+        badgeUrl,
+        confirmUrl: `${badgeUrl}?confirmar=1`,
+      },
+      project: projectContext(r.project),
+    },
+  };
+}
+
+/** Membro do cliente sem projeto (comunicados para associados, colaboradores…). */
+export async function loadPersonContext(
+  db: PrismaClient,
+  personId: string,
+  projectId?: string | null,
+): Promise<LoadedContext | null> {
+  const p = await db.person.findUnique({
+    where: { id: personId },
+    include: { ...personInclude, tenant: { include: tenantInclude } },
+  });
+  if (!p) return null;
+  const project = projectId
+    ? await db.project.findFirst({
+        where: { id: projectId, tenantId: p.tenantId },
+        select: projectSelect,
+      })
+    : null;
+  return {
+    tenantId: p.tenantId,
+    projectId: project ? (projectId ?? null) : null,
+    branding: brandingFor(p.tenant, project),
+    ctx: {
+      timeZone: project?.timezone || p.tenant.timezone || defaultTimeZone(),
+      tenant: { name: p.tenant.name },
+      person: personContext(p),
+      ...(project ? { project: projectContext(project) } : {}),
+    },
+  };
+}
+
+/** Marca e fuso do cliente/projeto sem pessoa (pré-visualização com dados fictícios). */
+export async function loadScopeBranding(
+  db: PrismaClient,
+  tenantId: string,
+  projectId?: string | null,
+): Promise<{
+  tenantName: string;
+  timeZone: string;
+  branding: EmailBranding;
+  project: MessageContext["project"] | null;
+} | null> {
+  const tenant = await db.tenant.findUnique({ where: { id: tenantId }, include: tenantInclude });
+  if (!tenant) return null;
+  const project = projectId
+    ? await db.project.findFirst({ where: { id: projectId, tenantId }, select: projectSelect })
+    : null;
+  return {
+    tenantName: tenant.name,
+    timeZone: project?.timezone || tenant.timezone || defaultTimeZone(),
+    branding: brandingFor(tenant, project),
+    project: project ? projectContext(project) : null,
+  };
+}
