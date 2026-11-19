@@ -672,22 +672,14 @@ export const cancelCampaignAction = defineAction(campaignRef, async ({ tenant, i
   return r;
 });
 
-const DELIVERY_STATUS = [
-  "QUEUED",
-  "SENDING",
-  "SENT",
-  "DELIVERED",
-  "READ",
-  "FAILED",
-  "SKIPPED",
-  "CANCELED",
-] as const;
+type DeliveryStatusName =
+  "QUEUED" | "SENDING" | "SENT" | "DELIVERED" | "READ" | "FAILED" | "SKIPPED" | "CANCELED";
 
 export type LiveDelivery = {
   id: string;
   name: string;
   target: string;
-  status: (typeof DELIVERY_STATUS)[number];
+  status: DeliveryStatusName;
   error: string;
   sentAt: string | null;
   deliveredAt: string | null;
@@ -707,7 +699,7 @@ export const campaignLive = defineAction(
     const ctx = await requireCommunication(tenant, "VIEWER");
     const summary = await campaignSummary(prisma, { tenantId: ctx.tenantId, campaignId: id });
     if (!summary) throw new AppError("Envio não encontrado.");
-    const statusIn: Record<typeof filter, (typeof DELIVERY_STATUS)[number][] | undefined> = {
+    const statusIn: Record<typeof filter, DeliveryStatusName[] | undefined> = {
       ALL: undefined,
       SENT: ["SENT", "DELIVERED", "READ"],
       PENDING: ["QUEUED", "SENDING"],

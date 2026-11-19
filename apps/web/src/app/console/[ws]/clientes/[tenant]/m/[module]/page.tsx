@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, FolderPlus } from "lucide-react";
 import { MODULES } from "@mais/core";
 import { Badge, EmptyState, Panel, PanelHeader } from "@/components/ui";
-import { MODULE_UI, moduleBySlug, moduleLine } from "@/config/modules-ui";
+import { MODULE_UI, moduleBySlug, moduleHref, moduleLine } from "@/config/modules-ui";
 import { guard, requireTenant } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { modulesForTenant } from "@/server/modules";
@@ -40,11 +40,13 @@ export async function generateMetadata({
 export default async function ModulePage({
   params,
 }: {
-  params: Promise<{ tenant: string; module: string }>;
+  params: Promise<{ ws: string; tenant: string; module: string }>;
 }) {
-  const { tenant: slug, module } = await params;
+  const { ws, tenant: slug, module } = await params;
   const key = moduleBySlug(module);
   if (!key) notFound();
+  // Módulos com telas próprias: a página genérica só redireciona
+  if (MODULE_UI[key].dedicated) redirect(moduleHref(`/console/${ws}/clientes/${slug}`, key));
   const ctx = await guard(requireTenant(slug));
   const active = await modulesForTenant(ctx.tenant);
   // Módulo não contratado não existe para o cliente (checagem no servidor, não só na tela).

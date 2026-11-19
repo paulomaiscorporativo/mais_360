@@ -84,8 +84,8 @@ export function TemplateEditor({
   const [chosen, setChosen] = useState<boolean>(!!initial);
   const [dirty, setDirty] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [preview, setPreview] = useState<PreviewData | null>(null);
-  const [previewing, setPreviewing] = useState(false);
+  // Resultado da última pré-visualização e a versão do texto a que se refere
+  const [rendered, setRendered] = useState<{ key: string; data: PreviewData } | null>(null);
   const [mobileView, setMobileView] = useState<"write" | "preview">("write");
   const [saving, startSave] = useTransition();
   const subjectRef = useRef<FieldEditorHandle>(null);
@@ -113,7 +113,6 @@ export function TemplateEditor({
   );
   useEffect(() => {
     if (!chosen) return;
-    setPreviewing(true);
     const handle = setTimeout(async () => {
       const r = await previewTemplateAction({
         tenant,
@@ -126,12 +125,14 @@ export function TemplateEditor({
           includeActions: t.includeActions,
         },
       });
-      if (r.ok) setPreview(r.data);
-      setPreviewing(false);
+      if (r.ok) setRendered({ key: previewKey, data: r.data });
     }, 380);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewKey, chosen, tenant]);
+
+  const preview = rendered?.data ?? null;
+  const previewing = rendered?.key !== previewKey;
 
   // Aviso ao sair com alterações não salvas
   useEffect(() => {

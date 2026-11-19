@@ -17,8 +17,16 @@ import { PRODUCT } from "./product";
 type Line = keyof typeof PRODUCT.lines;
 
 /** Ícone, caminho de URL e linha de produto de cada módulo (textos vêm do catálogo em @mais/core). */
-export const MODULE_UI: Record<ModuleKey, { slug: string; icon: LucideIcon; line?: Line }> = {
-  COMMUNICATION: { slug: "comunicacao", icon: MessagesSquare, line: "connect" },
+export const MODULE_UI: Record<
+  ModuleKey,
+  {
+    slug: string;
+    icon: LucideIcon;
+    line?: Line;
+    /** Módulo com telas próprias em <cliente>/<slug> */ dedicated?: boolean;
+  }
+> = {
+  COMMUNICATION: { slug: "comunicacao", icon: MessagesSquare, line: "connect", dedicated: true },
   CORPORATE_TRAVEL: { slug: "viagens-corporativas", icon: Briefcase, line: "travel" },
   GROUP_TRAVEL: { slug: "viagens-de-grupo", icon: Plane, line: "travel" },
   EVENTS_INVITES: { slug: "eventos", icon: MailOpen, line: "events" },
@@ -38,4 +46,10 @@ export function moduleBySlug(slug: string): ModuleKey | null {
 export function moduleLine(key: ModuleKey): string | null {
   const line = MODULE_UI[key].line;
   return line ? PRODUCT.lines[line] : null;
+}
+
+/** Endereço do módulo dentro do cliente: telas próprias ou a página genérica do módulo. */
+export function moduleHref(tenantBase: string, key: ModuleKey): string {
+  const m = MODULE_UI[key];
+  return m.dedicated ? `${tenantBase}/${m.slug}` : `${tenantBase}/m/${m.slug}`;
 }

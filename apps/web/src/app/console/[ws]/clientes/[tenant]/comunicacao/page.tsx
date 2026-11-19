@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 export const metadata: Metadata = { title: "Comunicação" };
 
 const nf = new Intl.NumberFormat("pt-BR");
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 
 export default async function CommunicationOverview({
   params,
@@ -24,7 +25,7 @@ export default async function CommunicationOverview({
   const { ws, tenant } = await params;
   const ctx = await guard(requireCommunication(tenant));
   const base = communicationBase(ws, tenant);
-  const since = new Date(Date.now() - 30 * 86_400_000);
+  const since = daysAgo(30);
 
   const [channels, templates, active, recent, byStatus] = await Promise.all([
     ctx.db.messagingChannel.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),

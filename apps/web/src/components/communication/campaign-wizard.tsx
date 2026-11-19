@@ -171,10 +171,15 @@ export function CampaignWizard({
   const [custom, setCustom] = useState<CustomPacing>({ ...PACING_PRESETS.cauteloso });
   const [when, setWhen] = useState<"now" | "schedule">("now");
   const [scheduleAt, setScheduleAt] = useState("");
+  /** Validado no momento da escolha (a data precisa estar no futuro) */
+  const [scheduleOk, setScheduleOk] = useState(false);
 
-  const [audience, setAudience] = useState<AudiencePreview | null>(null);
-  const [audienceError, setAudienceError] = useState<string | null>(null);
-  const [counting, setCounting] = useState(false);
+  // Última contagem e a combinação de filtros a que ela se refere
+  const [counted, setCounted] = useState<{
+    key: string;
+    data: AudiencePreview | null;
+    error: string | null;
+  } | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [creating, start] = useTransition();
 
@@ -204,18 +209,13 @@ export function CampaignWizard({
   const projectForCampaign = source === "project" ? projectId : null;
 
   // Contagem ao vivo do público (mesmas regras da criação)
+  const audienceReady =
+    step >= 1 &&
+    !(source === "project" && !projectId) &&
+    !(audiencePayload.kind === "explicit" && !audiencePayload.registrationIds.length);
+  const audienceKey = JSON.stringify([projectForCampaign, channel, audiencePayload, pacing]);
   useEffect(() => {
-    if (step < 1) return;
-    if (source === "project" && !projectId) {
-      setAudience(null);
-      return;
-    }
-    if (audiencePayload.kind === "explicit" && !audiencePayload.registrationIds.length) {
-      setAudience(null);
-      setAudienceError(null);
-      return;
-    }
-    setCounting(true);
+    if (!audienceReady) return;
     const h = setTimeout(async () => {
       const r = await previewAudienceAction({
         tenant,
@@ -224,17 +224,17 @@ export function CampaignWizard({
         audience: audiencePayload,
         pacing: channel === "WHATSAPP" ? pacing : undefined,
       });
-      if (r.ok) {
-        setAudience(r.data as AudiencePreview);
-        setAudienceError(null);
-      } else {
-        setAudience(null);
-        setAudienceError(r.error);
-      }
-      setCounting(false);
+      setCounted(
+        r.ok
+          ? { key: audienceKey, data: r.data as AudiencePreview, error: null }
+          : { key: audienceKey, data: null, error: r.error },
+      );
     }, 300);
     return () => clearTimeout(h);
-  }, [step, tenant, projectForCampaign, channel, audiencePayload, pacing, source, projectId]);
+  }, [audienceReady, audienceKey, tenant, projectForCampaign, channel, audiencePayload, pacing]);
+  const counting = audienceReady && counted?.key !== audienceKey;
+  const audience = audienceReady ? (counted?.data ?? null) : null;
+  const audienceError = audienceReady ? (counted?.error ?? null) : null;
 
   // Filtros do projeto (categorias)
   useEffect(() => {
@@ -261,7 +261,7 @@ export function CampaignWizard({
   const canNext = [
     !!template && channelOk(channel) && !(channel === "WHATSAPP" && activeWhatsapp),
     !!audience && audience.sendable > 0 && !counting,
-    when === "now" || (!!scheduleDate && scheduleDate.getTime() > Date.now() + 60_000),
+    when === "now" || (!!scheduleDate && scheduleOk),
     true,
   ][step];
 
@@ -779,7 +779,11 @@ export function CampaignWizard({
                         aria-describedby={describedBy}
                         className="sm:w-64"
                         value={scheduleAt}
-                        onChange={(e) => setScheduleAt(e.target.value)}
+                        onChange={(e) => {
+                          setScheduleAt(e.target.value);
+                          const d = e.target.value ? new Date(e.target.value) : null;
+                          setScheduleOk(!!d && d.getTime() > Date.now() + 60_000);
+                        }}
                       />
                     )}
                   </Field>
@@ -1078,17 +1082,20 @@ function PeoplePicker({
   onChange: (m: Map<string, string>) => void;
 }) {
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<{ id: string; name: string; detail: string }[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [found, setFound] = useState<{
+    key: string;
+    rows: { id: string; name: string; detail: string }[];
+  } | null>(null);
+  const key = `${projectId}|${q}`;
   useEffect(() => {
-    setLoading(true);
     const h = setTimeout(async () => {
       const r = await searchRegistrations({ tenant, projectId, q });
-      if (r.ok) setRows(r.data);
-      setLoading(false);
+      setFound({ key, rows: r.ok ? r.data : [] });
     }, 250);
     return () => clearTimeout(h);
-  }, [tenant, projectId, q]);
+  }, [tenant, projectId, q, key]);
+  const rows = found?.rows ?? [];
+  const loading = found?.key !== key;
   const toggle = (id: string, name: string) => {
     const m = new Map(picked);
     if (m.has(id)) m.delete(id);

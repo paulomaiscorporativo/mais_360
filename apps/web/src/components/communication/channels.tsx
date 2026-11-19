@@ -18,7 +18,7 @@ import {
   Webhook,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Badge, Button, Field, Input, Notice, Panel, PanelHeader, Spinner } from "@/components/ui";
 import { Select, Switch } from "@/components/ui/controls";
 import {
@@ -380,15 +380,21 @@ function WhatsappRow({
 }) {
   const [state, setState] = useState<WhatsappLiveState | null>(null);
   const [checking, setChecking] = useState(false);
-  const check = useCallback(async () => {
-    setChecking(true);
-    const r = await whatsappStatus({ tenant, id: channel.id });
-    setState(r.ok ? r.data : { state: "unavailable", qr: null, message: r.error });
-    setChecking(false);
-  }, [tenant, channel.id]);
+  const toState = (r: Awaited<ReturnType<typeof whatsappStatus>>): WhatsappLiveState =>
+    r.ok ? r.data : { state: "unavailable", qr: null, message: r.error };
+  // Verificação inicial: o estado só muda quando a resposta chega
   useEffect(() => {
-    void check();
-  }, [check]);
+    let alive = true;
+    void whatsappStatus({ tenant, id: channel.id }).then((r) => alive && setState(toState(r)));
+    return () => {
+      alive = false;
+    };
+  }, [tenant, channel.id]);
+  const check = async () => {
+    setChecking(true);
+    setState(toState(await whatsappStatus({ tenant, id: channel.id })));
+    setChecking(false);
+  };
   const ui = state ? STATE_UI[state.state] : null;
   const evolution = channel.provider === "EVOLUTION";
 
@@ -401,7 +407,7 @@ function WhatsappRow({
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate font-medium">{channel.name}</span>
           <Badge size="sm">{scope}</Badge>
-          {checking && !state ? (
+          {!state ? (
             <span className="text-fg-subtle inline-flex items-center gap-1.5 text-xs">
               <Spinner className="size-3" /> verificando
             </span>
@@ -462,11 +468,14 @@ function PairingSheet({
   const [pending, start] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const poll = useCallback(
-    async (first: boolean) => {
+  // Pareamento: cria a instância e acompanha o QR até conectar
+  useEffect(() => {
+    let alive = true;
+    const poll = async (first: boolean) => {
       const r = first
         ? await whatsappConnect({ tenant, id: channel.id })
         : await whatsappStatus({ tenant, id: channel.id });
+      if (!alive) return;
       if (!r.ok) {
         setError(r.error);
         return;
@@ -488,16 +497,13 @@ function PairingSheet({
         () => void poll(r.data.state !== "connecting" || !r.data.qr),
         3000,
       );
-    },
-    [tenant, channel.id, channel.name],
-  );
-
-  useEffect(() => {
+    };
     void poll(true);
     return () => {
+      alive = false;
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [poll]);
+  }, [tenant, channel.id, channel.name]);
 
   const disconnect = () =>
     start(async () => {
