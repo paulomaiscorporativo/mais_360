@@ -29,6 +29,9 @@ export const REQUEST_SERVICES = [
 ] as const;
 export type RequestService = (typeof REQUEST_SERVICES)[number];
 
+/** Tipos de item na reserva manual (localizadores). */
+export const BOOKING_TYPES = [...REQUEST_SERVICES, "CUSTOM"] as const;
+
 export const SERVICE_LABEL: Record<string, string> = {
   AIR: "Aéreo",
   HOTEL: "Hotel",

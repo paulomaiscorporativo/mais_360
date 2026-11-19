@@ -8,8 +8,8 @@ import { Protocol, TravelStatusBadge } from "@/components/corporate-travel/displ
 import { Button, EmptyState } from "@/components/ui";
 import { personName } from "@/server/corporate-travel";
 import { currentMember } from "@/server/member-portal";
-import { loadMemberArea, MemberShell } from "./shell";
-import { MemberLogin, MemberMenu, MemberPasswordForm } from "./member-client";
+import { loadMemberArea, MemberShell } from "../shell";
+import { MemberLogin, MemberMenu, MemberPasswordForm } from "../member-client";
 
 export const metadata: Metadata = {
   title: { absolute: "Minhas viagens" },

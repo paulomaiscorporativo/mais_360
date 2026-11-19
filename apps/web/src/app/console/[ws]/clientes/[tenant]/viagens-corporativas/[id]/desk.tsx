@@ -15,7 +15,7 @@ import {
 import { useRef, useState } from "react";
 import { CABIN_CLASS_LABELS, CABIN_CLASSES } from "@mais/core";
 import { QUOTE_LINE_TYPES, type QuoteInput } from "@mais/core/corporate-travel";
-import { serviceLabel } from "@/components/corporate-travel/labels";
+import { BOOKING_TYPES, serviceLabel } from "@/components/corporate-travel/labels";
 import { TextField, useRunAction } from "@/components/travel/kit";
 import { Button, Field, Notice } from "@/components/ui";
 import { Checkbox, Select } from "@/components/ui/controls";
@@ -125,7 +125,13 @@ export function QuoteEditor({
 }: Ctx & {
   draft?: QuoteDraft;
   defaultServices: string[];
-  trigger: (open: () => void) => React.ReactNode;
+  /** Botão que abre o editor (props simples: vem de componente de servidor). */
+  trigger: {
+    label: string;
+    variant?: "primary" | "secondary";
+    size?: "sm" | "md";
+    icon?: "plus" | "edit";
+  };
 }) {
   const { run, pending, errors } = useRunAction();
   const [open, setOpen] = useState(false);
@@ -172,10 +178,16 @@ export function QuoteEditor({
 
   return (
     <>
-      {trigger(() => {
-        setQ(initial());
-        setOpen(true);
-      })}
+      <Button
+        variant={trigger.variant ?? "secondary"}
+        size={trigger.size ?? "sm"}
+        onClick={() => {
+          setQ(initial());
+          setOpen(true);
+        }}
+      >
+        {trigger.icon === "edit" ? <Pencil /> : <Plus />} {trigger.label}
+      </Button>
       <Sheet
         open={open}
         onOpenChange={setOpen}
@@ -386,11 +398,7 @@ export function QuoteActions({
           requestId={requestId}
           draft={draft}
           defaultServices={defaultServices}
-          trigger={(open) => (
-            <Button variant="secondary" size="sm" onClick={open}>
-              <Pencil /> Editar
-            </Button>
-          )}
+          trigger={{ label: "Editar", icon: "edit" }}
         />
       )}
       {canChoose && (
@@ -537,20 +545,6 @@ export function SendQuotesButton({
 // ---------------------------------------------------------------------------
 // Reserva manual e documentos
 // ---------------------------------------------------------------------------
-
-export const BOOKING_TYPES = [
-  "AIR",
-  "HOTEL",
-  "TRANSFER",
-  "CAR_RENTAL",
-  "CHAUFFEUR",
-  "TRAVEL_INSURANCE",
-  "CURRENCY_EXCHANGE",
-  "VISA",
-  "CONNECTIVITY",
-  "EVENT_TICKET",
-  "CUSTOM",
-] as const;
 
 export type BookingLine = {
   type: (typeof BOOKING_TYPES)[number];

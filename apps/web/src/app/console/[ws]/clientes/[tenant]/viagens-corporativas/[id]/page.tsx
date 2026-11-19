@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, FileText, Mail, Phone, Plus, UserCheck } from "lucide-react";
+import { ArrowLeft, Download, FileText, Mail, Phone, UserCheck } from "lucide-react";
 import { zonedParts } from "@mais/core";
 import {
   canBook,
@@ -19,7 +19,7 @@ import {
   Timeline,
   TravelStatusBadge,
 } from "@/components/corporate-travel/display";
-import { SERVICE_ICON } from "@/components/corporate-travel/labels";
+import { BOOKING_TYPES, SERVICE_ICON } from "@/components/corporate-travel/labels";
 import { QuoteCompare } from "@/components/corporate-travel/quote-compare";
 import { SectionTitle } from "@/components/travel/kit";
 import { Badge, Button, EmptyState, Notice, Panel } from "@/components/ui";
@@ -39,7 +39,6 @@ import {
   QuoteActions,
   QuoteEditor,
   SendQuotesButton,
-  BOOKING_TYPES,
   UploadDocument,
   type BookingLine,
   type QuoteDraft,
@@ -257,11 +256,7 @@ export default async function TravelRequestDetailPage({
                   <QuoteEditor
                     {...ctx}
                     defaultServices={r.requestedServices}
-                    trigger={(open) => (
-                      <Button size="sm" variant="secondary" onClick={open}>
-                        <Plus /> Nova opção
-                      </Button>
-                    )}
+                    trigger={{ label: "Nova opção" }}
                   />
                 ) : undefined
               }
@@ -303,11 +298,7 @@ export default async function TravelRequestDetailPage({
                     <QuoteEditor
                       {...ctx}
                       defaultServices={r.requestedServices}
-                      trigger={(open) => (
-                        <Button onClick={open}>
-                          <Plus /> Montar a primeira opção
-                        </Button>
-                      )}
+                      trigger={{ label: "Montar a primeira opção", variant: "primary", size: "md" }}
                     />
                   ) : undefined
                 }
