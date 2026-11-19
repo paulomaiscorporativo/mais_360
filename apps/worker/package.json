@@ -1,0 +1,18 @@
+{
+  "name": "@mais/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Processo contínuo: fila de jobs (disparos, réguas, expirações)",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mais/db": "*",
+    "@mais/messaging": "*",
+    "dotenv": "^16.5.0",
+    "tsx": "^4.19.4"
+  }
+}
