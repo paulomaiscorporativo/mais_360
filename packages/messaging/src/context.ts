@@ -119,7 +119,16 @@ export async function loadRegistrationContext(
     include: {
       person: { include: personInclude },
       category: { select: { name: true } },
-      project: { select: { ...projectSelect, tenant: { include: tenantInclude } } },
+      project: {
+        select: {
+          ...projectSelect,
+          tenant: { include: tenantInclude },
+          inviteSettings: { select: { dressCode: true, inviteDeadline: true } },
+        },
+      },
+      // Dados do convite (módulo Eventos e convites) — ausentes nos demais projetos
+      invite: { include: { companyQuota: { select: { companyName: true, login: true } } } },
+      seat: { include: { table: { select: { number: true } } } },
     },
   });
   if (!r) return null;
@@ -143,6 +152,20 @@ export async function loadRegistrationContext(
         confirmUrl: `${badgeUrl}?confirmar=1`,
       },
       project: projectContext(r.project),
+      ...(r.invite || r.seat || r.project.inviteSettings
+        ? {
+            invite: {
+              table: r.seat?.table.number ?? null,
+              seat: r.seat?.seat ?? null,
+              dressCode: r.project.inviteSettings?.dressCode ?? "",
+              deadline: r.project.inviteSettings?.inviteDeadline ?? null,
+              invitingCompany: r.invite?.companyQuota?.companyName ?? "",
+              // Login só para o responsável da empresa (convite traz o acesso ao painel)
+              login: r.invite?.kind === "RESPONSIBLE" ? (r.invite.companyQuota?.login ?? "") : "",
+              platformUrl: r.invite?.kind === "RESPONSIBLE" ? `${base}/empresa` : "",
+            },
+          }
+        : {}),
     },
   };
 }

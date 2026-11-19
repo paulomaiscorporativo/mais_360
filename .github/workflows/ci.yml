@@ -36,10 +36,12 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       # Integração: fila de mensagens (concorrência entre workers, janela, limite diário)
+      # e check-in do evento (leituras simultâneas, isolamento entre clientes)
       - name: Testes de integração
         env:
           TEST_DATABASE_URL: postgresql://mais:mais@localhost:5432/mais_ci_integration?schema=public
         run: |
           DATABASE_URL="$TEST_DATABASE_URL" npx prisma db push --skip-generate --schema packages/db/prisma/schema
           npm run test:integration -w @mais/messaging
+          npm run test:integration -w @mais/web
       - run: npm run build -w @mais/web
