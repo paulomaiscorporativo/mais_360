@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { splitFullName } from "@mais/core";
+import { enabledProjectFeatures, splitFullName } from "@mais/core";
 import type { Channel } from "@mais/core/messaging";
 import { defineAction, v } from "@/server/action";
 import { audit } from "@/server/audit";
@@ -20,6 +20,7 @@ import {
   undoCheckIn,
 } from "@/server/events";
 import { requireTenant } from "@/server/auth";
+import { modulesForTenant } from "@/server/modules";
 import { tenantDb } from "@/server/tenant-db";
 
 const ref = { tenant: z.string(), projectId: z.string() };
@@ -426,20 +427,32 @@ export const setGuestStatus = defineAction(
 // Check-in (balcão do evento: OPERATOR ou DESK)
 // ---------------------------------------------------------------------------
 
+/** Balcão: papel DESK ou acima, projeto ativo do cliente e convites ligados. */
+async function deskProject(tenant: string, projectId: string) {
+  const ctx = await requireTenant(tenant, "DESK");
+  const db = tenantDb(ctx);
+  const project = await db.project.findFirst({
+    where: { id: projectId, archivedAt: null },
+    include: { features: true },
+  });
+  if (!project) throw new AppError("Projeto não encontrado.");
+  const features = enabledProjectFeatures(project.features, await modulesForTenant(ctx.tenant));
+  if (!features.has("INVITES"))
+    throw new AppError("Este recurso não está ligado no projeto.", "FORBIDDEN");
+  return { ...ctx, db, project, scope: { tenantId: ctx.tenantId, projectId: project.id } };
+}
+
 export const checkIn = defineAction(
   z.object({ tenant: z.string(), projectId: z.string(), raw: z.string().max(400) }),
   async (i) => {
-    const ctx = await requireTenant(i.tenant, "DESK");
-    const db = tenantDb(ctx);
-    const project = await db.project.findFirst({ where: { id: i.projectId, archivedAt: null } });
-    if (!project) throw new AppError("Projeto não encontrado.");
-    const r = await checkInByScan(db, project.id, i.raw, ctx.viewer.user.name);
+    const d = await deskProject(i.tenant, i.projectId);
+    const r = await checkInByScan(d.scope, i.raw, d.viewer.user.name);
     if (r.ok && !r.already) {
       await audit({
         action: "registration.checkin",
-        userId: ctx.viewer.user.id,
-        tenantId: ctx.tenantId,
-        projectId: project.id,
+        userId: d.viewer.user.id,
+        tenantId: d.tenantId,
+        projectId: d.project.id,
         entityType: "Registration",
         entityId: r.guest.id,
       });
@@ -451,8 +464,16 @@ export const checkIn = defineAction(
 export const undoCheckInAction = defineAction(
   z.object({ tenant: z.string(), projectId: z.string(), id: z.string() }),
   async (i) => {
-    const ctx = await requireTenant(i.tenant, "DESK");
-    await undoCheckIn(tenantDb(ctx), i.projectId, i.id);
+    const d = await deskProject(i.tenant, i.projectId);
+    if (await undoCheckIn(d.scope, i.id))
+      await audit({
+        action: "registration.checkin.undo",
+        userId: d.viewer.user.id,
+        tenantId: d.tenantId,
+        projectId: d.project.id,
+        entityType: "Registration",
+        entityId: i.id,
+      });
     return null;
   },
 );
@@ -460,17 +481,16 @@ export const undoCheckInAction = defineAction(
 export const checkinStats = defineAction(
   z.object({ tenant: z.string(), projectId: z.string() }),
   async (i) => {
-    const ctx = await requireTenant(i.tenant, "DESK");
-    const db = tenantDb(ctx);
+    const d = await deskProject(i.tenant, i.projectId);
     const where = {
-      projectId: i.projectId,
+      projectId: d.project.id,
       role: "GUEST" as const,
       status: { not: "CANCELED" as const },
     };
     const [total, checked, confirmed] = await Promise.all([
-      db.registration.count({ where }),
-      db.registration.count({ where: { ...where, checkedInAt: { not: null } } }),
-      db.registration.count({ where: { ...where, status: "CONFIRMED" } }),
+      d.db.registration.count({ where }),
+      d.db.registration.count({ where: { ...where, checkedInAt: { not: null } } }),
+      d.db.registration.count({ where: { ...where, status: "CONFIRMED" } }),
     ]);
     return { total, checked, confirmed };
   },

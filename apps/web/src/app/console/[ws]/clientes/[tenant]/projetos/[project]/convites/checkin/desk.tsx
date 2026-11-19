@@ -27,10 +27,11 @@ export function CheckinDesk({
   tenant,
   projectId,
   initial,
+  timeZone,
 }: {
   tenant: string;
   projectId: string;
-  operator: string;
+  timeZone: string;
   initial: { total: number; checked: number; confirmed: number };
 }) {
   const [camera, setCamera] = useState(false);
@@ -61,6 +62,8 @@ export function CheckinDesk({
         }
         const res = r.data;
         setLast(res);
+        // Retorno tátil no celular/tablet: curto = ok, longo = atenção
+        navigator.vibrate?.(res.ok && !res.already ? 60 : [120, 60, 120]);
         setRecent((list) => [{ at: Date.now(), result: res }, ...list].slice(0, 12));
         if (res.ok && !res.already) setStats((s) => ({ ...s, checked: s.checked + 1 }));
         setCode("");
@@ -117,7 +120,7 @@ export function CheckinDesk({
           <QrScanner onScan={submit} paused={pending} className="aspect-[4/3] w-full max-w-xl" />
         )}
 
-        <ResultCard result={last} onUndo={undo} />
+        <ResultCard result={last} onUndo={undo} timeZone={timeZone} />
       </div>
 
       <aside className="flex flex-col gap-4">
@@ -161,6 +164,7 @@ export function CheckinDesk({
                     {new Date(r.at).toLocaleTimeString("pt-BR", {
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone,
                     })}
                   </span>
                 </li>
@@ -176,9 +180,11 @@ export function CheckinDesk({
 function ResultCard({
   result,
   onUndo,
+  timeZone,
 }: {
   result: CheckinResult | null;
   onUndo: (g: CheckinGuest) => void;
+  timeZone: string;
 }) {
   if (!result)
     return (
@@ -227,6 +233,7 @@ function ResultCard({
                 {new Date(g.checkedInAt).toLocaleTimeString("pt-BR", {
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone,
                 })}
               </span>
             )}

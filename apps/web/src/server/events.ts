@@ -3,17 +3,15 @@ import { randomInt } from "node:crypto";
 import {
   canCompanyRegister,
   companyLogin,
-  inviteStatus,
-  parseScan,
   planQuotaExpiration,
   provisionalPassword,
-  type InviteStatus,
 } from "@mais/core";
 import { encryptSecret, decryptSecret, parseKey } from "@mais/core/crypto";
 import type { Channel } from "@mais/core/messaging";
-import type { InviteKind, Prisma } from "@mais/db";
+import type { InviteKind } from "@mais/db";
 import type { ProjectFeature } from "@mais/core";
 import { sendTransactional } from "@mais/messaging";
+import { checkInRegistration, undoCheckInRegistration } from "./checkin-core";
 import { prisma } from "./db";
 import { AppError } from "./errors";
 import { hashPassword } from "./password";
@@ -494,86 +492,22 @@ export async function expireQuotas(
 }
 
 // ---------------------------------------------------------------------------
-// Check-in (reaproveitável pelo credenciamento)
+// Check-in (reaproveitável pelo credenciamento) — núcleo em checkin-core.ts
 // ---------------------------------------------------------------------------
 
-export type CheckinGuest = {
-  id: string;
-  name: string;
-  company: string;
-  category: string;
-  table: string;
-  shortCode: string;
-  status: InviteStatus;
-  checkedInAt: string | null;
-};
+export type { CheckinGuest, CheckinResult } from "./checkin-core";
 
-export type CheckinResult =
-  | { ok: true; already: boolean; guest: CheckinGuest }
-  | { ok: false; error: string; guest?: CheckinGuest };
-
-const checkinInclude = {
-  person: true,
-  category: true,
-  invite: true,
-  seat: { include: { table: true } },
-} satisfies Prisma.RegistrationInclude;
-
-function toGuest(
-  r: Prisma.RegistrationGetPayload<{ include: typeof checkinInclude }>,
-): CheckinGuest {
-  return {
-    id: r.id,
-    name: `${r.person.firstName} ${r.person.lastName}`.trim(),
-    company: r.displayCompany,
-    category: r.category?.name ?? "",
-    table: r.seat
-      ? `Mesa ${r.seat.table.number}${r.seat.seat ? ` · cadeira ${r.seat.seat}` : ""}`
-      : "",
-    shortCode: r.shortCode,
-    status: inviteStatus({ ...r, sentAt: r.invite?.sentAt }),
-    checkedInAt: r.checkedInAt?.toISOString() ?? null,
-  };
-}
-
-/** Credencia pelo QR (URL /c/<token>), token cru ou código curto. */
-export async function checkInByScan(
-  db: TenantDb,
-  projectId: string,
+export function checkInByScan(
+  scope: { tenantId: string; projectId: string },
   raw: string,
   operator: string,
-): Promise<CheckinResult> {
-  const target = parseScan(raw);
-  if (!target) return { ok: false, error: "Não reconhecemos esse código. Tente de novo." };
-  const r = await db.registration.findFirst({
-    where: {
-      projectId,
-      ...(target.kind === "token" ? { token: target.token } : { shortCode: target.code }),
-    },
-    include: checkinInclude,
-  });
-  if (!r) return { ok: false, error: "Convite não encontrado neste evento." };
-  if (r.status === "CANCELED")
-    return { ok: false, error: "Convite cancelado. Encaminhe à organização.", guest: toGuest(r) };
-  if (r.checkedInAt) return { ok: true, already: true, guest: toGuest(r) };
-  const updated = await db.registration.update({
-    where: { id: r.id },
-    data: {
-      checkedInAt: new Date(),
-      checkedInBy: operator,
-      status:
-        r.status === "DECLINED" || r.status === "PENDING" || r.status === "INVITED"
-          ? "CONFIRMED"
-          : r.status,
-    },
-    include: checkinInclude,
-  });
-  return { ok: true, already: false, guest: toGuest(updated) };
+) {
+  return checkInRegistration(prisma, scope, raw, operator);
 }
 
-export async function undoCheckIn(db: TenantDb, projectId: string, registrationId: string) {
-  await db.registration.updateMany({
-    where: { id: registrationId, projectId },
-    data: { checkedInAt: null, checkedInBy: "" },
-  });
+export function undoCheckIn(
+  scope: { tenantId: string; projectId: string },
+  registrationId: string,
+) {
+  return undoCheckInRegistration(prisma, scope, registrationId);
 }

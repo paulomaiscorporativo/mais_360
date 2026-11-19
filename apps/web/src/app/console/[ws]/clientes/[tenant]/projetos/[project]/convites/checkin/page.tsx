@@ -23,7 +23,7 @@ export default async function CheckinPage({
     <CheckinDesk
       tenant={tenant}
       projectId={p.projectId}
-      operator={p.viewer.user.name}
+      timeZone={p.project.timezone ?? p.tenant.timezone}
       initial={{ total, checked, confirmed }}
     />
   );
