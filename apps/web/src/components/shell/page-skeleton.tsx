@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui";
 
-export default function Loading() {
+export function PageSkeleton() {
   return (
     <div aria-busy="true" aria-label="Carregando">
       <Skeleton className="h-4 w-32" />

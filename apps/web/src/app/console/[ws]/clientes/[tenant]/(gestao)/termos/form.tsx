@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { updateTerms } from "@/app/console/[ws]/actions";
-import { TermsFields } from "../../_components/terms-fields";
+import { TermsFields } from "../../../_components/terms-fields";
 
 export function TermsForm({
   tenant,

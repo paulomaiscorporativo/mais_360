@@ -6,7 +6,7 @@ import { MODULES, type ModuleKey } from "@mais/core";
 import { Button, Notice } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { updateModules } from "@/app/console/[ws]/actions";
-import { ModulePicker } from "../../_components/module-picker";
+import { ModulePicker } from "../../../_components/module-picker";
 
 export function ModulesForm({
   tenant,

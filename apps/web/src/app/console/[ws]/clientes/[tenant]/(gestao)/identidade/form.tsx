@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { updateBranding } from "@/app/console/[ws]/actions";
-import { BrandFields, BrandPreview, type BrandValue } from "../../_components/brand-editor";
+import { BrandFields, BrandPreview, type BrandValue } from "../../../_components/brand-editor";
 
 export function BrandForm({
   tenant,
