@@ -2,7 +2,7 @@ import QRCode from "qrcode";
 import { readProjectSettings } from "@mais/core";
 import { guard } from "@/server/auth";
 import { requireProjectFeature } from "@/server/projects";
-import { publicFormUrl } from "../public-url";
+import { publicFormUrl } from "@/server/public-links";
 import { FormSettings } from "./form-settings";
 
 export default async function FormPage({

@@ -43,7 +43,8 @@ export function defineAction<S extends z.ZodType, T>(
       return { ok: true, data: await handler(parsed.data) };
     } catch (err) {
       unstable_rethrow(err);
-      if (err instanceof AppError) return { ok: false, error: err.message };
+      if (err instanceof AppError)
+        return { ok: false, error: err.message, ...(err.fieldErrors ? { fieldErrors: err.fieldErrors } : {}) };
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
         return { ok: false, error: "Já existe um registro com esses dados." };
       }

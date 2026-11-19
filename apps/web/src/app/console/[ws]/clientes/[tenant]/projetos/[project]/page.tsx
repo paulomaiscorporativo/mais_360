@@ -4,7 +4,7 @@ import { PROJECT_FEATURE_LABELS, readProjectSettings } from "@mais/core";
 import { Badge, Button, EmptyState, Panel, PanelHeader, Stat } from "@/components/ui";
 import { guard } from "@/server/auth";
 import { projectBase, requireProject } from "@/server/projects";
-import { publicFormUrl } from "./public-url";
+import { publicFormUrl } from "@/server/public-links";
 import { CopyButton } from "./copy-button";
 
 export default async function ProjectOverview({
