@@ -1,7 +1,8 @@
 import type { ColorValue } from "./schema";
 import type { DocumentData } from "./data";
+import { contrastRatio, luminance, type Rgb } from "../theme/color";
 
-export type Rgb = { r: number; g: number; b: number }; // 0..1
+// Contraste e luminância têm uma única implementação: o motor de tema (../theme/color).
 
 const PALETTE = {
   ink: "#0b1a2b",
@@ -28,18 +29,6 @@ export function rgbToHex({ r, g, b }: Rgb): string {
       .toString(16)
       .padStart(2, "0");
   return `#${h(r)}${h(g)}${h(b)}`;
-}
-
-/** Luminância relativa (WCAG 2.x). */
-export function luminance(hex: string): number {
-  const ch = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-  const { r, g, b } = hexToRgb(hex);
-  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
-}
-
-export function contrastRatio(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
-  return (hi + 0.05) / (lo + 0.05);
 }
 
 /** Preto-tinta ou branco: o que tiver mais contraste sobre o fundo. */

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { contrastRatio } from "../theme/color";
 import {
   BADGE_A6,
   DEFAULT_TEMPLATES,
@@ -6,7 +7,6 @@ import {
   SAMPLE_REGISTRATION,
   SAMPLE_TRAVELER,
   approximateMeasurer,
-  contrastRatio,
   encodeCode128,
   fieldsForKind,
   fitText,
