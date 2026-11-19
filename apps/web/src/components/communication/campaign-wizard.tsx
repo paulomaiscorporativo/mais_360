@@ -254,6 +254,20 @@ export function CampaignWizard({
     }).then((r) => r.ok && setPreview(r.data));
   }, [step, template, tenant, projectForCampaign]);
 
+  // Campos que dependem de um evento/viagem ficam vazios para a base de membros
+  const PROJECT_FIELDS =
+    /\{\{\s*(projeto|data_inicio|hora_inicio|data_fim|dias_restantes|local|endereco|link_mapa|destino|mesa|traje|link_confirmar|link_cracha|codigo|categoria)\s*\}\}/i;
+  const projectFieldsWithoutProject =
+    source === "members" &&
+    !!template &&
+    PROJECT_FIELDS.test(
+      [
+        template.content.emailSubject,
+        template.content.emailBody,
+        template.content.whatsappBody,
+      ].join(" "),
+    );
+
   const channelOk = (c: Channel) =>
     ready[c] && (!template || (c === "EMAIL" ? template.hasEmail : template.hasWhatsapp));
   const scheduleDate = scheduleAt ? new Date(scheduleAt) : null;
@@ -501,6 +515,18 @@ export function CampaignWizard({
                   ]}
                 />
               </Section>
+
+              {projectFieldsWithoutProject && (
+                <Notice
+                  tone="warning"
+                  icon={<CircleAlert />}
+                  title="Este modelo usa dados de evento"
+                >
+                  Campos como nome do evento, data e local ficam em branco para a base de{" "}
+                  {memberLabel.toLowerCase()}. Escolha “Inscritos de um evento ou viagem” ou use um
+                  modelo sem esses campos.
+                </Notice>
+              )}
 
               {source === "members" && memberTypes.length > 1 && (
                 <Section title="Tipos" description="Sem seleção, todos recebem.">
@@ -1049,9 +1075,9 @@ function AudienceSummary({
           <div className="border-border flex flex-col gap-1.5 border-t pt-4">
             <p className="text-fg-subtle text-xs font-medium">Primeiros da fila</p>
             {audience.sample.map((s, i) => (
-              <p key={i} className="flex justify-between gap-2 text-xs">
+              <p key={i} className="flex min-w-0 flex-col text-xs">
                 <span className="truncate">{s.name}</span>
-                <span className="text-fg-subtle font-mono">{maskTarget(s.target)}</span>
+                <span className="text-fg-subtle truncate font-mono">{maskTarget(s.target)}</span>
               </p>
             ))}
           </div>
