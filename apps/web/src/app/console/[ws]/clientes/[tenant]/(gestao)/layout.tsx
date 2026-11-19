@@ -68,6 +68,7 @@ export default async function TenantLayout({
           { href: `${base}/modulos`, label: "Módulos", count: active.size },
           { href: `${base}/identidade`, label: "Identidade visual" },
           { href: `${base}/termos`, label: "Nomenclatura" },
+          { href: `${base}/ordenacao`, label: "Ordenação" },
           { href: `${base}/equipe`, label: "Equipe", count: members },
         ]}
       />
