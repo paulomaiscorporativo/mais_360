@@ -1,0 +1,81 @@
+// ============================================================================
+// SaaS — planos, assinaturas e medição de uso.
+// O provedor de cobrança (Asaas, Stripe…) fica atrás de uma interface em
+// @mais/core/billing; aqui guardamos só o estado e as referências externas.
+// ============================================================================
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+model Plan {
+  id          String          @id @default(cuid())
+  code        String          @unique // "essencial", "profissional", "enterprise"
+  name        String
+  description String          @default("")
+  public      Boolean         @default(true) // aparece na página de preços
+  priceCents  Int // por intervalo
+  currency    String          @default("BRL")
+  interval    BillingInterval @default(MONTHLY)
+  modules     ModuleKey[]
+  // { "tenants": 5, "activeProjects": 20, "registrationsPerMonth": 5000,
+  //   "whatsappPerMonth": 10000, "kiosks": 4, "users": 15, "storageGb": 50 }
+  limits      Json            @default("{}")
+  sortOrder   Int             @default(0)
+  archivedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  subscriptions Subscription[]
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  workspaceId            String             @unique
+  planId                 String
+  status                 SubscriptionStatus @default(TRIALING)
+  // Módulos avulsos além do plano (add-ons) e limites negociados
+  extraModules           ModuleKey[]
+  limitOverrides         Json               @default("{}")
+  currentPeriodStart     DateTime           @default(now())
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  provider               String             @default("") // "asaas" | "stripe" | "manual"
+  providerCustomerId     String             @default("")
+  providerSubscriptionId String             @default("")
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  plan      Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+}
+
+// Medição de uso para limites e cobrança por consumo (agregado por dia)
+enum UsageMetric {
+  REGISTRATIONS
+  WHATSAPP_MESSAGES
+  EMAILS
+  FACE_MATCHES
+  BADGES_PRINTED
+  STORAGE_BYTES
+}
+
+model UsageRecord {
+  workspaceId String
+  tenantId    String
+  metric      UsageMetric
+  day         DateTime    @db.Date
+  quantity    Int         @default(0)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, tenantId, metric, day])
+}

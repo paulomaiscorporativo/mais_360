@@ -1,0 +1,247 @@
+// ============================================================================
+// COMUNICAÇÃO — motor único de e-mail e WhatsApp para todos os módulos.
+//
+// Garantias de projeto (lições do incidente de 17/11/2026 no sistema_convite):
+//   • Uma mensagem por (campanha, inscrição/pessoa, canal): `MessageDelivery.dedupeKey` é único.
+//   • A fila é lida com `SELECT … FOR UPDATE SKIP LOCKED` (vários workers nunca pegam o mesmo item).
+//   • Janela de horário avaliada SEMPRE no fuso da campanha, nunca no relógio do servidor.
+//   • O texto é renderizado na hora do envio a partir do snapshot do modelo.
+// ============================================================================
+
+enum ChannelKind {
+  EMAIL
+  WHATSAPP
+}
+
+enum WhatsappProvider {
+  EVOLUTION // WhatsApp comum pareado por QR code
+  META_CLOUD // API oficial
+  WEBHOOK // Z-API e similares
+}
+
+// Canal de envio de um cliente (ou de um projeto específico).
+// Sem canal próprio, vale o global da plataforma (variáveis de ambiente).
+model MessagingChannel {
+  id          String            @id @default(cuid())
+  tenantId    String
+  projectId   String? // null = padrão do cliente
+  kind        ChannelKind
+  name        String
+  // E-mail
+  fromName    String            @default("")
+  fromEmail   String            @default("")
+  replyTo     String            @default("")
+  smtpHost    String            @default("")
+  smtpPort    Int               @default(587)
+  smtpSecure  Boolean           @default(false)
+  smtpUser    String            @default("")
+  smtpPassEnc String            @default("") // cifrado com ENCRYPTION_KEY
+  // WhatsApp
+  waProvider  WhatsappProvider?
+  waInstance  String            @default("") // nome da instância na Evolution
+  waConfigEnc String            @default("") // tokens cifrados (Meta/webhook)
+  waNumber    String            @default("")
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns MessageCampaign[]
+
+  @@index([tenantId, projectId, kind])
+}
+
+enum TemplatePurpose {
+  CUSTOM // mensagem livre do organizador
+  INVITE // convite digital
+  INVITE_CANCEL
+  REGISTRATION_CONFIRMED // inscrição confirmada / crachá digital
+  REMINDER
+  CHECKIN_WELCOME
+  VOUCHER
+  TRAVEL_REQUEST_RECEIPT
+  TRAVEL_QUOTE_READY
+  APPROVAL_REQUEST
+  PASSWORD_ACCESS
+  SURVEY
+}
+
+// Modelo de mensagem com campos dinâmicos {{nome}}, {{link_cracha}}…
+// O catálogo de campos e o renderizador ficam em @mais/core (messaging/).
+model MessageTemplate {
+  id             String          @id @default(cuid())
+  tenantId       String
+  projectId      String? // null = modelo do cliente (reutilizável)
+  purpose        TemplatePurpose @default(CUSTOM)
+  name           String
+  emailSubject   String          @default("")
+  emailBody      String          @default("") // texto com marcações simples + campos
+  whatsappBody   String          @default("")
+  includeActions Boolean         @default(true) // botões "Confirmar presença" / "Abrir crachá"
+  archivedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  campaigns   MessageCampaign[]
+  automations MessageAutomation[]
+
+  @@index([tenantId, projectId])
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED // pausa manual ou automática (desconexão, falhas seguidas)
+  WAITING_WINDOW // fora da janela de horário / limite diário atingido
+  COMPLETED
+  CANCELED
+  FAILED
+}
+
+// Um disparo: modelo + público + canal + ritmo
+model MessageCampaign {
+  id                  String         @id @default(cuid())
+  tenantId            String
+  projectId           String?
+  templateId          String?
+  channelId           String?
+  channel             ChannelKind
+  name                String
+  // Cópia congelada do modelo: editar o modelo não altera um disparo iniciado
+  snapshot            Json
+  // Público: filtro salvo ou lista explícita (validado em @mais/core)
+  audience            Json           @default("{}")
+  // Ritmo (WhatsApp): { preset, intervalMinS, intervalMaxS, batch, batchPauseMinM, batchPauseMaxM,
+  //                     dailyLimit, windowStart: "08:00", windowEnd: "20:00" }
+  pacing              Json           @default("{}")
+  timezone            String         @default("America/Sao_Paulo")
+  status              CampaignStatus @default(DRAFT)
+  statusReason        String         @default("")
+  scheduledAt         DateTime?
+  nextSendAt          DateTime?
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  total               Int            @default(0)
+  sent                Int            @default(0)
+  failed              Int            @default(0)
+  skipped             Int            @default(0) // sem e-mail/telefone, duplicado, sem consentimento
+  consecutiveFailures Int            @default(0)
+  automationId        String?
+  createdBy           String         @default("")
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  template   MessageTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  channelRef MessagingChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  deliveries MessageDelivery[]
+
+  @@index([tenantId, projectId, createdAt])
+  @@index([status, nextSendAt])
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENDING // travado por um worker
+  SENT
+  DELIVERED // confirmação do provedor (webhook)
+  READ
+  FAILED
+  SKIPPED
+  CANCELED
+}
+
+model MessageDelivery {
+  id                String         @id @default(cuid())
+  tenantId          String
+  campaignId        String?
+  channel           ChannelKind
+  // Destinatário
+  personId          String?
+  registrationId    String?
+  recipientName     String         @default("")
+  target            String // e-mail ou número E.164
+  // Idempotência: "<campanha>:<inscrição|pessoa>:<canal>" ou "<evento>:<id>" nas mensagens transacionais
+  dedupeKey         String         @unique
+  status            DeliveryStatus @default(QUEUED)
+  attempts          Int            @default(0)
+  lockedAt          DateTime?
+  lockedBy          String         @default("")
+  providerMessageId String         @default("")
+  subject           String         @default("") // como foi enviado
+  bodyPreview       String         @default("")
+  error             String         @default("")
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  campaign MessageCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, status])
+  @@index([tenantId, registrationId])
+  @@index([tenantId, channel, sentAt]) // limite diário por número
+  @@index([providerMessageId])
+}
+
+enum AutomationTrigger {
+  REGISTRATION_CREATED
+  REGISTRATION_CONFIRMED
+  CHECKED_IN
+  DAYS_BEFORE_START // offsetDays
+  DAYS_AFTER_END
+  INVITE_DEADLINE_BEFORE
+}
+
+// Régua automática: gatilho → modelo → canais
+model MessageAutomation {
+  id         String            @id @default(cuid())
+  tenantId   String
+  projectId  String
+  templateId String
+  trigger    AutomationTrigger
+  offsetDays Int               @default(0)
+  sendAt     String            @default("09:00") // horário local para gatilhos por data
+  channels   ChannelKind[]
+  filter     Json              @default("{}") // categorias, papéis, status
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  template MessageTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId, active])
+}
+
+// ---------------------------------------------------------------------------
+// Jobs em segundo plano (outbox). O worker consome com SKIP LOCKED.
+// ---------------------------------------------------------------------------
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+  DEAD // excedeu tentativas
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  queue       String // "messaging.campaign.tick", "invites.expire", "flights.refresh"
+  payload     Json      @default("{}")
+  // Evita enfileirar o mesmo trabalho duas vezes
+  uniqueKey   String?   @unique
+  status      JobStatus @default(PENDING)
+  runAt       DateTime  @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  lockedAt    DateTime?
+  lockedBy    String    @default("")
+  lastError   String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, runAt])
+  @@index([queue, status])
+}

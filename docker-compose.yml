@@ -1,0 +1,30 @@
+# Ambiente de desenvolvimento local. Em produção, ver docs/DEPLOY.md.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mais
+      POSTGRES_PASSWORD: mais
+      POSTGRES_DB: mais_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mais -d mais_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Caixa de e-mail falsa para testar os disparos sem enviar nada de verdade
+  # (interface em http://localhost:8025, SMTP em localhost:1025).
+  mailpit:
+    image: axllent/mailpit:v1.24
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:

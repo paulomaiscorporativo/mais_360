@@ -1,0 +1,39 @@
+{
+  "name": "plataforma-mais",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma corporativa multiempresa da Mais Corporativo Viagens e Eventos",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @mais/web",
+    "dev:worker": "npm run dev -w @mais/worker",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d postgres mailpit",
+    "db:down": "docker compose down",
+    "db:generate": "npm run generate -w @mais/db",
+    "db:migrate": "npm run migrate:dev -w @mais/db",
+    "db:deploy": "npm run migrate:deploy -w @mais/db",
+    "db:seed": "npm run seed -w @mais/db",
+    "db:studio": "npm run studio -w @mais/db",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

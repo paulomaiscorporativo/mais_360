@@ -1,0 +1,688 @@
+// ============================================================================
+// NÚCLEO — multiempresa, identidade, pessoas, projetos e inscrições.
+//
+// Regras que valem para TODOS os arquivos deste schema:
+//   • toda tabela de negócio tem `tenantId` e índice começando por ele;
+//   • enums do Prisma para estados finitos (nunca string livre);
+//   • valores monetários em centavos (`Int`) + `currency`;
+//   • datas em UTC; o fuso de exibição vem do projeto/cliente;
+//   • exclusão lógica (`archivedAt`) para entidades com histórico.
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Assinante (workspace) — quem compra o SaaS: a Mais Corporativo, outra agência,
+// uma organizadora de eventos ou uma associação que contrata direto.
+// Cada assinante tem os PRÓPRIOS clientes (tenants).
+//
+//   Plataforma (SaaS) → Workspace (assinante) → Tenant (cliente) → Project
+// ---------------------------------------------------------------------------
+
+enum WorkspaceStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE // pagamento em atraso: acesso mantido, avisos na tela
+  SUSPENDED // bloqueado (somente leitura e exportação)
+  CANCELED
+}
+
+model Workspace {
+  id           String          @id @default(cuid())
+  slug         String          @unique
+  name         String
+  legalName    String          @default("")
+  document     String          @default("") // CNPJ
+  status       WorkspaceStatus @default(TRIAL)
+  trialEndsAt  DateTime?
+  // Marca própria do assinante (white-label): esconde a marca da plataforma
+  whiteLabel   Boolean         @default(false)
+  billingEmail String          @default("")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  tenants      Tenant[]
+  members      WorkspaceMember[]
+  subscription Subscription?
+  usage        UsageRecord[]
+}
+
+enum WorkspaceRole {
+  OWNER // dono da conta: assinatura e cobrança
+  ADMIN // cria clientes, libera módulos, gerencia equipe
+  OPERATOR // opera os clientes a que tiver vínculo
+  FINANCE
+}
+
+model WorkspaceMember {
+  workspaceId String
+  userId      String
+  role        WorkspaceRole
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Cliente / companhia (tenant) — pertence a um assinante
+// ---------------------------------------------------------------------------
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  workspaceId String
+  slug        String       @unique // subdomínio: abiec → abiec.mais.tur.br
+  name        String // nome de exibição: "ABIEC"
+  legalName   String       @default("")
+  document    String       @default("") // CNPJ
+  status      TenantStatus @default(ACTIVE)
+  timezone    String       @default("America/Sao_Paulo")
+  locale      String       @default("pt-BR")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  workspace     Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  branding      TenantBranding?
+  domains       TenantDomain[]
+  modules       TenantModule[]
+  terms         TenantTerm[]
+  memberships   Membership[]
+  people        Person[]
+  organizations Organization[]
+  projects      Project[]
+  channels      MessagingChannel[]
+  auditLogs     AuditLog[]
+  files         StoredFile[]
+
+  @@index([workspaceId])
+}
+
+// Identidade visual aplicada em todas as telas, e-mails, vouchers e crachás
+model TenantBranding {
+  tenantId       String   @id
+  logoFileId     String?
+  logoDarkFileId String?
+  faviconFileId  String?
+  primaryColor   String   @default("#002042") // azul Mais Corporativo
+  secondaryColor String   @default("#0f2836")
+  accentColor    String   @default("#a0bf27")
+  fontFamily     String   @default("Inter")
+  emailFooter    String   @default("")
+  showMaisBrand  Boolean  @default(true) // "operado por Mais Corporativo"
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model TenantDomain {
+  id        String   @id @default(cuid())
+  tenantId  String
+  hostname  String   @unique // abiec.mais.tur.br | eventos.abiec.com.br
+  primary   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// Módulos liberados ao cliente — sempre um subconjunto do plano do assinante.
+// O catálogo e as dependências ficam em @mais/core (modules).
+enum ModuleKey {
+  COMMUNICATION
+  CORPORATE_TRAVEL
+  GROUP_TRAVEL
+  EVENTS_INVITES
+  ACCREDITATION
+  SELF_SERVICE_KIOSK
+  DOCUMENTS
+  EXHIBITIONS
+  INCENTIVE_GAMIFICATION
+  FINANCE
+}
+
+model TenantModule {
+  tenantId   String
+  module     ModuleKey
+  enabled    Boolean   @default(true)
+  validFrom  DateTime  @default(now())
+  validUntil DateTime?
+  // Limites do plano: { "projects": 10, "registrationsPerProject": 3000, "whatsappPerDay": 500 }
+  limits     Json      @default("{}")
+  notes      String    @default("")
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, module])
+}
+
+// Dicionário de nomenclatura: "member.singular" → "Associado"
+model TenantTerm {
+  tenantId String
+  key      String
+  value    String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, key])
+}
+
+// ---------------------------------------------------------------------------
+// Usuários (quem opera a plataforma) e vínculos com clientes
+// ---------------------------------------------------------------------------
+
+// Papel na PLATAFORMA (equipe do SaaS). Assinantes usam WorkspaceRole.
+enum PlatformRole {
+  NONE
+  SUPERADMIN // dono do SaaS: assinantes, planos, cobrança, suporte
+  SUPPORT // suporte: acessa assinantes em modo assistido (auditado)
+}
+
+model User {
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  name               String
+  passwordHash       String
+  platformRole       PlatformRole @default(NONE)
+  active             Boolean      @default(true)
+  mustChangePassword Boolean      @default(true)
+  mfaSecret          String? // TOTP cifrado (opcional)
+  lastLoginAt        DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  workspaces  WorkspaceMember[]
+  memberships Membership[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+}
+
+enum TenantRole {
+  ADMIN // administra o cliente
+  MANAGER // gestor: cria e opera projetos
+  APPROVER // aprova viagens
+  OPERATOR // opera projetos atribuídos
+  DESK // balcão de credenciamento
+  SCANNER // leitor de acesso
+  SALES // vendedor de stands
+  VIEWER
+}
+
+model Membership {
+  id          String     @id @default(cuid())
+  tenantId    String
+  userId      String
+  role        TenantRole
+  // true = todos os projetos do cliente; false = apenas os de projectAccess
+  allProjects Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectAccess ProjectAccess[]
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+}
+
+model ProjectAccess {
+  membershipId String
+  projectId    String
+  // Papel específico no projeto (ex.: SCANNER da Plenária); null = herda o do vínculo
+  role         TenantRole?
+  areaId       String?
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, projectId])
+}
+
+// Sessões revogáveis (o cookie guarda só o id assinado)
+enum SessionKind {
+  USER // equipe e clientes
+  PERSON // membro, viajante, participante
+  COMPANY // empresa com cota de convites
+  KIOSK // totem de autoatendimento pareado
+}
+
+model Session {
+  id        String      @id @default(cuid())
+  kind      SessionKind
+  userId    String?
+  personId  String?
+  tenantId  String?
+  subjectId String? // empresa (COMPANY) ou totem (KIOSK)
+  userAgent String      @default("")
+  ip        String      @default("")
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime    @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([personId])
+}
+
+// ---------------------------------------------------------------------------
+// Pessoas — cadastro ÚNICO por cliente. Associado, colaborador, viajante,
+// convidado, visitante e expositor são PAPÉIS desta mesma pessoa.
+// ---------------------------------------------------------------------------
+
+model Person {
+  id                 String    @id @default(cuid())
+  tenantId           String
+  // Tipologia definida pelo cliente (rótulo via TenantTerm): ASSOCIADO, COLABORADOR…
+  memberType         String    @default("")
+  // Membro permanente com acesso à área do cliente (antigo "Associate")
+  isMember           Boolean   @default(false)
+  firstName          String
+  lastName           String    @default("")
+  badgeName          String    @default("") // nome curto impresso no crachá
+  socialName         String    @default("")
+  email              String    @default("")
+  emailNorm          String    @default("") // minúsculo, sem espaços — para deduplicar
+  phone              String    @default("") // E.164 sem "+": 5511999998888
+  cpf                String    @default("") // só dígitos
+  birthDate          DateTime?
+  nationality        String    @default("")
+  gender             String    @default("")
+  jobTitle           String    @default("")
+  city               String    @default("")
+  state              String    @default("")
+  country            String    @default("BR")
+  // Documentos de viagem
+  passportNumber     String    @default("")
+  passportExpiry     DateTime?
+  rg                 String    @default("")
+  // Saúde e emergência
+  dietary            String    @default("")
+  medicalNotes       String    @default("")
+  emergencyName      String    @default("")
+  emergencyPhone     String    @default("")
+  photoFileId        String?
+  // Acesso do membro à área do cliente
+  passwordHash       String?
+  mustChangePassword Boolean   @default(true)
+  lastLoginAt        DateTime?
+  searchText         String    @default("") // nome/empresa sem acento, para busca
+  customFields       Json      @default("{}")
+  externalIds        Json      @default("{}") // { "mautic": "123", "planilha": "A-77" }
+  archivedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organizations   PersonOrganization[]
+  registrations   Registration[]
+  consents        Consent[]
+  sessions        Session[]
+  faceEnrollments FaceEnrollment[]
+
+  @@index([tenantId, emailNorm])
+  @@index([tenantId, cpf])
+  @@index([tenantId, phone])
+  @@index([tenantId, isMember])
+}
+
+// Empresa à qual a pessoa pertence (frigorífico, distribuidora, filial, expositor…)
+model Organization {
+  id         String    @id @default(cuid())
+  tenantId   String
+  name       String
+  legalName  String    @default("")
+  document   String    @default("") // CNPJ
+  email      String    @default("")
+  phone      String    @default("")
+  city       String    @default("")
+  state      String    @default("")
+  kind       String    @default("") // tipologia livre do cliente
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant  Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members PersonOrganization[]
+
+  @@index([tenantId, name])
+}
+
+model PersonOrganization {
+  personId       String
+  organizationId String
+  role           String  @default("") // cargo naquela empresa
+  primary        Boolean @default(true)
+
+  person       Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([personId, organizationId])
+}
+
+// LGPD: cada finalidade é consentida e revogável separadamente
+enum ConsentPurpose {
+  CONTACT_SHARING // networking: compartilhar e-mail/WhatsApp com quem ler o crachá
+  MARKETING
+  WHATSAPP
+  BIOMETRIC // reconhecimento facial — dado sensível (LGPD art. 11)
+  IMAGE_USE
+}
+
+model Consent {
+  id          String         @id @default(cuid())
+  tenantId    String
+  personId    String
+  projectId   String?
+  purpose     ConsentPurpose
+  granted     Boolean
+  textVersion String         @default("") // versão do texto apresentado
+  source      String         @default("") // inscricao | balcao | app | totem
+  ip          String         @default("")
+  createdAt   DateTime       @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, personId, purpose])
+}
+
+// ---------------------------------------------------------------------------
+// Projetos — viagem corporativa, incentivo, evento, feira, imersão…
+// ---------------------------------------------------------------------------
+
+enum ProjectType {
+  CORPORATE_TRAVEL
+  INCENTIVE_TRIP
+  CORPORATE_EVENT
+  TRADE_SHOW
+  TECHNICAL_IMMERSION
+  SPORTS_EXPERIENCE
+  INCENTIVE_CAMPAIGN
+  OTHER
+}
+
+enum ProjectStatus {
+  PLANNING
+  REGISTRATION_OPEN
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+// Recursos ligáveis por projeto (só os que o cliente contratou aparecem)
+enum ProjectFeature {
+  REGISTRATION_FORM // formulário público de inscrição
+  INVITES // empresas com cota + convites digitais
+  TABLES // mapa de mesas
+  ACCREDITATION // balcão, etiquetas, check-in
+  SELF_SERVICE // totem com autoatendimento
+  FACE_RECOGNITION
+  ACCESS_CONTROL // leitura de entrada/saída por área
+  NETWORKING
+  FLIGHTS
+  ACCOMMODATION
+  ITINERARY
+  CHECKLIST
+  MURAL
+  SUPPORT
+  DOCUMENTS
+  VOUCHERS
+  STANDS
+}
+
+model Project {
+  id               String        @id @default(cuid())
+  tenantId         String
+  type             ProjectType
+  status           ProjectStatus @default(PLANNING)
+  name             String
+  slug             String // único dentro do cliente
+  code             String        @default("") // código interno / OS
+  description      String        @default("")
+  startsAt         DateTime?
+  endsAt           DateTime?
+  timezone         String? // null = fuso do cliente
+  venueName        String        @default("")
+  venueAddress     String        @default("")
+  destination      String        @default("")
+  // Personalização opcional por projeto (senão herda do cliente)
+  logoFileId       String?
+  bannerFileId     String?
+  letterheadFileId String?
+  primaryColor     String?
+  secondaryColor   String?
+  settings         Json          @default("{}") // configurações específicas, validadas por zod em @mais/core
+  publicToken      String        @unique @default(cuid()) // link público de inscrição
+  archivedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  tenant        Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  features      ProjectFeatureToggle[]
+  access        ProjectAccess[]
+  registrations Registration[]
+  categories    RegistrationCategory[]
+  groups        ProjectGroup[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model ProjectFeatureToggle {
+  projectId String
+  feature   ProjectFeature
+  enabled   Boolean        @default(true)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, feature])
+}
+
+// Categoria da inscrição: VISITANTE, EXPOSITOR, PALESTRANTE, IMPRENSA, ORGANIZADOR…
+model RegistrationCategory {
+  id        String @id @default(cuid())
+  tenantId  String
+  projectId String
+  name      String
+  color     String @default("#64748b")
+  sortOrder Int    @default(0)
+
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+
+  @@unique([projectId, name])
+  @@index([tenantId])
+}
+
+// Grupo/segmentação operacional (cores, ônibus, turmas)
+model ProjectGroup {
+  id        String @id @default(cuid())
+  tenantId  String
+  projectId String
+  name      String
+  color     String @default("#64748b")
+
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+
+  @@unique([projectId, name])
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Inscrição — o vínculo pessoa ↔ projeto. Substitui Passenger (viagem),
+// Invite (convite) e participants (credenciamento) dos sistemas antigos.
+// ---------------------------------------------------------------------------
+
+enum RegistrationRole {
+  TRAVELER // viajante titular
+  COMPANION // acompanhante
+  GUEST // convidado
+  ATTENDEE // participante/visitante
+  EXHIBITOR
+  SPEAKER
+  STAFF
+  PRESS
+}
+
+enum RegistrationStatus {
+  PENDING
+  INVITED
+  CONFIRMED
+  DECLINED
+  WAITLIST
+  CANCELED
+}
+
+enum RegistrationSource {
+  IMPORT
+  MANUAL
+  PUBLIC_FORM
+  COMPANY_QUOTA
+  DESK
+  KIOSK
+  INTEGRATION
+}
+
+model Registration {
+  id              String             @id @default(cuid())
+  tenantId        String
+  projectId       String
+  personId        String
+  role            RegistrationRole   @default(ATTENDEE)
+  status          RegistrationStatus @default(PENDING)
+  source          RegistrationSource @default(MANUAL)
+  categoryId      String?
+  groupId         String?
+  companionOfId   String? // acompanhante aponta para o titular
+  // Empresa exibida no crachá/convite (pode diferir da empresa do cadastro)
+  displayCompany  String             @default("")
+  displayJobTitle String             @default("")
+  // Identificadores públicos
+  token           String             @unique // segredo dos links (/c/<token>)
+  shortCode       String // 6 dígitos, digitável na recepção e no totem
+  // Credenciamento
+  checkedInAt     DateTime?
+  checkedInBy     String             @default("") // operador, totem ou "facial"
+  printCount      Int                @default(0)
+  lastPrintAt     DateTime?
+  confirmedAt     DateTime?
+  canceledAt      DateTime?
+  canceledBy      String             @default("")
+  formFilledAt    DateTime?
+  notes           String             @default("")
+  customFields    Json               @default("{}")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  project     Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  person      Person                @relation(fields: [personId], references: [id], onDelete: Cascade)
+  category    RegistrationCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  group       ProjectGroup?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  companionOf Registration?         @relation("Companions", fields: [companionOfId], references: [id], onDelete: SetNull)
+  companions  Registration[]        @relation("Companions")
+
+  @@unique([projectId, personId, role])
+  @@unique([projectId, shortCode])
+  @@index([tenantId, projectId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Biometria facial — embedding cifrado, nunca a foto. Expira após o evento.
+// ---------------------------------------------------------------------------
+
+model FaceEnrollment {
+  id        String   @id @default(cuid())
+  tenantId  String
+  personId  String
+  projectId String? // null = vale para todos os projetos do cliente
+  embedding Bytes // vetor cifrado com ENCRYPTION_KEY
+  model     String // nome/versão do modelo que gerou o vetor
+  quality   Float    @default(0)
+  consentId String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Arquivos (logos, banners, documentos, anexos) — conteúdo no STORAGE_DIR/S3
+// ---------------------------------------------------------------------------
+
+enum FileVisibility {
+  PRIVATE // só por rota autenticada
+  PUBLIC // pode ir em e-mail/página pública (logo, banner)
+}
+
+model StoredFile {
+  id         String         @id @default(cuid())
+  tenantId   String?
+  storageKey String         @unique
+  fileName   String
+  mimeType   String
+  size       Int
+  sha256     String
+  visibility FileVisibility @default(PRIVATE)
+  uploadedBy String         @default("")
+  createdAt  DateTime       @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Auditoria
+// ---------------------------------------------------------------------------
+
+enum ActorType {
+  USER
+  PERSON
+  COMPANY
+  KIOSK
+  SYSTEM
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  tenantId   String?
+  projectId  String?
+  userId     String?
+  actorType  ActorType @default(USER)
+  actorLabel String    @default("")
+  action     String // "registration.checkin", "tenant.module.enable"
+  entityType String    @default("")
+  entityId   String    @default("")
+  data       Json      @default("{}")
+  ip         String    @default("")
+  createdAt  DateTime  @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([entityType, entityId])
+}
