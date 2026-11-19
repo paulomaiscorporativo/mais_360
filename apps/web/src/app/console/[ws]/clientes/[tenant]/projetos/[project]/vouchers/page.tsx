@@ -1,7 +1,10 @@
 import { after } from "next/server";
 import { formatInZone } from "@mais/core";
+import { sortBy } from "@mais/core/sorting";
+import { BatchSortBar } from "@/components/sorting/batch-sort-bar";
 import { guard } from "@/server/auth";
-import { requireProjectFeature } from "@/server/projects";
+import { projectBase, requireProjectFeature } from "@/server/projects";
+import { batchSortProps, projectSorting, sortRowsOf } from "@/server/sorting";
 import { projectTz, travelersOf } from "@/server/travel";
 import { processVoucherJobs, voucherJobsOf } from "@/server/vouchers";
 import { VouchersManager, type VoucherTraveler } from "./vouchers";
@@ -11,14 +14,14 @@ export default async function VouchersPage({
   searchParams,
 }: {
   params: Promise<{ ws: string; tenant: string; project: string }>;
-  searchParams: Promise<{ modelo?: string }>;
+  searchParams: Promise<{ modelo?: string; ordem?: string }>;
 }) {
   const { ws, tenant, project } = await params;
-  const { modelo } = await searchParams;
+  const { modelo, ordem } = await searchParams;
   const p = await guard(requireProjectFeature(ws, tenant, project, "VOUCHERS"));
   const tz = projectTz(p);
 
-  const [templates, travelers, jobs] = await Promise.all([
+  const [templates, unsorted, jobs, sorting, sortBarProps, sortRows] = await Promise.all([
     p.db.documentTemplate.findMany({
       where: {
         kind: "VOUCHER",
@@ -34,7 +37,16 @@ export default async function VouchersPage({
     }),
     travelersOf(p.db, p.projectId),
     voucherJobsOf(p.projectId),
+    projectSorting(p, ordem),
+    batchSortProps(p),
+    sortRowsOf(p.db, p.projectId),
   ]);
+  // Lista na ordenação do projeto (ou na escolhida em ?ordem=)
+  const travelers = sortBy(
+    unsorted,
+    (t) => sortRows.get(t.id) ?? { id: t.id, fullName: t.name },
+    sorting.spec,
+  );
   const selected = templates.find((t) => t.id === modelo) ?? templates[0] ?? null;
 
   const issued = selected
@@ -66,29 +78,40 @@ export default async function VouchersPage({
   if (jobs.some((j) => j.status === "PENDING"))
     after(() => processVoucherJobs().catch((e) => console.error("[vouchers] fila", e)));
 
+  const here = `${projectBase(ws, tenant, project)}/vouchers${selected ? `?modelo=${selected.id}` : ""}`;
   return (
-    <VouchersManager
-      tenant={tenant}
-      projectId={p.projectId}
-      canEdit={p.canEdit}
-      templates={templates.map((t) => ({
-        id: t.id,
-        name: t.name,
-        scope: t.projectId ? "project" : "tenant",
-        visibleToPerson: t.visibleToPerson,
-      }))}
-      selectedId={selected?.id ?? null}
-      travelers={rows}
-      jobs={jobs.map((j) => ({
-        id: j.id,
-        status: j.status,
-        total: j.total,
-        done: j.done,
-        failed: j.failed,
-        lastError: j.lastError,
-        updatedLabel: formatInZone(j.updatedAt, tz, "datetime"),
-      }))}
-      libraryHref={`/console/${ws}/clientes/${tenant}/documentos`}
-    />
+    <div className="flex flex-col gap-6">
+      {templates.length > 0 && travelers.length > 0 && (
+        <BatchSortBar
+          {...sortBarProps}
+          initialSpec={sorting.spec}
+          links={[{ label: "Reordenar a lista", href: here, variant: "secondary" }]}
+        />
+      )}
+      <VouchersManager
+        tenant={tenant}
+        projectId={p.projectId}
+        canEdit={p.canEdit}
+        templates={templates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          scope: t.projectId ? "project" : "tenant",
+          visibleToPerson: t.visibleToPerson,
+        }))}
+        selectedId={selected?.id ?? null}
+        travelers={rows}
+        jobs={jobs.map((j) => ({
+          id: j.id,
+          status: j.status,
+          total: j.total,
+          done: j.done,
+          failed: j.failed,
+          lastError: j.lastError,
+          updatedLabel: formatInZone(j.updatedAt, tz, "datetime"),
+        }))}
+        libraryHref={`/console/${ws}/clientes/${tenant}/documentos`}
+        sort={ordem ?? null}
+      />
+    </div>
   );
 }

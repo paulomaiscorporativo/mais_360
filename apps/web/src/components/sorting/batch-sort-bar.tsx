@@ -32,6 +32,7 @@ export function withSort(href: string, spec: SortSpec, defaultSpec: SortSpec) {
  */
 export function BatchSortBar({
   defaultSpec,
+  initialSpec,
   sourceLabel,
   warnings,
   options,
@@ -41,6 +42,8 @@ export function BatchSortBar({
   children,
 }: {
   defaultSpec: SortSpec;
+  /** Escolha já aplicada na página (ex.: `?ordem=`); padrão = `defaultSpec`. */
+  initialSpec?: SortSpec;
   sourceLabel: string;
   warnings: string[];
   options: SortOptions;
@@ -52,7 +55,7 @@ export function BatchSortBar({
 }) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
-  const [spec, setSpec] = useState(defaultSpec);
+  const [spec, setSpec] = useState(initialSpec ?? defaultSpec);
   const isDefault = sameSpec(spec, defaultSpec);
 
   return (

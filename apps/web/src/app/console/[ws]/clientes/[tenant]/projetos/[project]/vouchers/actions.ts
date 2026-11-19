@@ -5,7 +5,9 @@ import { z } from "zod";
 import { VOUCHER_INLINE_LIMIT, voucherJobKey } from "@mais/core";
 import { defineAction } from "@/server/action";
 import { audit } from "@/server/audit";
+import { sortBy } from "@mais/core/sorting";
 import { invalidFields, notFound } from "@/server/errors";
+import { projectSorting, sortRowsOf } from "@/server/sorting";
 import { assertRegistrations, requireTravelWriter } from "@/server/travel";
 import { enqueueVoucherJob, issueVoucher, processVoucherJobs } from "@/server/vouchers";
 
@@ -37,12 +39,20 @@ export const issueVouchers = defineAction(
     templateId: z.string(),
     registrationIds: z.array(z.string()).max(1000, "Emita no máximo 1.000 vouchers por vez."),
     notify: z.boolean().default(false),
+    /** Ordenação escolhida na hora (SortSpec em JSON); sem ela, o padrão do projeto. */
+    sort: z.string().max(2000).optional(),
   }),
-  async ({ tenant, projectId, templateId, registrationIds, notify }) => {
+  async ({ tenant, projectId, templateId, registrationIds, notify, sort }) => {
     const p = await requireTravelWriter(tenant, projectId, "VOUCHERS");
-    const ids = [...new Set(registrationIds)];
-    if (!ids.length) throw invalidFields({ registrationIds: "Escolha ao menos um viajante." });
-    await assertRegistrations(p.db, projectId, ids);
+    const unique = [...new Set(registrationIds)];
+    if (!unique.length) throw invalidFields({ registrationIds: "Escolha ao menos um viajante." });
+    await assertRegistrations(p.db, projectId, unique);
+    // O lote é emitido na ordem configurada (e a fila segue essa ordem)
+    const [sorting, rows] = await Promise.all([
+      projectSorting(p, sort),
+      sortRowsOf(p.db, projectId, unique),
+    ]);
+    const ids = sortBy(unique, (id) => rows.get(id) ?? { id, fullName: "" }, sorting.spec);
     const template = await voucherTemplate(p, templateId);
     const actor = { label: p.actor, userId: p.viewer.user.id };
 

@@ -45,6 +45,7 @@ export function VouchersManager({
   travelers,
   jobs,
   libraryHref,
+  sort,
 }: {
   tenant: string;
   projectId: string;
@@ -54,6 +55,8 @@ export function VouchersManager({
   travelers: VoucherTraveler[];
   jobs: JobView[];
   libraryHref: string;
+  /** Ordenação escolhida na hora (`?ordem=`); null = padrão do projeto. */
+  sort: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -110,7 +113,14 @@ export function VouchersManager({
   const issue = (ids: string[]) =>
     run(
       () =>
-        issueVouchers({ tenant, projectId, templateId: template.id, registrationIds: ids, notify }),
+        issueVouchers({
+          tenant,
+          projectId,
+          templateId: template.id,
+          registrationIds: ids,
+          notify,
+          sort: sort ?? undefined,
+        }),
       {
         onSuccess: () => {
           setSelected(new Set());

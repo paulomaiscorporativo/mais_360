@@ -13,10 +13,12 @@ import {
 } from "@mais/core";
 import type { FlightView } from "@/components/travel/flight-route";
 import { enqueueJob, sendTransactional, type TemplateContent } from "@mais/messaging";
+import { PLATFORM_DEFAULT_SORT, sortBy, sortComparator, type SortSpec } from "@mais/core/sorting";
 import { prisma } from "./db";
 import { forbidden, invalidFields, notFound } from "./errors";
 import { requireProjectWriter } from "./projects";
 import { tenantPublicBase } from "./public-links";
+import { SORT_ROW_INCLUDE, toSortRow } from "./sorting";
 import type { TenantDb } from "./tenant-db";
 
 /**
@@ -299,7 +301,20 @@ export async function syncPersonFromDocument(
 }
 
 /** Rooming list do projeto (uma linha por quarto), para impressão e planilha. */
-export async function roomingList(db: TenantDb, projectId: string, tz: string) {
+/** Ordem natural dos quartos: "2" antes de "10", "101A" antes de "101B". */
+const roomCollator = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true });
+
+/**
+ * Rooming list por hotel. A ordem natural é por quarto (número, em ordem
+ * natural); o spec de ordenação do projeto ordena os ocupantes de cada quarto
+ * e os quartos ainda sem número (pelo primeiro ocupante).
+ */
+export async function roomingList(
+  db: TenantDb,
+  projectId: string,
+  tz: string,
+  spec: SortSpec = PLATFORM_DEFAULT_SORT,
+) {
   const hotels = await db.accommodation.findMany({
     where: { projectId },
     orderBy: [{ checkIn: "asc" }, { name: "asc" }],
@@ -310,10 +325,14 @@ export async function roomingList(db: TenantDb, projectId: string, tz: string) {
           occupants: {
             include: {
               registration: {
-                select: {
-                  shortCode: true,
+                include: {
+                  ...SORT_ROW_INCLUDE,
                   person: {
-                    select: { firstName: true, lastName: true, dietary: true, medicalNotes: true },
+                    select: {
+                      ...SORT_ROW_INCLUDE.person.select,
+                      dietary: true,
+                      medicalNotes: true,
+                    },
                   },
                 },
               },
@@ -323,23 +342,42 @@ export async function roomingList(db: TenantDb, projectId: string, tz: string) {
       },
     },
   });
-  return hotels.map((h) => ({
-    name: h.name,
-    city: h.city,
-    checkIn: formatInZone(h.checkIn, tz, "date"),
-    checkOut: formatInZone(h.checkOut, tz, "date"),
-    rooms: h.rooms.map((r) => ({
-      number: r.number,
-      type: r.typeLabel || ROOM_TYPE_LABEL[r.type],
-      checkIn: formatInZone(r.checkIn ?? h.checkIn, tz, "date"),
-      checkOut: formatInZone(r.checkOut ?? h.checkOut, tz, "date"),
-      confirmation: r.confirmation,
-      notes: r.notes,
-      occupants: r.occupants.map((o) => ({
-        name: `${o.registration.person.firstName} ${o.registration.person.lastName}`.trim(),
-        shortCode: o.registration.shortCode,
-        dietary: o.registration.person.dietary,
+  const byOccupant = sortComparator(spec);
+  return hotels.map((h) => {
+    const rooms = h.rooms.map((r) => {
+      const occupants = sortBy(r.occupants, (o) => toSortRow(o.registration), spec);
+      return {
+        room: r,
+        occupants,
+        first: occupants[0] ? toSortRow(occupants[0].registration) : null,
+      };
+    });
+    rooms.sort((a, b) => {
+      const an = a.room.number.trim();
+      const bn = b.room.number.trim();
+      if (an && bn) return roomCollator.compare(an, bn) || (a.room.id < b.room.id ? -1 : 1);
+      if (an || bn) return an ? -1 : 1;
+      if (a.first && b.first) return byOccupant(a.first, b.first);
+      return a.first ? -1 : b.first ? 1 : 0;
+    });
+    return {
+      name: h.name,
+      city: h.city,
+      checkIn: formatInZone(h.checkIn, tz, "date"),
+      checkOut: formatInZone(h.checkOut, tz, "date"),
+      rooms: rooms.map(({ room: r, occupants }) => ({
+        number: r.number,
+        type: r.typeLabel || ROOM_TYPE_LABEL[r.type],
+        checkIn: formatInZone(r.checkIn ?? h.checkIn, tz, "date"),
+        checkOut: formatInZone(r.checkOut ?? h.checkOut, tz, "date"),
+        confirmation: r.confirmation,
+        notes: r.notes,
+        occupants: occupants.map((o) => ({
+          name: `${o.registration.person.firstName} ${o.registration.person.lastName}`.trim(),
+          shortCode: o.registration.shortCode,
+          dietary: o.registration.person.dietary,
+        })),
       })),
-    })),
-  }));
+    };
+  });
 }
