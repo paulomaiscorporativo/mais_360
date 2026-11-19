@@ -28,7 +28,8 @@
     "db:seed": "npm run seed -w @mais/db",
     "db:studio": "npm run studio -w @mais/db",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
-    "db:seed:demo": "npm run seed:demo -w @mais/db"
+    "db:seed:demo": "npm run seed:demo -w @mais/db",
+    "migrate:legacy": "npm run legacy -w @mais/migrate --"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

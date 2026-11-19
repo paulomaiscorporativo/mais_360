@@ -15,3 +15,6 @@ storage/
 
 # Estado local do Claude Code
 .claude/
+
+# Saída local da migração de dados (relatórios, storage de teste)
+tmp/
