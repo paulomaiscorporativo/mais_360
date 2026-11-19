@@ -86,14 +86,14 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     feature: "CHECKLIST",
     ready: true,
   },
-  { key: "mural", label: "Mural", href: "/mural", icon: Megaphone, feature: "MURAL", ready: false },
+  { key: "mural", label: "Mural", href: "/mural", icon: Megaphone, feature: "MURAL", ready: true },
   {
     key: "support",
     label: "Suporte",
     href: "/suporte",
     icon: LifeBuoy,
     feature: "SUPPORT",
-    ready: false,
+    ready: true,
   },
   {
     key: "documents",

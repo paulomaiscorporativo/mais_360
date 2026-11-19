@@ -6,13 +6,15 @@ import {
   formatDuration,
   formatInZone,
   parseFlightLive,
+  type AudienceViewer,
   type ProjectFeature,
 } from "@mais/core";
 import type { FlightView } from "@/components/travel/flight-route";
-import { enqueueJob } from "@mais/messaging";
+import { enqueueJob, sendTransactional, type TemplateContent } from "@mais/messaging";
 import { prisma } from "./db";
 import { forbidden, invalidFields, notFound } from "./errors";
 import { requireProjectWriter } from "./projects";
+import { tenantPublicBase } from "./public-links";
 import type { TenantDb } from "./tenant-db";
 
 /**
@@ -211,4 +213,57 @@ export async function checkAudience(
         : await db.registration.count({ where: { id: audienceId, projectId } });
   if (!found) throw invalidFields({ audience: "Escolha para quem." });
   return audienceId;
+}
+
+// ---------------------------------------------------------------------------
+// Viajante: portal, público e avisos
+// ---------------------------------------------------------------------------
+
+/** Portal do viajante da inscrição: <base>/v/<registration.token>. */
+export async function travelerPortalUrl(
+  tenant: { id: string; slug: string },
+  registrationToken: string,
+) {
+  return `${await tenantPublicBase(tenant)}/v/${registrationToken}`;
+}
+
+/** Quem está vendo, para o filtro de público (mural, roteiro). */
+export function audienceViewerOf(r: {
+  id: string;
+  groupId: string | null;
+  categoryId: string | null;
+  role: string;
+}): AudienceViewer {
+  return {
+    registrationId: r.id,
+    groupId: r.groupId,
+    categoryId: r.categoryId,
+    isStaff: r.role === "STAFF",
+  };
+}
+
+/**
+ * Avisa viajantes por e-mail e WhatsApp com conteúdo explícito. Idempotente:
+ * `reason` + inscrição + canal formam o dedupeKey (chamar de novo não duplica).
+ */
+export async function notifyTravelers(opts: {
+  tenantId: string;
+  projectId: string;
+  registrationIds: string[];
+  reason: string;
+  template: TemplateContent;
+}) {
+  let queued = 0;
+  for (const registrationId of opts.registrationIds) {
+    const r = await sendTransactional(prisma, {
+      tenantId: opts.tenantId,
+      projectId: opts.projectId,
+      registrationId,
+      channels: ["EMAIL", "WHATSAPP"],
+      reason: opts.reason,
+      template: opts.template,
+    });
+    if (r.ok) queued += r.data.filter((o) => o.status === "QUEUED").length;
+  }
+  return queued;
 }
