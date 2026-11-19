@@ -7,3 +7,4 @@ export * from "./people";
 export * from "./registrations";
 export * from "./projects";
 export * from "./events";
+export * from "./travel";
