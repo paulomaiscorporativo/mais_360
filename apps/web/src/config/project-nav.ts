@@ -118,7 +118,7 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     href: "/convites",
     icon: MailOpen,
     feature: "INVITES",
-    ready: false,
+    ready: true,
   },
   {
     key: "tables",
@@ -126,7 +126,7 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     href: "/mesas",
     icon: UtensilsCrossed,
     feature: "TABLES",
-    ready: false,
+    ready: true,
   },
   // ── Credenciamento e feiras ──
   {
