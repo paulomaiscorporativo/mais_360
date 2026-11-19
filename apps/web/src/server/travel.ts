@@ -7,6 +7,7 @@ import {
   formatInZone,
   parseFlightLive,
   type AudienceViewer,
+  type PersonDocumentKind,
   type ProjectFeature,
 } from "@mais/core";
 import type { FlightView } from "@/components/travel/flight-route";
@@ -266,4 +267,31 @@ export async function notifyTravelers(opts: {
     if (r.ok) queued += r.data.filter((o) => o.status === "QUEUED").length;
   }
   return queued;
+}
+
+/** FormData → objeto para validar com zod (arquivos chegam como File). */
+export function formObject(form: unknown): Record<string, unknown> {
+  return form instanceof FormData ? Object.fromEntries(form.entries()) : {};
+}
+
+/** A viagem tem trecho internacional? (define o documento exigido por padrão) */
+export async function isInternationalTrip(db: TenantDb, projectId: string) {
+  return (await db.flight.count({ where: { projectId, scope: "INTERNATIONAL" } })) > 0;
+}
+
+/** Passaporte e RG também alimentam o cadastro (pendências, vouchers, rooming). */
+export async function syncPersonFromDocument(
+  db: TenantDb,
+  personId: string,
+  kind: PersonDocumentKind,
+  number: string,
+  expiresAt: Date | null,
+) {
+  if (!number) return;
+  if (kind === "PASSPORT")
+    await db.person.update({
+      where: { id: personId },
+      data: { passportNumber: number, passportExpiry: expiresAt },
+    });
+  else if (kind === "RG") await db.person.update({ where: { id: personId }, data: { rg: number } });
 }
