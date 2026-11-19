@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { ProjectFeature } from "../modules/catalog";
 
 /**
@@ -198,3 +199,49 @@ export const PROJECT_FEATURE_LABELS: Record<ProjectFeature, { label: string; sum
   VOUCHERS: { label: "Vouchers", summary: "Vouchers gerados pelo motor de documentos." },
   STANDS: { label: "Stands", summary: "Planta, cotas, reservas e contratos." },
 };
+
+/**
+ * Project.settings (Json) — validado aqui; cada módulo da Onda 2 pode acrescentar
+ * a própria chave (ex.: settings.invites), sempre com default.
+ */
+export const projectSettingsSchema = z
+  .object({
+    form: z
+      .object({
+        open: z.boolean().default(true),
+        welcome: z.string().max(2000).default(""),
+        askCpf: z.boolean().default(true),
+        requireCpf: z.boolean().default(false),
+        askCompany: z.boolean().default(true),
+        askJobTitle: z.boolean().default(true),
+        askCity: z.boolean().default(false),
+        /** Categoria atribuída a quem se inscreve pelo link público (id). */
+        defaultCategoryId: z.string().nullable().default(null),
+        /** "Autorizo compartilhar meus contatos" (networking). */
+        askContactSharing: z.boolean().default(false),
+        successMessage: z.string().max(1000).default(""),
+      })
+      .default({
+        open: true,
+        welcome: "",
+        askCpf: true,
+        requireCpf: false,
+        askCompany: true,
+        askJobTitle: true,
+        askCity: false,
+        defaultCategoryId: null,
+        askContactSharing: false,
+        successMessage: "",
+      }),
+  })
+  .passthrough();
+
+export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
+
+/** Lê settings com defaults, tolerando Json antigo ou inválido. */
+export function readProjectSettings(raw: unknown): ProjectSettings {
+  const r = projectSettingsSchema.safeParse(raw ?? {});
+  return r.success ? r.data : projectSettingsSchema.parse({});
+}
+
+export const RESERVED_PROJECT_SLUGS = new Set(["novo", "new", "editar", "configuracoes"]);
