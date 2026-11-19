@@ -6,8 +6,8 @@ loadMonorepoEnv();
 
 const nextConfig: NextConfig = {
   // Pacotes do monorepo são TypeScript puro: o Next transpila.
-  transpilePackages: ["@mais/core", "@mais/db"],
-  serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  transpilePackages: ["@mais/core", "@mais/db", "@mais/messaging"],
+  serverExternalPackages: ["@prisma/client", "bcryptjs", "nodemailer"],
   poweredByHeader: false,
   async headers() {
     return [
