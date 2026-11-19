@@ -6,6 +6,7 @@ import {
   MAX_SORT_LEVELS,
   groupRegistrations,
   matchPreset,
+  sortRegistrations,
   sortFieldLabel,
   type SortField,
   type SortPresetId,
@@ -234,13 +235,16 @@ export function SortPreview({
   sample: readonly SortRow[];
   label: (f: SortField) => string;
 }) {
+  // Só os 8 primeiros nomes, com os rótulos dos grupos em que caem
   const groups = useMemo(
-    () => groupRegistrations(sample, spec, { statusLabels: STATUS_LABELS }),
+    () =>
+      groupRegistrations(sortRegistrations(sample, spec).slice(0, 8), spec, {
+        statusLabels: STATUS_LABELS,
+      }),
     [sample, spec],
   );
   const detailField = spec.levels.find((l) => l.field !== "fullName")?.field ?? null;
   const titleId = useId();
-  let shown = 0;
 
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-2">
@@ -254,9 +258,7 @@ export function SortPreview({
       ) : (
         <div className="border-border bg-surface-sunken rounded-md border p-2">
           {groups.map((g) => {
-            const rows = g.rows.slice(0, Math.max(0, 8 - shown));
-            shown += rows.length;
-            if (!rows.length) return null;
+            const rows = g.rows;
             return (
               <div key={g.key || "all"} className="py-1">
                 {g.label && (
