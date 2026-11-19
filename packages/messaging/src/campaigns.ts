@@ -432,3 +432,60 @@ export async function campaignSummary(db: PrismaClient, s: Scope): Promise<Campa
     createdBy: c.createdBy,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Pré-visualização do público (assistente de campanha)
+// ---------------------------------------------------------------------------
+
+export type AudiencePreview = {
+  /** Pessoas que correspondem ao filtro */
+  matched: number;
+  /** Quantas receberão de fato neste canal */
+  sendable: number;
+  skippedByReason: Partial<Record<SkipReason, number>>;
+  /** Amostra de quem será pulado, para o organizador corrigir cadastros */
+  skippedSample: { name: string; reason: string }[];
+  /** Amostra de destinatários (nome + destino mascarado) */
+  sample: { name: string; target: string }[];
+  estimate?: { days: number; activeMinutes: number };
+};
+
+/** Mesma expansão e as mesmas regras de pulo da criação — sem gravar nada. */
+export async function previewAudience(
+  db: PrismaClient,
+  input: {
+    tenantId: string;
+    projectId?: string | null;
+    channel: "EMAIL" | "WHATSAPP";
+    audience: Audience;
+    pacing?: z.input<typeof pacingSchema>;
+  },
+): Promise<Result<AudiencePreview>> {
+  const audience = audienceSchema.safeParse(input.audience);
+  if (!audience.success) return fail(audience.error.issues[0]?.message ?? "Público inválido.");
+  if (audience.data.kind !== "members" && !input.projectId)
+    return fail("Selecione o evento ou viagem do público.");
+  const candidates = await expandAudience(db, input, audience.data);
+  if (input.channel === "WHATSAPP") {
+    const optOut = await whatsappOptOuts(db, input.tenantId, [
+      ...new Set(candidates.map((c) => c.personId)),
+    ]);
+    for (const c of candidates) c.whatsappOptOut = optOut.has(c.personId);
+  }
+  const planned = planRecipients(candidates, input.channel);
+  const skippedByReason: Partial<Record<SkipReason, number>> = {};
+  for (const p of planned) if (p.skip) skippedByReason[p.skip] = (skippedByReason[p.skip] ?? 0) + 1;
+  const sendable = planned.filter((p) => !p.skip);
+  const pacing = input.channel === "WHATSAPP" ? pacingSchema.safeParse(input.pacing ?? {}) : null;
+  return ok({
+    matched: planned.length,
+    sendable: sendable.length,
+    skippedByReason,
+    skippedSample: planned
+      .filter((p) => p.skip)
+      .slice(0, 8)
+      .map((p) => ({ name: p.candidate.name, reason: SKIP_REASON_LABELS[p.skip!] })),
+    sample: sendable.slice(0, 5).map((p) => ({ name: p.candidate.name, target: p.target })),
+    ...(pacing?.success ? { estimate: estimateDuration(sendable.length, pacing.data) } : {}),
+  });
+}
