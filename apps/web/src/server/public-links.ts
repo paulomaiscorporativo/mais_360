@@ -1,14 +1,14 @@
 import "server-only";
 import { prisma } from "./db";
-import { env, isProd } from "./env";
-import { tenantAddress } from "./urls";
+import { env } from "./env";
+import { servesTenantDomains, tenantAddress } from "./urls";
 
 /**
  * Base dos links públicos de um cliente: o domínio dele em produção
- * (https://abiec.mais.tur.br) ou a rota /t/<slug> do app em desenvolvimento.
+ * (https://abiec.mais.tur.br) ou a rota /t/<slug> do app quando roda localmente.
  */
 export async function tenantPublicBase(tenant: { id: string; slug: string }) {
-  if (!isProd) return `${env.APP_URL.replace(/\/$/, "")}/t/${tenant.slug}`;
+  if (!servesTenantDomains()) return `${env.APP_URL.replace(/\/$/, "")}/t/${tenant.slug}`;
   const domains = await prisma.tenantDomain.findMany({
     where: { tenantId: tenant.id, primary: true },
     take: 1,
