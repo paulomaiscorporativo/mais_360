@@ -31,6 +31,7 @@ type SelectProps = {
   invalid?: boolean;
   className?: string;
   "aria-describedby"?: string;
+  "aria-label"?: string;
 };
 
 export function Select({
@@ -47,6 +48,7 @@ export function Select({
         id={id}
         aria-invalid={invalid || undefined}
         aria-describedby={props["aria-describedby"]}
+        aria-label={props["aria-label"]}
         className={cn(
           controlClass,
           "data-[placeholder]:text-fg-faint flex h-9 items-center justify-between gap-2 px-3 text-left",
