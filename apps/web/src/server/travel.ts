@@ -254,6 +254,7 @@ export async function notifyTravelers(opts: {
   registrationIds: string[];
   reason: string;
   template: TemplateContent;
+  channels?: ("EMAIL" | "WHATSAPP")[];
 }) {
   let queued = 0;
   for (const registrationId of opts.registrationIds) {
@@ -261,7 +262,7 @@ export async function notifyTravelers(opts: {
       tenantId: opts.tenantId,
       projectId: opts.projectId,
       registrationId,
-      channels: ["EMAIL", "WHATSAPP"],
+      channels: opts.channels ?? ["EMAIL", "WHATSAPP"],
       reason: opts.reason,
       template: opts.template,
     });

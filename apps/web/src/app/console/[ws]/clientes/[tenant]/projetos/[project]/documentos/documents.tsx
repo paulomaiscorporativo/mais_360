@@ -1,6 +1,16 @@
 "use client";
 
-import { Eye, EyeOff, FileText, FolderOpen, Plus, Search, Trash2, Upload } from "lucide-react";
+import {
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileText,
+  FolderOpen,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   EXPIRING_KINDS,
@@ -35,6 +45,8 @@ export type TravelerDocRow = {
   name: string;
   shortCode: string;
   group: { name: string; color: string } | null;
+  /** Link pessoal do portal do viajante (abre como ele vê). */
+  portalHref: string | null;
   requirements: RequirementRow[];
   docs: {
     id: string;
@@ -194,7 +206,19 @@ function TravelerDocs({
                     {t.group && <Dot color={t.group.color} />}
                     <span className="truncate">{t.name}</span>
                   </div>
-                  <div className="text-fg-subtle font-mono text-xs">{t.shortCode}</div>
+                  <div className="text-fg-subtle flex items-center gap-2 text-xs">
+                    <span className="font-mono">{t.shortCode}</span>
+                    {t.portalHref && (
+                      <a
+                        href={t.portalHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand-text inline-flex items-center gap-1 hover:underline"
+                      >
+                        Ver portal <ExternalLink className="size-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex flex-wrap gap-1.5">

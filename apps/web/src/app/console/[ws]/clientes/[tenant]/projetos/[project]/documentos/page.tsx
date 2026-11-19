@@ -6,6 +6,7 @@ import {
 } from "@mais/core";
 import { guard } from "@/server/auth";
 import { requireProjectFeature } from "@/server/projects";
+import { tenantPublicBase } from "@/server/public-links";
 import { isInternationalTrip, projectTz, travelersOf } from "@/server/travel";
 import { DocumentsManager, type ProjectDocRow, type TravelerDocRow } from "./documents";
 
@@ -22,7 +23,7 @@ export default async function DocumentsPage({
     travelersOf(p.db, p.projectId),
     p.db.registration.findMany({
       where: { projectId: p.projectId, status: { notIn: ["CANCELED", "DECLINED"] } },
-      select: { id: true, personId: true },
+      select: { id: true, personId: true, token: true },
     }),
     p.db.projectDocument.findMany({
       where: { projectId: p.projectId },
@@ -31,6 +32,8 @@ export default async function DocumentsPage({
     isInternationalTrip(p.db, p.projectId),
   ]);
   const personOf = new Map(regs.map((r) => [r.id, r.personId]));
+  const tokenOf = new Map(regs.map((r) => [r.id, r.token]));
+  const portalBase = `${await tenantPublicBase(p.tenant)}/v`;
   const personDocs = await p.db.personDocument.findMany({
     where: { personId: { in: [...new Set(regs.map((r) => r.personId))] } },
     orderBy: { createdAt: "desc" },
@@ -54,6 +57,7 @@ export default async function DocumentsPage({
       name: t.name,
       shortCode: t.shortCode,
       group: t.group,
+      portalHref: tokenOf.has(t.id) ? `${portalBase}/${tokenOf.get(t.id)}` : null,
       requirements: documentRequirements(required, docs, p.project.endsAt, now),
       docs: docs.map((d) => ({
         id: d.id,
