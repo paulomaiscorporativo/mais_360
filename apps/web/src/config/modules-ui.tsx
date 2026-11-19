@@ -31,7 +31,12 @@ export const MODULE_UI: Record<
     line: "connect",
     path: "comunicacao",
   },
-  CORPORATE_TRAVEL: { slug: "viagens-corporativas", icon: Briefcase, line: "travel" },
+  CORPORATE_TRAVEL: {
+    slug: "viagens-corporativas",
+    icon: Briefcase,
+    line: "travel",
+    path: "viagens-corporativas",
+  },
   GROUP_TRAVEL: { slug: "viagens-de-grupo", icon: Plane, line: "travel" },
   EVENTS_INVITES: { slug: "eventos", icon: MailOpen, line: "events" },
   ACCREDITATION: { slug: "credenciamento", icon: BadgeCheck, line: "pass" },
