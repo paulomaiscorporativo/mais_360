@@ -1,0 +1,222 @@
+// ============================================================================
+// CREDENCIAMENTO E ACESSO — portado do sistema credenciamento (SIRAN Summit),
+// agora multiprojeto. Check-in, código curto e contagem de impressões vivem
+// na Registration; aqui ficam áreas, leituras, networking, impressões,
+// importações e integrações de formulário (Mautic e outros).
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Áreas com controle de acesso (Plenária, Seminário do Leite, Área VIP…)
+// ---------------------------------------------------------------------------
+
+model AccessArea {
+  id         String   @id @default(cuid())
+  tenantId   String
+  projectId  String
+  name       String
+  active     Boolean  @default(true)
+  capacity   Int? // lotação máxima (alerta quando presentes ≥ capacidade)
+  // Se houver regras, só as categorias listadas entram; sem regras, todos entram
+  restricted Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rules   AccessAreaCategory[]
+  scans   AccessScan[]
+
+  @@unique([projectId, name])
+  @@index([tenantId, projectId])
+}
+
+model AccessAreaCategory {
+  areaId     String
+  categoryId String
+
+  area     AccessArea           @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  category RegistrationCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([areaId, categoryId])
+}
+
+enum ScanDirection {
+  ENTRY
+  EXIT
+}
+
+enum ScanResult {
+  ACCEPTED
+  DUPLICATE // releitura em poucos segundos = mesma passagem
+  DENIED // categoria sem acesso, inscrição cancelada, área lotada
+}
+
+// Leitura de crachá na porta. Leituras feitas sem internet chegam depois com
+// clientUuid (idempotência) e scannedAt do aparelho.
+model AccessScan {
+  id              String        @id @default(cuid())
+  tenantId        String
+  projectId       String
+  areaId          String
+  registrationId  String
+  direction       ScanDirection
+  result          ScanResult    @default(ACCEPTED)
+  denyReason      String        @default("")
+  scannedByUserId String?
+  scannedByLabel  String        @default("")
+  deviceId        String        @default("")
+  clientUuid      String?       @unique
+  offline         Boolean       @default(false)
+  scannedAt       DateTime      @default(now()) // hora da leitura (do aparelho, se offline)
+  receivedAt      DateTime      @default(now())
+
+  area         AccessArea   @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId, areaId, scannedAt])
+  @@index([registrationId, areaId, scannedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Networking e captura de leads (participante lê o crachá de outro)
+// Contatos só são expostos com Consent CONTACT_SHARING do lido.
+// ---------------------------------------------------------------------------
+
+model NetworkingContact {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  projectId             String
+  ownerRegistrationId   String
+  contactRegistrationId String
+  note                  String   @default("")
+  // Para expositores: qualificação do lead
+  rating                Int? // 1–5
+  tags                  String[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  owner   Registration @relation("NetworkingOwner", fields: [ownerRegistrationId], references: [id], onDelete: Cascade)
+  contact Registration @relation("NetworkingContactOf", fields: [contactRegistrationId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerRegistrationId, contactRegistrationId])
+  @@index([tenantId, projectId])
+}
+
+// ---------------------------------------------------------------------------
+// Impressões de etiqueta/crachá (balcão ou totem)
+// ---------------------------------------------------------------------------
+
+enum PrintMode {
+  LABEL // etiqueta para colar no crachá
+  BADGE // crachá completo
+}
+
+model BadgePrint {
+  id             String    @id @default(cuid())
+  tenantId       String
+  projectId      String
+  registrationId String
+  mode           PrintMode
+  templateId     String? // DocumentTemplate usado
+  printedBy      String    @default("") // operador
+  kioskId        String?
+  reprint        Boolean   @default(false)
+  reason         String    @default("") // motivo da segunda via
+  printedAt      DateTime  @default(now())
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  kiosk        KioskDevice? @relation(fields: [kioskId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, projectId, printedAt])
+  @@index([registrationId])
+}
+
+// ---------------------------------------------------------------------------
+// Importação de planilhas (deduplica por CPF, e-mail ou ID externo)
+// ---------------------------------------------------------------------------
+
+enum ImportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model ImportBatch {
+  id         String       @id @default(cuid())
+  tenantId   String
+  projectId  String
+  fileName   String
+  fileId     String?
+  // Coluna da planilha → campo da plataforma
+  mapping    Json         @default("{}")
+  status     ImportStatus @default(PENDING)
+  totalRows  Int          @default(0)
+  created    Int          @default(0)
+  updated    Int          @default(0)
+  skipped    Int          @default(0)
+  errors     Json         @default("[]") // [{ linha, motivo }]
+  createdBy  String       @default("")
+  createdAt  DateTime     @default(now())
+  finishedAt DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Integrações de formulários externos → inscrições (Mautic, RD Station, webhook)
+// ---------------------------------------------------------------------------
+
+enum FormProvider {
+  MAUTIC
+  RD_STATION
+  GENERIC_WEBHOOK
+}
+
+model FormIntegration {
+  id            String       @id @default(cuid())
+  tenantId      String
+  projectId     String
+  provider      FormProvider
+  name          String
+  baseUrl       String       @default("")
+  username      String       @default("")
+  secretEnc     String       @default("") // senha/token cifrado
+  // URL de webhook: /api/integrations/forms/<webhookSecret>
+  webhookSecret String       @unique
+  pollEnabled   Boolean      @default(false)
+  pollSeconds   Int          @default(60)
+  // Campo do formulário → campo da plataforma, e apelidos aceitos
+  fieldMapping  Json         @default("{}")
+  aliases       Json         @default("[]")
+  active        Boolean      @default(true)
+  lastSyncAt    DateTime?
+  lastError     String       @default("")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  project Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sources FormIntegrationSource[]
+
+  @@index([tenantId, projectId])
+}
+
+// Cada formulário ligado, com a categoria de inscrição e o cursor de sincronização
+model FormIntegrationSource {
+  id               String           @id @default(cuid())
+  integrationId    String
+  externalFormId   String
+  label            String           @default("")
+  categoryId       String?
+  role             RegistrationRole @default(ATTENDEE)
+  // Último envio importado (cursor) — reimportar não duplica
+  lastSubmissionId String           @default("")
+  lastSyncedAt     DateTime?
+  importedCount    Int              @default(0)
+
+  integration FormIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, externalFormId])
+}

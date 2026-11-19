@@ -1,0 +1,135 @@
+// ============================================================================
+// EVENTOS E CONVITES — portado da ABIEC + sistema_convite.
+//
+// O convidado é uma Registration (token público, código curto, status RSVP e
+// check-in vivem nela). Aqui ficam só os dados específicos do convite:
+// empresa com cota, tipo do convite, mesa/cadeira e as regras do evento.
+// Textos e disparos de convite vivem no motor de Comunicação (MessageTemplate
+// com purpose INVITE / INVITE_CANCEL).
+// ============================================================================
+
+// Configurações de convite do projeto (1:1 com Project)
+model EventInviteSettings {
+  projectId                     String    @id
+  tenantId                      String
+  eventTime                     String    @default("") // "20:00" no fuso do projeto
+  dressCode                     String    @default("")
+  // Data-limite para as empresas usarem as cotas
+  inviteDeadline                DateTime?
+  // Convites livres da organização (sobras de cota após a expiração + extras)
+  individualPool                Int       @default(0)
+  // Quando a expiração foi processada (null = ainda não)
+  quotasExpiredAt               DateTime?
+  // [{ nome, endereco, telefone, distancia, link }]
+  nearbyHotels                  Json      @default("[]")
+  // [{ titulo, descricao }] — estacionamento, recepção, acessibilidade…
+  amenities                     Json      @default("[]")
+  defaultQuota                  Int       @default(4)
+  // Empresas inscrevem convidados que recebem convite automaticamente
+  autoSendOnCompanyRegistration Boolean   @default(true)
+  allowCompanion                Boolean   @default(false)
+  updatedAt                     DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// Empresa convidada com cota de convites e acesso próprio ao painel /empresa
+model CompanyQuota {
+  id                     String    @id @default(cuid())
+  tenantId               String
+  projectId              String
+  organizationId         String? // vínculo com o cadastro de empresas do cliente
+  companyName            String
+  contactName            String    @default("")
+  contactRole            String    @default("")
+  email                  String    @default("")
+  phone                  String    @default("")
+  quota                  Int       @default(4)
+  // Credenciais do painel da empresa
+  login                  String    @unique
+  passwordHash           String
+  // Senha provisória CIFRADA (ENCRYPTION_KEY), exibida ao admin até a troca.
+  // O legado guardava em texto puro.
+  provisionalPasswordEnc String    @default("")
+  passwordChangedAt      DateTime?
+  lastLoginAt            DateTime?
+  // Após a expiração a empresa não inscreve mais; sobras voltam ao pool
+  lockedAt               DateTime?
+  returnedToPool         Int       @default(0)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  invites      EventInvite[]
+
+  @@index([tenantId, projectId])
+}
+
+enum InviteKind {
+  RESPONSIBLE // responsável da empresa (recebe login/senha no convite)
+  COMPANY_GUEST // convidado inscrito pela empresa, dentro da cota
+  INDIVIDUAL // convite do pool da organização
+}
+
+// Dados de convite de uma inscrição (1:1 com Registration)
+model EventInvite {
+  registrationId String     @id
+  tenantId       String
+  projectId      String
+  companyQuotaId String? // null = convite individual
+  kind           InviteKind @default(COMPANY_GUEST)
+  sentAt         DateTime? // primeiro envio bem-sucedido
+  createdAt      DateTime   @default(now())
+
+  registration Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  companyQuota CompanyQuota? @relation(fields: [companyQuotaId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, projectId])
+  @@index([companyQuotaId])
+}
+
+// ---------------------------------------------------------------------------
+// Mapa de mesas
+// ---------------------------------------------------------------------------
+
+enum TableShape {
+  ROUND
+  RECTANGULAR
+}
+
+model EventTable {
+  id          String     @id @default(cuid())
+  tenantId    String
+  projectId   String
+  number      Int
+  name        String     @default("")
+  capacity    Int        @default(8)
+  shape       TableShape @default(ROUND)
+  // Posição no editor do salão (px do canvas) e rotação em graus
+  x           Float      @default(100)
+  y           Float      @default(100)
+  rotation    Float      @default(0)
+  // Mesa reservada a uma empresa/categoria (opcional)
+  reservedFor String     @default("")
+
+  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  seats   SeatAssignment[]
+
+  @@unique([projectId, number])
+  @@index([tenantId, projectId])
+}
+
+// Assento de uma inscrição. O índice único impede duas pessoas na mesma cadeira.
+model SeatAssignment {
+  registrationId String   @id
+  tableId        String
+  seat           Int? // null = na mesa, cadeira livre
+  assignedAt     DateTime @default(now())
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  table        EventTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@unique([tableId, seat])
+  @@index([tableId])
+}

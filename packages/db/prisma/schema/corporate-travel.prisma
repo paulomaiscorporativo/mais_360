@@ -1,0 +1,530 @@
+// ============================================================================
+// VIAGENS CORPORATIVAS — solicitação (antiga "linha direta" da ABIEC),
+// cotações, política de viagens, aprovação por alçada, centros de custo,
+// despesas/reembolso, fidelidade e alertas de risco.
+//
+// A reserva é MANUAL por enquanto (atendente cota e emite fora). Os itens
+// emitidos viram ServiceItem com provider = MANUAL; com o Travellink, o mesmo
+// ServiceItem passa a ter provider = TRAVELLINK e providerRef.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Centros de custo
+// ---------------------------------------------------------------------------
+
+model CostCenter {
+  id              String   @id @default(cuid())
+  tenantId        String
+  code            String
+  name            String
+  // Orçamento anual (centavos) — base dos relatórios de consumo
+  budgetCents     Int?
+  currency        String   @default("BRL")
+  managerPersonId String? // gestor que aprova pelo centro de custo
+  parentId        String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  manager        Person?         @relation("CostCenterManager", fields: [managerPersonId], references: [id], onDelete: SetNull)
+  parent         CostCenter?     @relation("CostCenterTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       CostCenter[]    @relation("CostCenterTree")
+  travelRequests TravelRequest[]
+  expenseReports ExpenseReport[]
+
+  @@unique([tenantId, code])
+}
+
+// ---------------------------------------------------------------------------
+// Política de viagens
+// ---------------------------------------------------------------------------
+
+enum CabinClass {
+  ECONOMY
+  PREMIUM_ECONOMY
+  BUSINESS
+  FIRST
+}
+
+enum TravelScope {
+  ANY
+  DOMESTIC
+  INTERNATIONAL
+}
+
+model TravelPolicy {
+  id                            String   @id @default(cuid())
+  tenantId                      String
+  name                          String // "Política geral", "Diretoria"
+  description                   String   @default("")
+  active                        Boolean  @default(true)
+  priority                      Int      @default(0) // maior vence quando mais de uma se aplica
+  // A quem se aplica: { memberTypes: [], jobTitles: [], organizationIds: [], costCenterIds: [] }
+  // Vazio = todos do cliente.
+  appliesTo                     Json     @default("{}")
+  minAdvanceDays                Int? // antecedência mínima de compra
+  requireInsuranceInternational Boolean  @default(true)
+  preferredSuppliersOnly        Boolean  @default(false)
+  // Viagens fora da política exigem justificativa do solicitante
+  requireJustification          Boolean  @default(true)
+  // Sustentabilidade: priorizar voo direto quando a diferença for até X%
+  preferDirectFlightsBps        Int?
+  notes                         String   @default("")
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  tenant             Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rules              TravelPolicyRule[]
+  preferredSuppliers TravelPolicyPreferredSupplier[]
+  travelRequests     TravelRequest[]
+
+  @@index([tenantId, active])
+}
+
+// Limite por tipo de serviço/escopo/destino. Ex.: HOTEL · DOMESTIC · "São Paulo" ·
+// até R$ 650/noite · máx. 4 estrelas.
+model TravelPolicyRule {
+  id                     String      @id @default(cuid())
+  policyId               String
+  serviceType            ServiceType
+  scope                  TravelScope @default(ANY)
+  // Destino (cidade, país ou código IATA); vazio = qualquer
+  destination            String      @default("")
+  maxAmountCents         Int? // por unidade (noite, trecho, diária)
+  unit                   String      @default("") // "noite" | "trecho" | "diaria" | "viagem"
+  currency               String      @default("BRL")
+  maxCabin               CabinClass?
+  // Voos acima de N horas podem subir de classe
+  cabinUpgradeAfterHours Int?
+  maxHotelStars          Int?
+  perDiemCents           Int? // diária de alimentação
+  notes                  String      @default("")
+
+  policy TravelPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([policyId, serviceType])
+}
+
+model TravelPolicyPreferredSupplier {
+  policyId   String
+  supplierId String
+
+  policy   TravelPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  supplier Supplier     @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@id([policyId, supplierId])
+}
+
+// ---------------------------------------------------------------------------
+// Fluxo de aprovação por alçada
+// ---------------------------------------------------------------------------
+
+enum ApproverType {
+  USER // usuário específico da equipe do cliente
+  PERSON // membro específico (ex.: diretor associado)
+  COST_CENTER_MANAGER // gestor do centro de custo da solicitação
+  TENANT_ROLE // qualquer usuário com papel APPROVER no cliente
+}
+
+model ApprovalFlow {
+  id         String   @id @default(cuid())
+  tenantId   String
+  name       String
+  active     Boolean  @default(true)
+  // Quando o fluxo se aplica: { minAmountCents, onlyOutOfPolicy, scope, costCenterIds }
+  conditions Json     @default("{}")
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  steps  ApprovalStep[]
+
+  @@index([tenantId, active])
+}
+
+model ApprovalStep {
+  id               String       @id @default(cuid())
+  flowId           String
+  sortOrder        Int
+  name             String       @default("") // "Gestor imediato", "Diretoria financeira"
+  approverType     ApproverType
+  approverUserId   String?
+  approverPersonId String?
+  // A etapa só é exigida acima deste valor (alçada)
+  thresholdCents   Int?
+  onlyOutOfPolicy  Boolean      @default(false)
+  // Prazo para decidir antes de escalar/lembrar
+  slaHours         Int?
+
+  flow ApprovalFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@unique([flowId, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Solicitação de viagem
+// ---------------------------------------------------------------------------
+
+enum TravelRequestKind {
+  AIR
+  HOTEL
+  PACKAGE
+  EVENT
+  OTHER
+}
+
+enum TripType {
+  ONE_WAY
+  ROUND_TRIP
+  MULTI_CITY
+}
+
+enum TravelRequestStatus {
+  NEW
+  IN_PROGRESS // um atendente assumiu
+  QUOTED // opções enviadas
+  AWAITING_APPROVAL // opção escolhida, aguardando alçada
+  APPROVED
+  BOOKED // emitido / concluído (antigo FECHADO)
+  REJECTED
+  CANCELED
+}
+
+enum TimePreference {
+  ANY
+  MORNING
+  AFTERNOON
+  NIGHT
+}
+
+model TravelRequest {
+  id                String  @id @default(cuid())
+  tenantId          String
+  projectId         String? // quando a viagem é para um evento/projeto do cliente
+  protocol          String // código humano: "VC-2026-000123"
+  requesterPersonId String?
+  requesterName     String  @default("")
+  requesterEmail    String  @default("")
+  requesterPhone    String  @default("")
+  organizationId    String?
+  companyName       String  @default("")
+  costCenterId      String?
+  policyId          String?
+
+  // Resumo derivado dos segmentos (para listas sem carregar filhos)
+  kind          TravelRequestKind @default(AIR)
+  tripType      TripType          @default(ROUND_TRIP)
+  origin        String            @default("")
+  destination   String            @default("")
+  departDate    DateTime?
+  returnDate    DateTime?
+  scope         TravelScope       @default(DOMESTIC)
+  flexibleDates Boolean           @default(false)
+  pax           Int               @default(1)
+  budgetCents   Int?
+  currency      String            @default("BRL")
+  purpose       String            @default("") // motivo / briefing
+  notes         String            @default("")
+
+  // Serviços pedidos e seus detalhes (aéreo: classe, cia, bagagem…; hotel: cidade,
+  // categoria, quartos…). Schemas por tipo em @mais/core/catalog (travelRequestServices).
+  requestedServices ServiceType[]
+  serviceDetails    Json          @default("{}")
+
+  // Política
+  outOfPolicy      Boolean @default(false)
+  policyViolations Json    @default("[]") // [{ regra, esperado, encontrado }]
+  justification    String  @default("")
+
+  status         TravelRequestStatus @default(NEW)
+  assignedUserId String?
+  handledBy      String              @default("")
+  chosenQuoteId  String?             @unique
+  decidedAt      DateTime?
+  editedAt       DateTime?
+  // Comprovante ao solicitante e disparo ao atendente
+  sendCopy       Boolean             @default(true)
+  copyLog        String              @default("")
+  dispatchLog    String              @default("")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project      Project?                 @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  requester    Person?                  @relation("TravelRequester", fields: [requesterPersonId], references: [id], onDelete: SetNull)
+  organization Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  costCenter   CostCenter?              @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  policy       TravelPolicy?            @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  chosenQuote  TravelQuote?             @relation("ChosenQuote", fields: [chosenQuoteId], references: [id], onDelete: SetNull)
+  segments     TravelRequestSegment[]
+  passengers   TravelRequestPassenger[]
+  quotes       TravelQuote[]
+  events       TravelRequestEvent[]
+  approvals    TravelApproval[]
+  serviceItems ServiceItem[]
+  expenses     ExpenseReport[]
+
+  @@unique([tenantId, protocol])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, requesterPersonId])
+}
+
+model TravelRequestSegment {
+  id             String         @id @default(cuid())
+  requestId      String
+  sortOrder      Int            @default(0)
+  origin         String         @default("")
+  destination    String         @default("")
+  date           DateTime?
+  timePreference TimePreference @default(ANY)
+  notes          String         @default("")
+
+  request TravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, sortOrder])
+}
+
+enum TravelPassengerType {
+  HOLDER
+  COMPANION
+  EMPLOYEE
+  GUEST
+}
+
+enum TravelDocType {
+  PASSPORT
+  RG
+  CPF
+  OTHER
+}
+
+// Passageiro da solicitação. Pode apontar para uma Person do cadastro; os dados
+// ficam copiados porque são o que foi informado para a emissão.
+model TravelRequestPassenger {
+  id          String              @id @default(cuid())
+  requestId   String
+  personId    String?
+  sortOrder   Int                 @default(0)
+  name        String // como no documento
+  type        TravelPassengerType @default(HOLDER)
+  birthDate   DateTime?
+  docType     TravelDocType       @default(PASSPORT)
+  docNumber   String              @default("")
+  docExpiry   DateTime?
+  nationality String              @default("")
+  email       String              @default("")
+  phone       String              @default("")
+  loyalty     String              @default("")
+  notes       String              @default("")
+
+  request TravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  person  Person?       @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([requestId, sortOrder])
+}
+
+// Opção de cotação comparável (1..N por solicitação). Os itens detalhados da
+// opção (voos, hotel…) são ServiceItem com quoteId.
+model TravelQuote {
+  id          String    @id @default(cuid())
+  requestId   String
+  sortOrder   Int       @default(0)
+  title       String
+  description String    @default("")
+  currency    String    @default("BRL")
+  totalCents  Int       @default(0)
+  perPaxCents Int       @default(0)
+  validUntil  DateTime?
+  inPolicy    Boolean?
+  createdBy   String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  request      TravelRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  chosenBy     TravelRequest? @relation("ChosenQuote")
+  serviceItems ServiceItem[]
+
+  @@index([requestId, sortOrder])
+}
+
+// Histórico de etapas (régua visual do atendimento)
+model TravelRequestEvent {
+  id        String              @id @default(cuid())
+  requestId String
+  status    TravelRequestStatus
+  note      String              @default("")
+  actorName String              @default("")
+  actorType ActorType           @default(USER)
+  createdAt DateTime            @default(now())
+
+  request TravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, createdAt])
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  SKIPPED
+}
+
+// Instância de aprovação de uma solicitação (uma linha por etapa do fluxo)
+model TravelApproval {
+  id               String           @id @default(cuid())
+  requestId        String
+  stepId           String?
+  sortOrder        Int
+  stepName         String           @default("")
+  approverUserId   String?
+  approverPersonId String?
+  decision         ApprovalDecision @default(PENDING)
+  comment          String           @default("")
+  // Link de aprovação por e-mail/WhatsApp (guardamos só o hash do token)
+  tokenHash        String?          @unique
+  tokenExpiresAt   DateTime?
+  requestedAt      DateTime         @default(now())
+  decidedAt        DateTime?
+
+  request TravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, sortOrder])
+  @@index([approverUserId, decision])
+  @@index([approverPersonId, decision])
+}
+
+// ---------------------------------------------------------------------------
+// Despesas e reembolso
+// ---------------------------------------------------------------------------
+
+enum ExpenseReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  REIMBURSED
+}
+
+enum ExpenseCategory {
+  MEALS
+  LODGING
+  TRANSPORT
+  FUEL
+  PARKING
+  TOLL
+  TAXI_RIDE
+  AIRFARE
+  COMMUNICATION
+  ENTERTAINMENT
+  OTHER
+}
+
+model ExpenseReport {
+  id              String              @id @default(cuid())
+  tenantId        String
+  personId        String
+  travelRequestId String?
+  projectId       String?
+  costCenterId    String?
+  title           String
+  status          ExpenseReportStatus @default(DRAFT)
+  currency        String              @default("BRL")
+  totalCents      Int                 @default(0) // soma dos itens convertidos
+  advanceCents    Int                 @default(0) // adiantamento recebido
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  approvedBy      String              @default("")
+  reimbursedAt    DateTime?
+  rejectionReason String              @default("")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  person        Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
+  travelRequest TravelRequest? @relation(fields: [travelRequestId], references: [id], onDelete: SetNull)
+  costCenter    CostCenter?    @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  items         ExpenseItem[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, personId])
+}
+
+model ExpenseItem {
+  id             String          @id @default(cuid())
+  reportId       String
+  date           DateTime
+  category       ExpenseCategory
+  description    String          @default("")
+  merchant       String          @default("")
+  amountCents    Int
+  currency       String          @default("BRL")
+  exchangeRate   Decimal?        @db.Decimal(14, 6)
+  amountBrlCents Int? // convertido para a moeda do relatório
+  receiptFileId  String?
+  // Preenchido pela checagem de política (ex.: refeição acima da diária)
+  outOfPolicy    Boolean         @default(false)
+  policyNotes    String          @default("")
+  createdAt      DateTime        @default(now())
+
+  report ExpenseReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+// ---------------------------------------------------------------------------
+// Programas de fidelidade do viajante
+// ---------------------------------------------------------------------------
+
+enum LoyaltyKind {
+  AIRLINE
+  HOTEL
+  CAR_RENTAL
+  OTHER
+}
+
+model LoyaltyMembership {
+  id        String      @id @default(cuid())
+  tenantId  String
+  personId  String
+  kind      LoyaltyKind
+  program   String // "LATAM Pass", "Smiles", "Accor ALL"
+  number    String
+  tier      String      @default("")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, program])
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Alertas de risco por destino — referência GLOBAL da plataforma (sem tenantId),
+// como Airline/Airport. Exibidos na solicitação e no portal do viajante.
+// ---------------------------------------------------------------------------
+
+enum RiskLevel {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model TravelRiskAlert {
+  id          String    @id @default(cuid())
+  country     String // ISO 3166-1 alpha-2
+  city        String    @default("")
+  level       RiskLevel
+  title       String
+  description String    @default("")
+  source      String    @default("")
+  validFrom   DateTime  @default(now())
+  validUntil  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([country, validUntil])
+}

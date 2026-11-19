@@ -1,0 +1,355 @@
+// ============================================================================
+// VIAGENS DE INCENTIVO E GRUPOS — portado da ABIEC (check-in de viagens).
+// O "passageiro" agora é a Registration (pessoa ↔ projeto) do núcleo.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Catálogos globais de aviação (referência compartilhada, sem tenantId)
+// ---------------------------------------------------------------------------
+
+model Airline {
+  code       String  @id // IATA 2 letras: LA, G3, AD
+  icao       String  @default("")
+  name       String
+  logoFileId String?
+  active     Boolean @default(true)
+}
+
+model Airport {
+  iata     String @id // GRU, PMI, MAD
+  icao     String @default("")
+  name     String
+  city     String @default("")
+  country  String @default("") // ISO 3166-1 alpha-2
+  timezone String @default("") // IANA: America/Sao_Paulo
+}
+
+// ---------------------------------------------------------------------------
+// Voos
+// ---------------------------------------------------------------------------
+
+enum FlightScope {
+  DOMESTIC
+  INTERNATIONAL
+}
+
+model Flight {
+  id             String      @id @default(cuid())
+  tenantId       String
+  projectId      String
+  serviceItemId  String?     @unique // vínculo com o catálogo (custo/venda/fornecedor)
+  scope          FlightScope @default(INTERNATIONAL)
+  airlineCode    String      @default("")
+  airlineName    String      @default("")
+  flightNumber   String // "LA8065"
+  operatedBy     String      @default("") // operadora, quando difere da comercializadora
+  originIata     String
+  originName     String      @default("")
+  destIata       String
+  destName       String      @default("")
+  departureAt    DateTime?
+  arrivalAt      DateTime?
+  // Localizador padrão (legado/fallback); os PNRs ficam em FlightLocator
+  defaultLocator String      @default("")
+  notes          String      @default("")
+  // Status em tempo real (Apify · flight-status-tracker): JSON normalizado + cache
+  liveStatus     String      @default("")
+  liveData       Json?
+  liveCheckedAt  DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  locators   FlightLocator[]
+  passengers FlightPassenger[]
+
+  @@index([tenantId, projectId, departureAt])
+}
+
+// Um voo costuma ter vários localizadores (um por bloco/emissão)
+model FlightLocator {
+  id       String @id @default(cuid())
+  flightId String
+  code     String
+  notes    String @default("") // "bloco diretoria", emissora
+
+  flight     Flight            @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  passengers FlightPassenger[]
+
+  @@unique([flightId, code])
+}
+
+model FlightPassenger {
+  flightId       String
+  registrationId String
+  locatorId      String?
+  seat           String  @default("")
+  ticketNumber   String  @default("")
+  eticket        String  @default("")
+
+  flight       Flight         @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  registration Registration   @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  locator      FlightLocator? @relation(fields: [locatorId], references: [id], onDelete: SetNull)
+
+  @@id([flightId, registrationId])
+  @@index([registrationId])
+  @@index([locatorId])
+}
+
+// ---------------------------------------------------------------------------
+// Hospedagem e rooming list
+// ---------------------------------------------------------------------------
+
+model Accommodation {
+  id            String    @id @default(cuid())
+  tenantId      String
+  projectId     String
+  serviceItemId String?   @unique
+  name          String
+  address       String    @default("")
+  city          String    @default("")
+  country       String    @default("")
+  phone         String    @default("")
+  checkIn       DateTime?
+  checkOut      DateTime?
+  notes         String    @default("")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rooms   Room[]
+
+  @@index([tenantId, projectId])
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TWIN
+  TRIPLE
+  QUAD
+  SUITE
+  OTHER
+}
+
+// Quarto (com ou sem número definido) — permite rooming com quarto compartilhado
+model Room {
+  id              String    @id @default(cuid())
+  accommodationId String
+  number          String    @default("") // vazio até o hotel atribuir
+  type            RoomType  @default(DOUBLE)
+  typeLabel       String    @default("") // texto livre do hotel: "Deluxe vista mar"
+  checkIn         DateTime? // sobrescreve as datas do hotel (chegada/saída diferente)
+  checkOut        DateTime?
+  confirmation    String    @default("")
+  notes           String    @default("")
+
+  accommodation Accommodation  @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+  occupants     RoomOccupant[]
+
+  @@index([accommodationId])
+}
+
+model RoomOccupant {
+  roomId         String
+  registrationId String
+
+  room         Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, registrationId])
+  @@index([registrationId])
+}
+
+// ---------------------------------------------------------------------------
+// Cronograma (day-by-day / tempos e movimentos) e checklist operacional
+// ---------------------------------------------------------------------------
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  LATE
+  CANCELED
+}
+
+enum Audience {
+  ALL // todos os participantes
+  STAFF // só equipe
+  GROUP // um grupo do projeto
+  CATEGORY // uma categoria de inscrição
+  INDIVIDUAL // uma inscrição
+}
+
+model ItineraryItem {
+  id          String     @id @default(cuid())
+  tenantId    String
+  projectId   String
+  date        DateTime?
+  startTime   String     @default("") // "09:30" no fuso do projeto
+  endTime     String     @default("")
+  timezone    String     @default("") // sobrescreve o fuso do projeto (viagem multi-fuso)
+  title       String
+  location    String     @default("")
+  responsible String     @default("")
+  notes       String     @default("")
+  status      TaskStatus @default(PENDING)
+  audience    Audience   @default(ALL)
+  audienceId  String? // id do grupo/categoria/inscrição quando aplicável
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId, date])
+}
+
+model ChecklistItem {
+  id          String     @id @default(cuid())
+  tenantId    String
+  projectId   String
+  subject     String
+  category    String     @default("")
+  responsible String     @default("")
+  startDate   DateTime?
+  dueDate     DateTime?
+  status      TaskStatus @default(PENDING)
+  notes       String     @default("")
+  // [{ em, autor, de, para, nota }]
+  history     Json       @default("[]")
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Mural de recados segmentável e suporte (tickets com conversa)
+// ---------------------------------------------------------------------------
+
+model MuralPost {
+  id         String    @id @default(cuid())
+  tenantId   String
+  projectId  String
+  title      String
+  message    String
+  audience   Audience  @default(ALL)
+  audienceId String?
+  urgent     Boolean   @default(false)
+  pinned     Boolean   @default(false)
+  active     Boolean   @default(true)
+  publishAt  DateTime  @default(now())
+  expiresAt  DateTime?
+  author     String    @default("")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId, active])
+}
+
+enum TicketStatus {
+  NEW
+  IN_PROGRESS
+  ANSWERED
+  RESOLVED
+}
+
+model SupportTicket {
+  id             String       @id @default(cuid())
+  tenantId       String
+  projectId      String
+  registrationId String
+  subject        String
+  status         TicketStatus @default(NEW)
+  assignedUserId String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  project      Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  registration Registration           @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  messages     SupportTicketMessage[]
+
+  @@index([tenantId, projectId, status])
+}
+
+model SupportTicketMessage {
+  id         String    @id @default(cuid())
+  ticketId   String
+  authorType ActorType @default(PERSON)
+  authorName String    @default("")
+  body       String
+  fileId     String? // anexo opcional
+  createdAt  DateTime  @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Documentos
+// ---------------------------------------------------------------------------
+
+enum ProjectDocumentCategory {
+  GENERAL
+  VOUCHER
+  INSURANCE
+  TICKET
+  ITINERARY
+  OTHER
+}
+
+// Documento do projeto: geral (registrationId nulo) ou direcionado a uma inscrição
+model ProjectDocument {
+  id              String                  @id @default(cuid())
+  tenantId        String
+  projectId       String
+  registrationId  String?
+  title           String
+  category        ProjectDocumentCategory @default(GENERAL)
+  fileId          String // StoredFile
+  visibleToPerson Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  registration Registration? @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projectId])
+  @@index([registrationId])
+}
+
+enum PersonDocumentKind {
+  PASSPORT
+  RG
+  CNH
+  VISA
+  INSURANCE
+  VACCINE
+  PHOTO
+  OTHER
+}
+
+// Documento pessoal (passaporte, visto…) — pertence à pessoa, serve a todos os projetos
+model PersonDocument {
+  id         String             @id @default(cuid())
+  tenantId   String
+  personId   String
+  kind       PersonDocumentKind @default(OTHER)
+  number     String             @default("")
+  country    String             @default("")
+  expiresAt  DateTime?
+  fileId     String // StoredFile (PRIVATE)
+  uploadedBy String             @default("")
+  createdAt  DateTime           @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, personId])
+  @@index([expiresAt])
+}
