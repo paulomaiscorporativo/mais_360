@@ -25,3 +25,28 @@ O domínio `.test` é reservado e não recebe e-mail.
 Os papéis de balcão, leitor, aprovador e vendas ganham telas próprias na Fase 2 (credenciamento,
 viagens corporativas, feiras). Perfis externos — associado, empresa com cota de convites,
 participante e viajante — entram quando as áreas deles forem construídas.
+
+## Projetos de demonstração (ABIEC)
+
+O mesmo `npm run db:seed:demo` recria dois projetos com dados, para testar as telas da Onda 2.
+Rodar de novo apaga e recria os dois; os links públicos mudam a cada execução e aparecem no
+final da saída do comando (também ficam na ficha de cada inscrição no console).
+
+**Incentivo Lisboa 2027** (viagem de grupo, fuso de Lisboa)
+
+- 8 viajantes em dois grupos (Diretoria e Associados), voos TP82/TP81 com dois localizadores e
+  assentos, hotel com rooming (diretoria em single, associados em twin; um quarto ainda sem
+  número), roteiro de 8 itens com público por grupo, checklist com itens atrasados, mural e
+  dois chamados de suporte.
+- Pendências de propósito: Eduardo Sampaio tem passaporte vencendo em menos de 6 meses depois da
+  volta; Fábio Nogueira está sem passaporte e sem quarto.
+- Portal do viajante: `/t/abiec/v/<token>`.
+
+**Jantar Anual ABIEC 2026** (evento com convites, 10/12/2026 às 20h)
+
+- 4 empresas com cota, 12 convites (confirmados, pendentes e um recusado; dois individuais),
+  categorias Autoridade e Associado, mesa de honra e 6 mesas redondas com os confirmados
+  acomodados. O envio automático está desligado para nada sair por e-mail.
+- Convite e credencial: `/t/abiec/c/<token>`.
+- Portal da empresa: `/t/abiec/empresa`, com os logins `aurora-do-cerrado`, `vale-verde`,
+  `pampa-alimentos` e `serra-azul` e a mesma senha dos usuários demo.

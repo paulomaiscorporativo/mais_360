@@ -5,7 +5,8 @@
  *   npm run db:seed:demo
  *
  * Todos usam a senha DEMO_PASSWORD (padrão "Demo@2026!") e o domínio reservado
- * ".test", que não recebe e-mail de verdade. Idempotente.
+ * ".test", que não recebe e-mail de verdade. Idempotente. Também cria dois projetos
+ * da ABIEC com dados (ver seed-demo-projects.ts).
  */
 import path from "node:path";
 import bcrypt from "bcryptjs";
@@ -16,6 +17,7 @@ import {
   type TenantRole,
   type WorkspaceRole,
 } from "@prisma/client";
+import { seedDemoProjects } from "./seed-demo-projects";
 
 loadEnv({ path: path.resolve(import.meta.dirname, "../../../.env") });
 
@@ -198,6 +200,21 @@ async function main() {
 
   console.log(`Seed demo concluído — ${USERS.length} usuários · senha: ${PASSWORD}`);
   for (const u of USERS) console.log(`  ${u.email}`);
+
+  // Projetos com dados (viagem de grupo e evento com convites) na ABIEC
+  const { trip, gala } = await seedDemoProjects(prisma, passwordHash);
+  const base = process.env.APP_URL ?? "http://localhost:3000";
+  console.log(`
+Projetos demo na ABIEC:`);
+  console.log(`  ${trip.project.name} — ${trip.travelers.length} viajantes`);
+  const first = trip.travelers[0];
+  if (first)
+    console.log(`    portal do viajante (${first.name}): ${base}/t/abiec/v/${first.token}`);
+  console.log(`  ${gala.project.name} — ${gala.invites.length} convites`);
+  const invite = gala.invites.find((i) => i.status === "INVITED");
+  if (invite)
+    console.log(`    convite pendente (${invite.name}): ${base}/t/abiec/c/${invite.token}`);
+  console.log(`    portal da empresa: ${base}/t/abiec/empresa · logins: ${gala.logins.join(", ")}`);
 }
 
 main()
