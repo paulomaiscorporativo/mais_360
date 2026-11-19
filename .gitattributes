@@ -3,3 +3,6 @@
 *.jpg binary
 *.pdf binary
 *.docx binary
+*.ttf binary
+*.otf binary
+*.woff2 binary
