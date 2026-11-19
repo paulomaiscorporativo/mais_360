@@ -44,7 +44,7 @@ import {
   MenuTrigger,
   Tooltip,
 } from "@/components/ui/overlay";
-import { MODULE_UI } from "@/config/modules-ui";
+import { MODULE_UI, moduleHref } from "@/config/modules-ui";
 import { PRODUCT } from "@/config/product";
 import { cn } from "@/lib/cn";
 import type { NavData, NavTenant, NavWorkspace } from "@/server/nav";
@@ -108,7 +108,7 @@ function tenantNav(ws: NavWorkspace, t: NavTenant): { main: NavItem[]; modules: 
     ],
     modules: t.modules.map((m) => {
       const Icon = MODULE_UI[m].icon;
-      return { href: `${base}/m/${MODULE_UI[m].slug}`, label: MODULES[m].name, icon: <Icon /> };
+      return { href: moduleHref(base, m), label: MODULES[m].name, icon: <Icon /> };
     }),
   };
 }
@@ -475,7 +475,7 @@ function buildCommands(nav: NavData): CommandItem[] {
           id: `t-${t.id}-${m}`,
           group: "Módulos",
           label: `${MODULES[m].name} — ${t.name}`,
-          href: `${base}/m/${MODULE_UI[m].slug}`,
+          href: moduleHref(base, m),
           icon: <Icon />,
         });
       }
