@@ -26,15 +26,22 @@ interrupção por limite de uso). Atualizado a cada etapa concluída.
 - Limite de tentativas de login em memória (mover para o banco ao escalar horizontalmente).
 - `packages/db/src/index.ts` usa `export *` do Prisma (aviso do Turbopack).
 
-## Fase 2 — em andamento (19/11/2026)
+## Fase 2 — em andamento
 
-**Onda 1** (worktrees em `C:/Users/Mais Corporativo/plataforma_mais_wt/`):
-- `a-projetos` (branch `f2-a-projetos`): projetos, pessoas, inscrições, importação, formulário
-  público, arquivos `/api/files`, webhook do WhatsApp, 404 real. Contrato em `docs/CONTRATO-PROJETOS.md`.
-- `b-comunicacao` (branch `f2-b-comunicacao`): telas de canais, modelos, campanhas e réguas.
-- `c-documentos` (branch `f2-c-documentos`): biblioteca e editor visual de documentos.
+**Onda 1 — concluída e integrada (19/11/2026):**
+- Projetos (assistente por tipologia), pessoas (dedupe, LGPD), inscrições (importação XLSX/CSV,
+  lote), formulário público com QR, arquivos `/api/files`, webhook do WhatsApp, 404 real.
+  Contrato da Onda 2 em `docs/CONTRATO-PROJETOS.md` (`requireProject*`, `PROJECT_NAV` com `ready`).
+- Comunicação: canais, modelos, assistente de campanha com acompanhamento ao vivo, réguas (tela).
+- Documentos: biblioteca e editor visual; contrato em `docs/CONTRATO-DOCUMENTOS.md`
+  (`renderForRegistrations`).
+- 132 testes unitários; tipos, lint e build limpos. Usuários demo: `docs/USUARIOS-DEMO.md`.
 
-**Onda 2** (depois da 2A): viagens de grupo, eventos e convites, linha direta/viagens
+**Pendências da Onda 1:** job do worker que executa as réguas; página `/c/<token>` (credencial
+digital); paginação real das listas; importação grande como job; storage dos documentos usar a
+camada de arquivos da 2A (`server/files.ts`).
+
+**Onda 2 — a fazer:** viagens de grupo (ABIEC), eventos e convites, linha direta/viagens
 corporativas, scripts de migração de dados ABIEC/ABRADILAN.
 
 ## Como retomar
