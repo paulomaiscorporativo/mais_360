@@ -6,3 +6,4 @@ export * from "./theme";
 export * from "./people";
 export * from "./registrations";
 export * from "./projects";
+export * from "./travel";
