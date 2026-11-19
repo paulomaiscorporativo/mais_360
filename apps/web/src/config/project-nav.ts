@@ -101,7 +101,7 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     href: "/documentos",
     icon: FileText,
     feature: "DOCUMENTS",
-    ready: false,
+    ready: true,
   },
   {
     key: "vouchers",
@@ -109,7 +109,7 @@ export const PROJECT_NAV: ProjectNavEntry[] = [
     href: "/vouchers",
     icon: Ticket,
     feature: "VOUCHERS",
-    ready: false,
+    ready: true,
   },
   // ── Onda 2: eventos e convites ──
   {
