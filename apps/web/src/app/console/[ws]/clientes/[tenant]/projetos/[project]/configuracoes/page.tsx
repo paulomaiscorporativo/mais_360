@@ -33,6 +33,7 @@ export default async function ProjectSettingsPage({
       canArchive={p.role === "ADMIN" || p.role === "MANAGER"}
       travel={["INCENTIVE_TRIP", "TECHNICAL_IMMERSION", "SPORTS_EXPERIENCE", "CORPORATE_TRAVEL"].includes(p.project.type)}
       status={p.project.status}
+      bannerUrl={p.project.bannerFileId ? `/api/files/${p.project.bannerFileId}` : null}
       data={{
         name: p.project.name,
         code: p.project.code,

@@ -21,6 +21,7 @@ import {
   updateProject,
 } from "../../../(gestao)/projetos/actions";
 import { FeatureList, ProjectFields, type ProjectFormValue } from "../../../(gestao)/projetos/_components/project-form";
+import { ImageUpload } from "../../../(gestao)/identidade/image-upload";
 
 type Item = { id?: string; name: string; color: string };
 
@@ -34,6 +35,7 @@ export function ProjectSettingsForm(props: {
   canArchive: boolean;
   travel: boolean;
   status: ProjectStatus;
+  bannerUrl: string | null;
   data: ProjectFormValue;
   enabled: ProjectFeature[];
   available: ProjectFeature[];
@@ -112,6 +114,19 @@ export function ProjectSettingsForm(props: {
             </Button>
           </div>
         )}
+      </FormSection>
+
+      <FormSection title="Arte do projeto" description="Banner exibido no formulário de inscrição e na área do participante.">
+        <ImageUpload
+          tenant={tenant}
+          target="projectBanner"
+          projectId={projectId}
+          label="Banner"
+          hint="Imagem horizontal, ao menos 1600 × 600 px."
+          current={props.bannerUrl}
+          aspect="banner"
+          disabled={!canEdit}
+        />
       </FormSection>
 
       <FormSection
