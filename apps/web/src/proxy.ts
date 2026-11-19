@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Proxy (antigo middleware, Next 16).
  *
  * 1. Resolução do cliente pelo domínio:
+ *      360.<ROOT_DOMAIN> (CONSOLE_HOST) → console, nunca cliente
  *      abiec.<ROOT_DOMAIN>/…     → /t/abiec/…
  *      eventos.abiec.com.br/…    → /t/_host/…  (+ cabeçalho x-tenant-host; a página
  *                                  resolve o domínio próprio em TenantDomain)
@@ -13,7 +14,37 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 
 const ROOT_DOMAIN = (process.env.ROOT_DOMAIN ?? "localhost").toLowerCase();
-const RESERVED = new Set(["www", "app", "console", "api"]);
+// Host do console/produto (ex.: 360.mais.tur.br). Nunca resolve como cliente.
+const CONSOLE_HOST = (process.env.CONSOLE_HOST || `360.${ROOT_DOMAIN}`)
+  .toLowerCase()
+  .split(":")[0]!;
+// Subdomínios de infraestrutura que também nunca são cliente (espelha RESERVED_SLUGS).
+const RESERVED = new Set([
+  "360",
+  "www",
+  "app",
+  "api",
+  "admin",
+  "console",
+  "mail",
+  "smtp",
+  "webmail",
+  "ftp",
+  "cdn",
+  "static",
+  "assets",
+  "status",
+  "docs",
+  "help",
+  "suporte",
+  "blog",
+  "login",
+  "auth",
+  "kiosk",
+  "totem",
+  "dev",
+  "staging",
+]);
 const SESSION_COOKIE = "mais_session";
 
 function hostname(req: NextRequest) {
@@ -28,7 +59,11 @@ export function proxy(req: NextRequest) {
 
   const sub = host.endsWith(`.${ROOT_DOMAIN}`) ? host.slice(0, -(ROOT_DOMAIN.length + 1)) : null;
   const isRoot =
-    host === ROOT_DOMAIN || host === "127.0.0.1" || (sub !== null && RESERVED.has(sub));
+    host === ROOT_DOMAIN ||
+    host === CONSOLE_HOST ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    (sub !== null && RESERVED.has(sub));
 
   if (!isRoot && host) {
     if (sub !== null) {
@@ -58,5 +93,7 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|woff2?)$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|woff2?)$).*)",
+  ],
 };

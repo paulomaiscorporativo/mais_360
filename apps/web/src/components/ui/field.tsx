@@ -27,7 +27,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div className="relative flex items-center">
       {leading && (
-        <span className="pointer-events-none absolute left-3 flex text-fg-subtle [&_svg]:size-4">
+        <span className="text-fg-subtle pointer-events-none absolute left-3 flex [&_svg]:size-4">
           {leading}
         </span>
       )}
@@ -36,7 +36,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         className={cn(controlBase, "h-9 px-3", leading && "pl-9", trailing && "pr-9", className)}
         {...props}
       />
-      {trailing && <span className="absolute right-2 flex text-fg-subtle">{trailing}</span>}
+      {trailing && <span className="text-fg-subtle absolute right-2 flex">{trailing}</span>}
     </div>
   );
 });
@@ -55,7 +55,7 @@ export const Textarea = forwardRef<
 });
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn("text-sm font-medium text-fg", className)} {...props} />;
+  return <label className={cn("text-fg text-sm font-medium", className)} {...props} />;
 }
 
 type FieldProps = {
@@ -78,15 +78,15 @@ export function Field({ label, hint, error, optional, className, children }: Fie
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div className="flex items-baseline justify-between gap-2">
         <Label htmlFor={id}>{label}</Label>
-        {optional && <span className="text-xs text-fg-faint">Opcional</span>}
+        {optional && <span className="text-fg-faint text-xs">Opcional</span>}
       </div>
       {children({ id, describedBy, invalid: !!error })}
       {error ? (
-        <p id={errorId} className="text-xs font-medium text-danger">
+        <p id={errorId} className="text-danger text-xs font-medium">
           {error}
         </p>
       ) : hint ? (
-        <p id={hintId} className="text-xs text-fg-subtle">
+        <p id={hintId} className="text-fg-subtle text-xs">
           {hint}
         </p>
       ) : null}

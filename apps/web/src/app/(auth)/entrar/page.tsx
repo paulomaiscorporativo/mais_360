@@ -17,7 +17,7 @@ export default async function LoginPage({
   return (
     <div className="animate-rise">
       <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
-      <p className="mt-2 text-md text-fg-muted">Acesse o console da sua operação.</p>
+      <p className="text-md text-fg-muted mt-2">Acesse o console da sua operação.</p>
       <LoginForm next={next} />
     </div>
   );

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio, isHex, normalizeHex, oklchToRgb, parseHex, rgbToOklch, toHex } from "./color";
+import {
+  contrastRatio,
+  isHex,
+  normalizeHex,
+  oklchToRgb,
+  parseHex,
+  rgbToOklch,
+  toHex,
+} from "./color";
 import {
   AA_TEXT,
   AA_UI,
@@ -59,8 +67,12 @@ describe("tema da marca garante AA para qualquer cor", () => {
       const t = buildBrandTheme(hex);
       for (const roles of [t.light, t.dark]) {
         expect(contrastRatio(roles.brand, roles.brandFg)).toBeGreaterThanOrEqual(AA_TEXT);
-        expect(contrastRatio(roles.brandHover, onColor(roles.brandHover))).toBeGreaterThanOrEqual(AA_TEXT);
-        expect(contrastRatio(roles.brandSubtle, roles.brandSubtleFg)).toBeGreaterThanOrEqual(AA_TEXT);
+        expect(contrastRatio(roles.brandHover, onColor(roles.brandHover))).toBeGreaterThanOrEqual(
+          AA_TEXT,
+        );
+        expect(contrastRatio(roles.brandSubtle, roles.brandSubtleFg)).toBeGreaterThanOrEqual(
+          AA_TEXT,
+        );
       }
       expect(contrastRatio(t.light.brandText, SURFACE_LIGHT)).toBeGreaterThanOrEqual(AA_TEXT);
       expect(contrastRatio(t.dark.brandText, SURFACE_DARK)).toBeGreaterThanOrEqual(AA_TEXT);

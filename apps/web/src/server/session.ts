@@ -88,7 +88,10 @@ export const getSession = cache(async () => {
 export async function destroySession() {
   const sid = await readSessionId();
   if (sid) {
-    await prisma.session.updateMany({ where: { id: sid, revokedAt: null }, data: { revokedAt: new Date() } });
+    await prisma.session.updateMany({
+      where: { id: sid, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
   (await cookies()).delete(SESSION_COOKIE);
 }
@@ -96,7 +99,11 @@ export async function destroySession() {
 /** Revoga todas as sessões do usuário, menos (opcionalmente) a atual. */
 export async function revokeUserSessions(userId: string, exceptSessionId?: string) {
   await prisma.session.updateMany({
-    where: { userId, revokedAt: null, ...(exceptSessionId ? { NOT: { id: exceptSessionId } } : {}) },
+    where: {
+      userId,
+      revokedAt: null,
+      ...(exceptSessionId ? { NOT: { id: exceptSessionId } } : {}),
+    },
     data: { revokedAt: new Date() },
   });
 }

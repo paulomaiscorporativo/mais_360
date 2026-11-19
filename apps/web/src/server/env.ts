@@ -1,5 +1,8 @@
 import "server-only";
 import { z } from "zod";
+import { loadMonorepoEnv } from "./load-env";
+
+loadMonorepoEnv();
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

@@ -42,25 +42,38 @@ type SheetProps = {
   size?: "md" | "lg";
 };
 
-export function Sheet({ open, onOpenChange, title, description, children, footer, size = "md" }: SheetProps) {
+export function Sheet({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+  footer,
+  size = "md",
+}: SheetProps) {
   const desktop = useIsDesktop();
 
   if (!desktop) {
     return (
       <Drawer.Root open={open} onOpenChange={onOpenChange} repositionInputs={false}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-50 bg-overlay" />
-          <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-xl bg-surface-raised shadow-sheet outline-none">
-            <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-border-strong" />
-            <div className="px-5 pb-3 pt-3">
+          <Drawer.Overlay className="bg-overlay fixed inset-0 z-50" />
+          <Drawer.Content className="bg-surface-raised shadow-sheet fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-xl outline-none">
+            <div
+              aria-hidden
+              className="bg-border-strong mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full"
+            />
+            <div className="px-5 pt-3 pb-3">
               <Drawer.Title className="text-lg font-semibold">{title}</Drawer.Title>
               {description && (
-                <Drawer.Description className="mt-0.5 text-sm text-fg-subtle">{description}</Drawer.Description>
+                <Drawer.Description className="text-fg-subtle mt-0.5 text-sm">
+                  {description}
+                </Drawer.Description>
               )}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">{children}</div>
             {footer && (
-              <div className="safe-bottom flex flex-col-reverse gap-2 border-t border-border px-5 pt-3 pb-3 [&>*]:w-full">
+              <div className="safe-bottom border-border flex flex-col-reverse gap-2 border-t px-5 pt-3 pb-3 [&>*]:w-full">
                 {footer}
               </div>
             )}
@@ -73,19 +86,21 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay data-[state=open]:animate-fade-in" />
+        <DialogPrimitive.Overlay className="bg-overlay data-[state=open]:animate-fade-in fixed inset-0 z-50" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-y-2 right-2 z-50 flex flex-col rounded-lg border border-border bg-surface-raised shadow-sheet outline-none",
+            "border-border bg-surface-raised shadow-sheet fixed inset-y-2 right-2 z-50 flex flex-col rounded-lg border outline-none",
             "data-[state=open]:animate-[sheet-in_240ms_var(--ease-out)]",
             size === "md" ? "w-[460px]" : "w-[640px]",
           )}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="border-border flex items-start justify-between gap-4 border-b px-6 py-5">
             <div>
-              <DialogPrimitive.Title className="text-lg font-semibold">{title}</DialogPrimitive.Title>
+              <DialogPrimitive.Title className="text-lg font-semibold">
+                {title}
+              </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="mt-0.5 text-sm text-fg-subtle">
+                <DialogPrimitive.Description className="text-fg-subtle mt-0.5 text-sm">
                   {description}
                 </DialogPrimitive.Description>
               )}
@@ -96,8 +111,10 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
               </Button>
             </DialogPrimitive.Close>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 scrollbar-thin">{children}</div>
-          {footer && <div className="flex justify-end gap-2 border-t border-border px-6 py-4">{footer}</div>}
+          <div className="min-h-0 flex-1 scrollbar-thin overflow-y-auto px-6 py-5">{children}</div>
+          {footer && (
+            <div className="border-border flex justify-end gap-2 border-t px-6 py-4">{footer}</div>
+          )}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -136,11 +153,11 @@ export function ConfirmDialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay data-[state=open]:animate-fade-in" />
-        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-surface-raised p-6 shadow-sheet outline-none data-[state=open]:animate-rise">
+        <DialogPrimitive.Overlay className="bg-overlay data-[state=open]:animate-fade-in fixed inset-0 z-50" />
+        <DialogPrimitive.Content className="border-border bg-surface-raised shadow-sheet data-[state=open]:animate-rise fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border p-6 outline-none">
           <DialogPrimitive.Title className="text-lg font-semibold">{title}</DialogPrimitive.Title>
           {description && (
-            <DialogPrimitive.Description className="mt-2 text-base text-fg-muted">
+            <DialogPrimitive.Description className="text-fg-muted mt-2 text-base">
               {description}
             </DialogPrimitive.Description>
           )}
@@ -149,7 +166,11 @@ export function ConfirmDialog({
             <DialogPrimitive.Close asChild>
               <Button variant="secondary">{cancelLabel}</Button>
             </DialogPrimitive.Close>
-            <Button variant={tone === "danger" ? "danger" : "primary"} loading={loading} onClick={onConfirm}>
+            <Button
+              variant={tone === "danger" ? "danger" : "primary"}
+              loading={loading}
+              onClick={onConfirm}
+            >
               {confirmLabel}
             </Button>
           </div>
@@ -179,7 +200,7 @@ export function Tooltip({
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
-          className="z-50 rounded-sm bg-ink-950 px-2 py-1 text-xs font-medium text-white shadow-pop animate-fade-in dark:bg-ink-100 dark:text-ink-950"
+          className="bg-ink-950 shadow-pop animate-fade-in dark:bg-ink-100 dark:text-ink-950 z-50 rounded-sm px-2 py-1 text-xs font-medium text-white"
         >
           {content}
         </TooltipPrimitive.Content>
@@ -205,7 +226,10 @@ export function MenuContent({
       <DropdownPrimitive.Content
         align={align}
         sideOffset={6}
-        className={cn("z-50 min-w-48 rounded-md bg-surface-raised p-1 shadow-pop animate-rise", className)}
+        className={cn(
+          "bg-surface-raised shadow-pop animate-rise z-50 min-w-48 rounded-md p-1",
+          className,
+        )}
         {...props}
       />
     </DropdownPrimitive.Portal>
@@ -220,7 +244,7 @@ export function MenuItem({
   return (
     <DropdownPrimitive.Item
       className={cn(
-        "flex cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 py-2 text-base outline-none data-[disabled]:opacity-40 data-[highlighted]:bg-hover [&_svg]:size-4 [&_svg]:text-fg-subtle",
+        "data-[highlighted]:bg-hover [&_svg]:text-fg-subtle flex cursor-default items-center gap-2.5 rounded-sm px-2.5 py-2 text-base outline-none select-none data-[disabled]:opacity-40 [&_svg]:size-4",
         tone === "danger" && "text-danger [&_svg]:text-danger",
         className,
       )}
@@ -229,10 +253,18 @@ export function MenuItem({
   );
 }
 
-export function MenuLabel({ className, ...props }: React.ComponentPropsWithoutRef<typeof DropdownPrimitive.Label>) {
-  return <DropdownPrimitive.Label className={cn("px-2.5 pb-1 pt-2 text-xs font-medium text-fg-subtle", className)} {...props} />;
+export function MenuLabel({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DropdownPrimitive.Label>) {
+  return (
+    <DropdownPrimitive.Label
+      className={cn("text-fg-subtle px-2.5 pt-2 pb-1 text-xs font-medium", className)}
+      {...props}
+    />
+  );
 }
 
 export function MenuSeparator() {
-  return <DropdownPrimitive.Separator className="-mx-1 my-1 h-px bg-border" />;
+  return <DropdownPrimitive.Separator className="bg-border -mx-1 my-1 h-px" />;
 }

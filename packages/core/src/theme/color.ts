@@ -70,8 +70,7 @@ function oklchToLinear({ l, c, h }: Oklch): Rgb {
   };
 }
 
-const inGamut = ({ r, g, b }: Rgb) =>
-  [r, g, b].every((v) => v >= -0.0001 && v <= 1.0001);
+const inGamut = ({ r, g, b }: Rgb) => [r, g, b].every((v) => v >= -0.0001 && v <= 1.0001);
 
 /** Converte para sRGB reduzindo o croma até caber no gamut (preserva L e matiz). */
 export function oklchToRgb(color: Oklch): Rgb {

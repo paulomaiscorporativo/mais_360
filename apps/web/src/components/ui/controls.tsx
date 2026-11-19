@@ -12,7 +12,12 @@ import { controlClass } from "./field";
 // Select
 // ---------------------------------------------------------------------------
 
-export type SelectOption = { value: string; label: React.ReactNode; description?: string; disabled?: boolean };
+export type SelectOption = {
+  value: string;
+  label: React.ReactNode;
+  description?: string;
+  disabled?: boolean;
+};
 
 type SelectProps = {
   id?: string;
@@ -44,7 +49,7 @@ export function Select({
         aria-describedby={props["aria-describedby"]}
         className={cn(
           controlClass,
-          "flex h-9 items-center justify-between gap-2 px-3 text-left data-[placeholder]:text-fg-faint",
+          "data-[placeholder]:text-fg-faint flex h-9 items-center justify-between gap-2 px-3 text-left",
           className,
         )}
       >
@@ -57,7 +62,7 @@ export function Select({
         <SelectPrimitive.Content
           position="popper"
           sideOffset={6}
-          className="z-50 max-h-[min(var(--radix-select-content-available-height),360px)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md bg-surface-raised p-1 shadow-pop animate-rise"
+          className="bg-surface-raised shadow-pop animate-rise z-50 max-h-[min(var(--radix-select-content-available-height),360px)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md p-1"
         >
           <SelectPrimitive.Viewport>
             {options.map((o) => (
@@ -65,15 +70,15 @@ export function Select({
                 key={o.value}
                 value={o.value}
                 disabled={o.disabled}
-                className="relative flex cursor-default select-none flex-col rounded-sm py-2 pl-8 pr-3 text-base outline-none data-[disabled]:opacity-40 data-[highlighted]:bg-hover"
+                className="data-[highlighted]:bg-hover relative flex cursor-default flex-col rounded-sm py-2 pr-3 pl-8 text-base outline-none select-none data-[disabled]:opacity-40"
               >
-                <span className="absolute left-2.5 top-2.5 text-brand-text">
+                <span className="text-brand-text absolute top-2.5 left-2.5">
                   <SelectPrimitive.ItemIndicator>
                     <Check className="size-3.5" strokeWidth={2.5} />
                   </SelectPrimitive.ItemIndicator>
                 </span>
                 <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
-                {o.description && <span className="text-xs text-fg-subtle">{o.description}</span>}
+                {o.description && <span className="text-fg-subtle text-xs">{o.description}</span>}
               </SelectPrimitive.Item>
             ))}
           </SelectPrimitive.Viewport>
@@ -95,7 +100,7 @@ export const Checkbox = forwardRef<
     <CheckboxPrimitive.Root
       ref={ref}
       className={cn(
-        "peer grid size-[18px] shrink-0 place-items-center rounded-[5px] border border-border-strong bg-surface shadow-sm transition-colors",
+        "peer border-border-strong bg-surface grid size-[18px] shrink-0 place-items-center rounded-[5px] border shadow-sm transition-colors",
         "hover:border-fg-faint data-[state=checked]:border-brand data-[state=checked]:bg-brand data-[state=checked]:text-brand-fg",
         "data-[state=indeterminate]:border-brand data-[state=indeterminate]:bg-brand data-[state=indeterminate]:text-brand-fg",
         "disabled:cursor-not-allowed disabled:opacity-50",

@@ -2,22 +2,32 @@ import { cn } from "@/lib/cn";
 import { PRODUCT } from "@/config/product";
 
 /**
- * Marca do produto: monograma geométrico (dois arcos = ida e volta, e o "+"
- * da Mais) + nome lido de PRODUCT. Nada de nome fixo no código.
+ * Símbolo provisório do produto: o "+" da Mais dentro de um anel de 360°
+ * (volta completa com uma abertura e um ponto de chegada — o ciclo da
+ * operação, da viagem ao credenciamento). Traço único, sem gradiente.
+ * O nome vem sempre de PRODUCT.
  */
 export function ProductMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" aria-hidden className={cn("size-7", className)}>
       <rect width="32" height="32" rx="8" fill="var(--brand)" />
+      {/* anel 360° com abertura no topo direito */}
       <path
-        d="M8 21.5c2.2-6.4 13.8-6.4 16 0"
+        d="M19.9 7.4A9.4 9.4 0 1 0 25.1 13"
         fill="none"
         stroke="var(--brand-fg)"
-        strokeOpacity=".55"
+        strokeOpacity=".6"
         strokeWidth="2"
         strokeLinecap="round"
       />
-      <path d="M16 8.5v9M11.5 13h9" stroke="var(--brand-fg)" strokeWidth="2.25" strokeLinecap="round" />
+      <circle cx="24.4" cy="9.1" r="1.35" fill="var(--brand-fg)" />
+      {/* + */}
+      <path
+        d="M16 11.6v8.8M11.6 16h8.8"
+        stroke="var(--brand-fg)"
+        strokeWidth="2.3"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

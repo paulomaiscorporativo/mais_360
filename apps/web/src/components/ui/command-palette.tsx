@@ -57,28 +57,28 @@ export function CommandPalette({ items }: { items: CommandItem[] }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay data-[state=open]:animate-fade-in" />
-        <DialogPrimitive.Content className="fixed left-1/2 top-[12vh] z-50 w-[calc(100vw-24px)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-surface-raised shadow-sheet outline-none data-[state=open]:animate-rise">
+        <DialogPrimitive.Overlay className="bg-overlay data-[state=open]:animate-fade-in fixed inset-0 z-50" />
+        <DialogPrimitive.Content className="border-border bg-surface-raised shadow-sheet data-[state=open]:animate-rise fixed top-[12vh] left-1/2 z-50 w-[calc(100vw-24px)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border outline-none">
           <DialogPrimitive.Title className="sr-only">Ir para</DialogPrimitive.Title>
           <Command loop className="flex flex-col">
-            <div className="flex items-center gap-3 border-b border-border px-4">
-              <Search className="size-4 shrink-0 text-fg-subtle" />
+            <div className="border-border flex items-center gap-3 border-b px-4">
+              <Search className="text-fg-subtle size-4 shrink-0" />
               <Command.Input
                 autoFocus
                 placeholder="Buscar clientes, páginas e ações…"
-                className="h-13 w-full bg-transparent text-md outline-none placeholder:text-fg-faint"
+                className="text-md placeholder:text-fg-faint h-13 w-full bg-transparent outline-none"
               />
               <Kbd>Esc</Kbd>
             </div>
-            <Command.List className="max-h-[min(60vh,420px)] overflow-y-auto p-2 scrollbar-thin">
-              <Command.Empty className="px-3 py-10 text-center text-base text-fg-subtle">
+            <Command.List className="max-h-[min(60vh,420px)] scrollbar-thin overflow-y-auto p-2">
+              <Command.Empty className="text-fg-subtle px-3 py-10 text-center text-base">
                 Nada encontrado. Tente outro termo.
               </Command.Empty>
               {groups.map((g) => (
                 <Command.Group
                   key={g}
                   heading={g}
-                  className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-subtle"
+                  className="[&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium"
                 >
                   {items
                     .filter((i) => i.group === g)
@@ -87,12 +87,12 @@ export function CommandPalette({ items }: { items: CommandItem[] }) {
                         key={i.id}
                         value={`${i.label} ${i.hint ?? ""} ${(i.keywords ?? []).join(" ")}`}
                         onSelect={() => go(i.href)}
-                        className="group flex h-10 cursor-default items-center gap-3 rounded-sm px-2.5 text-base data-[selected=true]:bg-hover [&_svg]:size-4"
+                        className="group data-[selected=true]:bg-hover flex h-10 cursor-default items-center gap-3 rounded-sm px-2.5 text-base [&_svg]:size-4"
                       >
                         <span className="text-fg-subtle">{i.icon}</span>
                         <span className="min-w-0 flex-1 truncate">{i.label}</span>
-                        {i.hint && <span className="truncate text-sm text-fg-faint">{i.hint}</span>}
-                        <CornerDownLeft className="hidden text-fg-faint group-data-[selected=true]:block" />
+                        {i.hint && <span className="text-fg-faint truncate text-sm">{i.hint}</span>}
+                        <CornerDownLeft className="text-fg-faint hidden group-data-[selected=true]:block" />
                       </Command.Item>
                     ))}
                 </Command.Group>

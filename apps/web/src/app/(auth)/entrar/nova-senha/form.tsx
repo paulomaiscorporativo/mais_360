@@ -39,7 +39,14 @@ export function NewPasswordForm() {
       {error && <Notice tone="danger" title={error} />}
       <Field label="Senha atual" error={fields.current}>
         {({ id, invalid }) => (
-          <Input id={id} name="current" type="password" autoComplete="current-password" aria-invalid={invalid || undefined} className="h-11" />
+          <Input
+            id={id}
+            name="current"
+            type="password"
+            autoComplete="current-password"
+            aria-invalid={invalid || undefined}
+            className="h-11"
+          />
         )}
       </Field>
       <Field label="Nova senha" error={fields.password}>
@@ -59,7 +66,13 @@ export function NewPasswordForm() {
       </Field>
       <ul className="-mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         {rules.map((r) => (
-          <li key={r.label} className={cn("flex items-center gap-1.5 transition-colors", r.ok ? "text-success" : "text-fg-subtle")}>
+          <li
+            key={r.label}
+            className={cn(
+              "flex items-center gap-1.5 transition-colors",
+              r.ok ? "text-success" : "text-fg-subtle",
+            )}
+          >
             <Check className={cn("size-3.5", !r.ok && "opacity-30")} strokeWidth={2.5} />
             {r.label}
           </li>
@@ -67,7 +80,14 @@ export function NewPasswordForm() {
       </ul>
       <Field label="Confirme a nova senha" error={fields.confirm}>
         {({ id, invalid }) => (
-          <Input id={id} name="confirm" type="password" autoComplete="new-password" aria-invalid={invalid || undefined} className="h-11" />
+          <Input
+            id={id}
+            name="confirm"
+            type="password"
+            autoComplete="new-password"
+            aria-invalid={invalid || undefined}
+            className="h-11"
+          />
         )}
       </Field>
       <Button type="submit" size="lg" block loading={pending}>

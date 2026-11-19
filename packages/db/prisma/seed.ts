@@ -33,7 +33,14 @@ const PLANS = [
     description: "Para quem organiza eventos com convites e credenciamento.",
     priceCents: 89_000,
     modules: ["COMMUNICATION", "DOCUMENTS", "EVENTS_INVITES", "ACCREDITATION"] as ModuleKey[],
-    limits: { tenants: 3, activeProjects: 5, registrationsPerMonth: 3000, whatsappPerMonth: 3000, kiosks: 0, users: 5 },
+    limits: {
+      tenants: 3,
+      activeProjects: 5,
+      registrationsPerMonth: 3000,
+      whatsappPerMonth: 3000,
+      kiosks: 0,
+      users: 5,
+    },
     sortOrder: 1,
   },
   {
@@ -50,7 +57,14 @@ const PLANS = [
       "GROUP_TRAVEL",
       "CORPORATE_TRAVEL",
     ] as ModuleKey[],
-    limits: { tenants: 15, activeProjects: 30, registrationsPerMonth: 20000, whatsappPerMonth: 20000, kiosks: 6, users: 25 },
+    limits: {
+      tenants: 15,
+      activeProjects: 30,
+      registrationsPerMonth: 20000,
+      whatsappPerMonth: 20000,
+      kiosks: 6,
+      users: 25,
+    },
     sortOrder: 2,
   },
   {
@@ -74,6 +88,8 @@ type TenantSeed = {
   fontFamily: string;
   modules: ModuleKey[];
   terms: Record<string, string>;
+  /** Endereços já em produção — QR codes impressos dependem deles. */
+  domains: string[];
 };
 
 const TENANTS: TenantSeed[] = [
@@ -92,6 +108,7 @@ const TENANTS: TenantSeed[] = [
       "org.singular": "Frigorífico",
       "org.plural": "Frigoríficos",
     },
+    domains: ["abiec.mais.tur.br"],
   },
   {
     slug: "abradilan",
@@ -108,6 +125,7 @@ const TENANTS: TenantSeed[] = [
       "org.singular": "Distribuidora",
       "org.plural": "Distribuidoras",
     },
+    domains: ["abradilanviagens.mais.tur.br"],
   },
 ];
 
@@ -160,7 +178,12 @@ async function main() {
   });
   await prisma.subscription.upsert({
     where: { workspaceId: workspace.id },
-    create: { workspaceId: workspace.id, planId: enterprise.id, status: "ACTIVE", provider: "manual" },
+    create: {
+      workspaceId: workspace.id,
+      planId: enterprise.id,
+      status: "ACTIVE",
+      provider: "manual",
+    },
     update: {},
   });
 
@@ -196,11 +219,13 @@ async function main() {
         update: {},
       });
     }
-    await prisma.tenantDomain.upsert({
-      where: { hostname: `${t.slug}.mais.tur.br` },
-      create: { tenantId: tenant.id, hostname: `${t.slug}.mais.tur.br`, primary: true },
-      update: {},
-    });
+    for (const [i, hostname] of t.domains.entries()) {
+      await prisma.tenantDomain.upsert({
+        where: { hostname },
+        create: { tenantId: tenant.id, hostname, primary: i === 0 },
+        update: { tenantId: tenant.id },
+      });
+    }
   }
 
   const counts = {

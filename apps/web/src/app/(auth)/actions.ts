@@ -50,7 +50,13 @@ export const login = defineAction(loginSchema, async ({ email, password, remembe
   resetRateLimit(key);
   await createSession({ kind: "USER", userId: user.id, remember });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  await audit({ action: "auth.login", userId: user.id, actorLabel: user.name, entityType: "User", entityId: user.id });
+  await audit({
+    action: "auth.login",
+    userId: user.id,
+    actorLabel: user.name,
+    entityType: "User",
+    entityId: user.id,
+  });
 
   if (user.mustChangePassword) redirect(CHANGE_PASSWORD_PATH);
   const viewer = await loadViewer();
@@ -66,9 +72,14 @@ const changeSchema = z
   .superRefine((d, ctx) => {
     const problem = passwordProblem(d.password);
     if (problem) ctx.addIssue({ code: "custom", path: ["password"], message: problem });
-    if (d.password !== d.confirm) ctx.addIssue({ code: "custom", path: ["confirm"], message: "As senhas não conferem." });
+    if (d.password !== d.confirm)
+      ctx.addIssue({ code: "custom", path: ["confirm"], message: "As senhas não conferem." });
     if (d.password && d.password === d.current)
-      ctx.addIssue({ code: "custom", path: ["password"], message: "Escolha uma senha diferente da atual." });
+      ctx.addIssue({
+        code: "custom",
+        path: ["password"],
+        message: "Escolha uma senha diferente da atual.",
+      });
   });
 
 export const changePassword = defineAction(changeSchema, async ({ current, password }) => {
@@ -81,7 +92,13 @@ export const changePassword = defineAction(changeSchema, async ({ current, passw
     data: { passwordHash: await hashPassword(password), mustChangePassword: false },
   });
   await revokeUserSessions(viewer.user.id, viewer.sessionId);
-  await audit({ action: "auth.password.change", userId: viewer.user.id, actorLabel: viewer.user.name, entityType: "User", entityId: viewer.user.id });
+  await audit({
+    action: "auth.password.change",
+    userId: viewer.user.id,
+    actorLabel: viewer.user.name,
+    entityType: "User",
+    entityId: viewer.user.id,
+  });
   redirect(await homePathFor({ ...viewer, user: { ...viewer.user, mustChangePassword: false } }));
 });
 

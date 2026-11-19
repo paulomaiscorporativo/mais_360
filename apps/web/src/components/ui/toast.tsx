@@ -14,10 +14,10 @@ export function Toaster() {
       position={desktop ? "bottom-right" : "top-center"}
       gap={8}
       icons={{
-        success: <CircleCheck className="size-4 text-success" />,
-        error: <CircleAlert className="size-4 text-danger" />,
-        warning: <TriangleAlert className="size-4 text-warning" />,
-        info: <Info className="size-4 text-info" />,
+        success: <CircleCheck className="text-success size-4" />,
+        error: <CircleAlert className="text-danger size-4" />,
+        warning: <TriangleAlert className="text-warning size-4" />,
+        info: <Info className="text-info size-4" />,
       }}
       toastOptions={{
         classNames: {

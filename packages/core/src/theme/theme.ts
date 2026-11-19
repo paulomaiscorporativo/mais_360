@@ -127,9 +127,7 @@ export function buildBrandTheme(input: string): BrandTheme {
     brandHover: shiftLightness(darkBrand, 0.06),
     brandActive: shiftLightness(darkBrand, 0.1),
     brandFg: onColor(darkBrand),
-    brandSubtle: toHex(
-      oklchToRgb({ ...rgbToOklch(parseHex(ramp[900])), l: 0.27 }),
-    ),
+    brandSubtle: toHex(oklchToRgb({ ...rgbToOklch(parseHex(ramp[900])), l: 0.27 })),
     brandSubtleFg: ramp[100],
     brandText: firstPassing([hex, ...lighter], SURFACE_DARK, AA_TEXT),
     brandRing: firstPassing([hex, ...lighter], SURFACE_DARK, AA_UI),

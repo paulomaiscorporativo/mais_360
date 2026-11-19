@@ -67,7 +67,7 @@ export function LoginForm({ next }: { next?: string }) {
               <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
-                className="grid size-8 place-items-center rounded-sm text-fg-subtle hover:bg-hover hover:text-fg"
+                className="text-fg-subtle hover:bg-hover hover:text-fg grid size-8 place-items-center rounded-sm"
                 aria-label={show ? "Ocultar senha" : "Mostrar senha"}
               >
                 {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -76,7 +76,7 @@ export function LoginForm({ next }: { next?: string }) {
           />
         )}
       </Field>
-      <label className="flex cursor-pointer items-center gap-2.5 text-base text-fg-muted">
+      <label className="text-fg-muted flex cursor-pointer items-center gap-2.5 text-base">
         <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
         Manter conectado neste dispositivo
       </label>

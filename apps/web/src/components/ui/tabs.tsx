@@ -18,10 +18,16 @@ const listClass =
 
 /** Abas de estado local (conteúdo na mesma página). */
 export const Tabs = TabsPrimitive.Root;
-export function TabsList({ className, ...props }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>) {
+export function TabsList({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>) {
   return <TabsPrimitive.List className={cn(listClass, className)} {...props} />;
 }
-export function TabsTrigger({ className, ...props }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>) {
+export function TabsTrigger({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>) {
   return <TabsPrimitive.Trigger className={cn(tabClass, className)} {...props} />;
 }
 export const TabsContent = TabsPrimitive.Content;
@@ -31,20 +37,36 @@ export function LinkTabs({
   items,
   className,
 }: {
-  items: { href: string; label: React.ReactNode; icon?: React.ReactNode; exact?: boolean; count?: number }[];
+  items: {
+    href: string;
+    label: React.ReactNode;
+    icon?: React.ReactNode;
+    exact?: boolean;
+    count?: number;
+  }[];
   className?: string;
 }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Seções" className={cn(listClass, className)}>
       {items.map((it) => {
-        const active = it.exact ? pathname === it.href : pathname === it.href || pathname.startsWith(it.href + "/");
+        const active = it.exact
+          ? pathname === it.href
+          : pathname === it.href || pathname.startsWith(it.href + "/");
         return (
-          <Link key={it.href} href={it.href} data-active={active} aria-current={active ? "page" : undefined} className={tabClass}>
+          <Link
+            key={it.href}
+            href={it.href}
+            data-active={active}
+            aria-current={active ? "page" : undefined}
+            className={tabClass}
+          >
             {it.icon}
             {it.label}
             {it.count !== undefined && (
-              <span className="tabular rounded-full bg-surface-sunken px-1.5 text-2xs text-fg-subtle">{it.count}</span>
+              <span className="tabular bg-surface-sunken text-2xs text-fg-subtle rounded-full px-1.5">
+                {it.count}
+              </span>
             )}
           </Link>
         );

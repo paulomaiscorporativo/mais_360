@@ -9,8 +9,7 @@ import { AppError } from "./errors";
  *   { ok: true, data }  |  { ok: false, error, fieldErrors? }
  */
 export type ActionResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string; fieldErrors?: Record<string, string> };
+  { ok: true; data: T } | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
 export type FieldErrors = Record<string, string>;
 
@@ -34,7 +33,11 @@ export function defineAction<S extends z.ZodType, T>(
   return async (raw: unknown): Promise<ActionResult<T>> => {
     const parsed = schema.safeParse(raw);
     if (!parsed.success) {
-      return { ok: false, error: "Revise os campos destacados.", fieldErrors: zodFieldErrors(parsed.error) };
+      return {
+        ok: false,
+        error: "Revise os campos destacados.",
+        fieldErrors: zodFieldErrors(parsed.error),
+      };
     }
     try {
       return { ok: true, data: await handler(parsed.data) };
@@ -54,7 +57,8 @@ export function defineAction<S extends z.ZodType, T>(
 export const v = {
   text: (label: string, max = 200) =>
     z.string().trim().min(1, `Informe ${label}.`).max(max, `Use no máximo ${max} caracteres.`),
-  optionalText: (max = 500) => z.string().trim().max(max, `Use no máximo ${max} caracteres.`).default(""),
+  optionalText: (max = 500) =>
+    z.string().trim().max(max, `Use no máximo ${max} caracteres.`).default(""),
   email: () => z.string().trim().toLowerCase().email("Informe um e-mail válido."),
   slug: () =>
     z
@@ -64,5 +68,9 @@ export const v = {
       .min(2, "O endereço precisa ter pelo menos 2 caracteres.")
       .max(40, "Use no máximo 40 caracteres.")
       .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "Use só letras minúsculas, números e hífen."),
-  hex: () => z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Use uma cor no formato #RRGGBB."),
+  hex: () =>
+    z
+      .string()
+      .trim()
+      .regex(/^#[0-9a-fA-F]{6}$/, "Use uma cor no formato #RRGGBB."),
 };

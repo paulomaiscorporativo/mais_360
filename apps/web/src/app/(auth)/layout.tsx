@@ -4,13 +4,13 @@ import { PRODUCT } from "@/config/product";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+    <div className="bg-surface grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <div className="flex min-h-dvh flex-col px-6 py-8 sm:px-12">
         <ProductLogo />
         <main className="flex flex-1 items-center py-10">
           <div className="mx-auto w-full max-w-[380px]">{children}</div>
         </main>
-        <footer className="flex flex-wrap items-center justify-between gap-2 text-xs text-fg-subtle">
+        <footer className="text-fg-subtle flex flex-wrap items-center justify-between gap-2 text-xs">
           <span>
             {PRODUCT.name} {PRODUCT.byline}
           </span>

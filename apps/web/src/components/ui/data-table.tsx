@@ -26,24 +26,36 @@ type DataTableProps<T> = {
   className?: string;
 };
 
-export function DataTable<T>({ rows, columns, rowKey, rowHref, caption, className }: DataTableProps<T>) {
+export function DataTable<T>({
+  rows,
+  columns,
+  rowKey,
+  rowHref,
+  caption,
+  className,
+}: DataTableProps<T>) {
   const primary = columns.find((c) => c.mobile === "primary") ?? columns[0];
   const secondary = columns.filter((c) => c.mobile === "secondary");
   const meta = columns.filter((c) => c.mobile === "meta");
 
   return (
-    <div className={cn("overflow-hidden rounded-md border border-border bg-surface shadow-sm", className)}>
+    <div
+      className={cn(
+        "border-border bg-surface overflow-hidden rounded-md border shadow-sm",
+        className,
+      )}
+    >
       {/* Desktop */}
       <table className="hidden w-full border-collapse text-left md:table">
         {caption && <caption className="sr-only">{caption}</caption>}
-        <thead className="sticky top-0 z-[1] bg-surface-muted">
-          <tr className="border-b border-border">
+        <thead className="bg-surface-muted sticky top-0 z-[1]">
+          <tr className="border-border border-b">
             {columns.map((c) => (
               <th
                 key={c.key}
                 scope="col"
                 className={cn(
-                  "h-9 px-4 text-xs font-medium text-fg-subtle first:pl-5 last:pr-5",
+                  "text-fg-subtle h-9 px-4 text-xs font-medium first:pl-5 last:pr-5",
                   c.align === "right" && "text-right",
                   c.className,
                 )}
@@ -61,8 +73,8 @@ export function DataTable<T>({ rows, columns, rowKey, rowHref, caption, classNam
               <tr
                 key={rowKey(row)}
                 className={cn(
-                  "group border-b border-border last:border-b-0",
-                  href && "relative cursor-pointer transition-colors hover:bg-surface-muted",
+                  "group border-border border-b last:border-b-0",
+                  href && "hover:bg-surface-muted relative cursor-pointer transition-colors",
                 )}
               >
                 {columns.map((c, i) => (
@@ -70,12 +82,15 @@ export function DataTable<T>({ rows, columns, rowKey, rowHref, caption, classNam
                     key={c.key}
                     className={cn(
                       "h-12 px-4 align-middle first:pl-5 last:pr-5",
-                      c.align === "right" && "text-right tabular",
+                      c.align === "right" && "tabular text-right",
                       c.className,
                     )}
                   >
                     {i === 0 && href ? (
-                      <Link href={href} className="after:absolute after:inset-0 focus-visible:outline-none">
+                      <Link
+                        href={href}
+                        className="after:absolute after:inset-0 focus-visible:outline-none"
+                      >
                         {c.cell(row)}
                       </Link>
                     ) : (
@@ -85,7 +100,7 @@ export function DataTable<T>({ rows, columns, rowKey, rowHref, caption, classNam
                 ))}
                 {href && (
                   <td className="pr-4 text-right">
-                    <ChevronRight className="ml-auto size-4 text-fg-faint transition-transform group-hover:translate-x-0.5 group-hover:text-fg-subtle" />
+                    <ChevronRight className="text-fg-faint group-hover:text-fg-subtle ml-auto size-4 transition-transform group-hover:translate-x-0.5" />
                   </td>
                 )}
               </tr>
@@ -95,7 +110,7 @@ export function DataTable<T>({ rows, columns, rowKey, rowHref, caption, classNam
       </table>
 
       {/* Mobile */}
-      <ul className="divide-y divide-border md:hidden">
+      <ul className="divide-border divide-y md:hidden">
         {rows.map((row) => {
           const href = rowHref?.(row);
           const content = (
@@ -103,7 +118,7 @@ export function DataTable<T>({ rows, columns, rowKey, rowHref, caption, classNam
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{primary?.cell(row)}</div>
                 {secondary.length > 0 && (
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-subtle">
+                  <div className="text-fg-subtle mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     {secondary.map((c) => (
                       <span key={c.key}>{c.cell(row)}</span>
                     ))}
@@ -117,13 +132,13 @@ export function DataTable<T>({ rows, columns, rowKey, rowHref, caption, classNam
                   ))}
                 </div>
               )}
-              {href && <ChevronRight className="size-4 shrink-0 text-fg-faint" />}
+              {href && <ChevronRight className="text-fg-faint size-4 shrink-0" />}
             </div>
           );
           return (
             <li key={rowKey(row)}>
               {href ? (
-                <Link href={href} className="block active:bg-pressed">
+                <Link href={href} className="active:bg-pressed block">
                   {content}
                 </Link>
               ) : (

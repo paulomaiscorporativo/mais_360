@@ -25,7 +25,10 @@ export const loadViewer = cache(async () => {
     where: { id: session.user.id },
     include: {
       workspaces: { include: { workspace: true }, orderBy: { createdAt: "asc" } },
-      memberships: { include: { tenant: { include: { workspace: true } } }, orderBy: { createdAt: "asc" } },
+      memberships: {
+        include: { tenant: { include: { workspace: true } } },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
   if (!user || !user.active) return null;
@@ -53,7 +56,12 @@ export async function requirePlatformRole(roles: PlatformRole[]): Promise<Viewer
   return viewer;
 }
 
-const WORKSPACE_RANK: Record<WorkspaceRole, number> = { OWNER: 4, ADMIN: 3, FINANCE: 2, OPERATOR: 1 };
+const WORKSPACE_RANK: Record<WorkspaceRole, number> = {
+  OWNER: 4,
+  ADMIN: 3,
+  FINANCE: 2,
+  OPERATOR: 1,
+};
 
 export async function requireWorkspace(slug: string, minRole: WorkspaceRole = "OPERATOR") {
   const viewer = await requireUser();
@@ -118,7 +126,10 @@ export async function homePathFor(viewer: Viewer): Promise<string> {
   if (ws) return `/console/${ws.slug}`;
   const m = viewer.user.memberships[0];
   if (m) return `/console/${m.tenant.workspace.slug}/clientes/${m.tenant.slug}`;
-  throw new AppError("Sua conta ainda não tem acesso a nenhum cliente. Fale com o administrador.", "FORBIDDEN");
+  throw new AppError(
+    "Sua conta ainda não tem acesso a nenhum cliente. Fale com o administrador.",
+    "FORBIDDEN",
+  );
 }
 
 /**
@@ -129,7 +140,8 @@ export async function guard<T>(promise: Promise<T>): Promise<T> {
   try {
     return await promise;
   } catch (err) {
-    if (err instanceof AppError && (err.code === "NOT_FOUND" || err.code === "FORBIDDEN")) nextNotFound();
+    if (err instanceof AppError && (err.code === "NOT_FOUND" || err.code === "FORBIDDEN"))
+      nextNotFound();
     throw err;
   }
 }

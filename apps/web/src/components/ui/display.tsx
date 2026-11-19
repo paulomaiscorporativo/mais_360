@@ -56,7 +56,12 @@ export function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
-const AVATAR_SIZES = { xs: "size-6 text-2xs", sm: "size-7 text-2xs", md: "size-9 text-xs", lg: "size-12 text-base" };
+const AVATAR_SIZES = {
+  xs: "size-6 text-2xs",
+  sm: "size-7 text-2xs",
+  md: "size-9 text-xs",
+  lg: "size-12 text-base",
+};
 
 export function Avatar({
   name,
@@ -78,7 +83,11 @@ export function Avatar({
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" className={cn(AVATAR_SIZES[size], shape, "shrink-0 object-cover", className)} />
+      <img
+        src={src}
+        alt=""
+        className={cn(AVATAR_SIZES[size], shape, "shrink-0 object-cover", className)}
+      />
     );
   }
   return (
@@ -89,7 +98,7 @@ export function Avatar({
         AVATAR_SIZES[size],
         shape,
         "grid shrink-0 place-items-center font-semibold tracking-wide",
-        color ? "text-white" : "bg-surface-sunken text-fg-muted ring-1 ring-inset ring-border",
+        color ? "text-white" : "bg-surface-sunken text-fg-muted ring-border ring-1 ring-inset",
         className,
       )}
     >
@@ -105,7 +114,7 @@ export function Avatar({
 export function Panel({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-md border border-border bg-surface shadow-sm", className)}
+      className={cn("border-border bg-surface rounded-md border shadow-sm", className)}
       {...props}
     />
   );
@@ -123,10 +132,15 @@ export function PanelHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-start justify-between gap-4 border-b border-border px-5 py-4", className)}>
+    <div
+      className={cn(
+        "border-border flex items-start justify-between gap-4 border-b px-5 py-4",
+        className,
+      )}
+    >
       <div className="min-w-0">
         <h2 className="text-md font-semibold">{title}</h2>
-        {description && <p className="mt-0.5 text-sm text-fg-subtle">{description}</p>}
+        {description && <p className="text-fg-subtle mt-0.5 text-sm">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
@@ -141,7 +155,7 @@ export function PanelFooter({ className, ...props }: React.HTMLAttributes<HTMLDi
   return (
     <div
       className={cn(
-        "flex items-center justify-end gap-2 rounded-b-md border-t border-border bg-surface-muted px-5 py-3",
+        "border-border bg-surface-muted flex items-center justify-end gap-2 rounded-b-md border-t px-5 py-3",
         className,
       )}
       {...props}
@@ -173,7 +187,7 @@ export function Kbd({ children, className }: { children: React.ReactNode; classN
   return (
     <kbd
       className={cn(
-        "inline-flex h-5 min-w-5 items-center justify-center rounded-xs border border-border-strong bg-surface px-1 font-mono text-2xs text-fg-subtle shadow-[0_1px_0_var(--border-strong)]",
+        "border-border-strong bg-surface text-2xs text-fg-subtle inline-flex h-5 min-w-5 items-center justify-center rounded-xs border px-1 font-mono shadow-[0_1px_0_var(--border-strong)]",
         className,
       )}
     >
@@ -199,9 +213,9 @@ export function Stat({
 }) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <span className="text-xs font-medium text-fg-subtle">{label}</span>
+      <span className="text-fg-subtle text-xs font-medium">{label}</span>
       <span className="tabular text-xl font-semibold tracking-tight">{value}</span>
-      {hint && <span className="text-xs text-fg-subtle">{hint}</span>}
+      {hint && <span className="text-fg-subtle text-xs">{hint}</span>}
     </div>
   );
 }

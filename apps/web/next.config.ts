@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import { loadMonorepoEnv } from "./src/server/load-env";
+
+// O .env fica na raiz do monorepo (compartilhado com Prisma e worker).
+loadMonorepoEnv();
 
 const nextConfig: NextConfig = {
   // Pacotes do monorepo são TypeScript puro: o Next transpila.

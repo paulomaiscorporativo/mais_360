@@ -20,7 +20,8 @@ type BrandSource = {
 export function resolveBrand(tenant: BrandSource | null) {
   const color = tenant?.branding?.primaryColor ?? PRODUCT.brandColor;
   const theme = buildBrandTheme(color);
-  const whiteLabel = !!tenant && (tenant.workspace?.whiteLabel || tenant.branding?.showMaisBrand === false);
+  const whiteLabel =
+    !!tenant && (tenant.workspace?.whiteLabel || tenant.branding?.showMaisBrand === false);
   return {
     name: tenant?.name ?? PRODUCT.name,
     productName: whiteLabel ? null : PRODUCT.name,
