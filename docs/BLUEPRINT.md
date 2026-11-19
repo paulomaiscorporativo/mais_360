@@ -286,9 +286,13 @@ A plataforma é um **produto comercial**, não só a ferramenta interna da Mais.
 | **Experiência** | Interface de nível premiado (ver `docs/DESIGN.md`), mobile-first e responsiva em toda tela. |
 | **Escala** | Workers horizontais (fila com SKIP LOCKED), arquivos em S3 compatível, banco dedicado como opção Enterprise. |
 
-**Nome comercial: pendente.** "Comitiva" foi descartado (remete a comitiva de boiadeiro).
-Nome provisório no código: "Plataforma Mais", centralizado numa constante única. Antes de
-investir na marca escolhida: consultar o INPI (classes 9, 35, 39 e 42) e registrar os domínios.
+**Nome comercial: Mais 360** (definido em 18/11/2026, "a princípio"). Comunica o "cobre tudo"
+e reaproveita a expressão que a Mais já usa ("executa o projeto de forma 360°"). Linha de
+produtos: **Mais 360 Travel** · **Events** · **Pass** (credenciamento e totem) · **Expo** (feiras) ·
+**Connect** (comunicação). O nome fica numa constante única no código. Antes de investir na
+marca: consultar o INPI (classes 9, 35, 39 e 42) e registrar os domínios.
+Descartados: Comitiva (conotação rural), Itinera (CRM de turismo existente), Convia (confusão
+com Converia/Converve), Hub Mais (termo saturado).
 
 ---
 
