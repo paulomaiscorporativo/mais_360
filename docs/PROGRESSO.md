@@ -41,8 +41,14 @@ interrupção por limite de uso). Atualizado a cada etapa concluída.
 digital); paginação real das listas; importação grande como job; storage dos documentos usar a
 camada de arquivos da 2A (`server/files.ts`).
 
-**Onda 2 — a fazer:** viagens de grupo (ABIEC), eventos e convites, linha direta/viagens
-corporativas, scripts de migração de dados ABIEC/ABRADILAN.
+**Onda 2 — em andamento, dois agentes por vez** (limite de uso):
+- Par 1 (rodando): `d-grupos` (branch `f2-d-grupos`: voos, hospedagem/rooming, roteiro,
+  checklist, mural, suporte, documentos, vouchers, portal do viajante `/t/<cliente>/v`) e
+  `e-convites` (branch `f2-e-convites`: empresas com cota, convites, mapa de mesas, convite/credencial
+  `/t/<cliente>/c/<token>`, portal da empresa, check-in do evento, relatórios).
+- Par 2 (depois): linha direta/viagens corporativas (solicitação, cotação, política, aprovação,
+  área do associado) e scripts de migração de dados ABIEC/ABRADILAN.
+- Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
 
 ## Como retomar
 Ler este arquivo e `docs/BLUEPRINT.md` (seção 11, roteiro). Trabalho em frentes paralelas:
