@@ -1,0 +1,4 @@
+# Amostras geradas por `npm run samples -w @mais/documents` (não versionar)
+*.pdf
+*.html
+*.png
