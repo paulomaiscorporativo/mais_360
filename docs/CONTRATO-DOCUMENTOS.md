@@ -37,6 +37,11 @@ return new Response(Buffer.from(out.bytes), { headers: { "Content-Type": "applic
 | Imagens  | No HTML térmico, logos e fotos vão embutidos (data URL): a etiqueta não depende da rede.                                                                                      |
 | Fontes   | Embutidas (OFL). Acentos e símbolos saem corretos no PDF e na térmica.                                                                                                        |
 
+**Ordem e mesas:** o arquivo sai na ordem dos `registrationIds` recebidos — quem chama
+ordena antes com `@mais/core/sorting` (ver CONTRATO-PROJETOS, seção 6.1). Com
+`hideSeats: true` (projeto sem `TABLES`), mesa e cadeira saem em branco. Lote pela
+tela: `projetos/[project]/inscricoes/documentos` (crachás, etiquetas, relatório de QR).
+
 ## Qual modelo usar
 
 O modelo padrão do tipo é o que o balcão e o totem imprimem:
