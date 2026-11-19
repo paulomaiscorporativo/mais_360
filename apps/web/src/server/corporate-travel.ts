@@ -9,17 +9,21 @@ import {
   isQuoteExpired,
   justificationProblem,
   nextProtocol,
+  normalizeTravelRequest,
   requiredApprovalSteps,
   selectPolicy,
+  travelRequestInputSchema,
   type CabinClass,
   type NormalizedTravelRequest,
   type Policy,
   type PolicySubject,
   type PolicyViolation,
+  type TravelRequestInput,
 } from "@mais/core/corporate-travel";
-import { normalizeEmail, normalizeCpf } from "@mais/core";
+import { normalizeCpf, normalizeEmail, zonedParts } from "@mais/core";
 import { Prisma, type ActorType, type Person, type ServiceType, type TenantRole } from "@mais/db";
 import { sendTransactional, type TemplateContent } from "@mais/messaging";
+import { audit } from "./audit";
 import { requireTenant } from "./auth";
 import { prisma } from "./db";
 import { AppError, forbidden, invalidFields, notFound } from "./errors";
@@ -602,3 +606,49 @@ export async function notifyRequester(
 /** Nome exibido de quem agiu na área do associado. */
 export const personName = (p: { firstName: string; lastName: string; socialName?: string }) =>
   p.socialName || `${p.firstName} ${p.lastName}`.trim();
+
+/**
+ * Valida e grava uma solicitação vinda do formulário (associado ou equipe),
+ * avisa o solicitante (comprovante) e registra a auditoria.
+ */
+export async function submitTravelRequest(
+  db: TenantDb,
+  tenant: { id: string; slug: string; timezone: string },
+  raw: TravelRequestInput,
+  opts: { requester: Person; companyName: string; actor: Actor; sendCopy: boolean },
+) {
+  const parsed = travelRequestInputSchema.safeParse(raw);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) fieldErrors[issue.path.join(".")] ??= issue.message;
+    throw invalidFields(fieldErrors);
+  }
+  const today = zonedParts(new Date(), tenant.timezone).day;
+  const n = normalizeTravelRequest(parsed.data, today);
+  if (!n.ok) throw invalidFields(n.fieldErrors, n.error);
+
+  const request = await createTravelRequest(db, tenant.id, { ...opts, data: n.data });
+  await audit({
+    action: "travel.request.create",
+    actorType: opts.actor.type,
+    actorLabel: opts.actor.name,
+    userId: opts.actor.userId ?? null,
+    tenantId: tenant.id,
+    entityType: "TravelRequest",
+    entityId: request.id,
+    data: { protocol: request.protocol, outOfPolicy: request.outOfPolicy },
+  });
+  if (opts.sendCopy)
+    await notifyRequester(tenant, request, {
+      reason: "receipt",
+      subject: "Recebemos sua solicitação de viagem",
+      lines: [
+        `Recebemos sua solicitação para **${request.destination}**. A equipe vai cotar e enviar as opções por aqui.`,
+        request.outOfPolicy
+          ? "Atenção: o pedido tem pontos fora da política de viagem. Você verá os detalhes na solicitação."
+          : "",
+      ].filter(Boolean),
+      whatsapp: `Recebemos sua solicitação de viagem para ${request.destination}. A equipe vai cotar e enviar as opções.`,
+    });
+  return request;
+}
