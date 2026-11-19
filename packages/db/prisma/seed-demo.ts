@@ -6,7 +6,8 @@
  *
  * Todos usam a senha DEMO_PASSWORD (padrão "Demo@2026!") e o domínio reservado
  * ".test", que não recebe e-mail de verdade. Idempotente. Também cria dois projetos
- * da ABIEC com dados (ver seed-demo-projects.ts).
+ * da ABIEC com dados (ver seed-demo-projects.ts) e as viagens corporativas demo
+ * (seed-demo-corporate-travel.ts).
  */
 import path from "node:path";
 import bcrypt from "bcryptjs";
@@ -17,6 +18,7 @@ import {
   type TenantRole,
   type WorkspaceRole,
 } from "@prisma/client";
+import { seedDemoCorporateTravel } from "./seed-demo-corporate-travel";
 import { seedDemoProjects } from "./seed-demo-projects";
 
 loadEnv({ path: path.resolve(import.meta.dirname, "../../../.env") });
@@ -215,6 +217,12 @@ Projetos demo na ABIEC:`);
   if (invite)
     console.log(`    convite pendente (${invite.name}): ${base}/t/abiec/c/${invite.token}`);
   console.log(`    portal da empresa: ${base}/t/abiec/empresa · logins: ${gala.logins.join(", ")}`);
+
+  // Viagens corporativas (linha direta) com associados que entram na área deles
+  const travel = await seedDemoCorporateTravel(prisma, passwordHash);
+  console.log(`
+Viagens corporativas demo na ABIEC: ${travel.requests} solicitações`);
+  console.log(`  área do associado: ${base}/t/abiec/viagens · logins: ${travel.logins.join(", ")}`);
 }
 
 main()

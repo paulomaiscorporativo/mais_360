@@ -22,9 +22,9 @@ O domínio `.test` é reservado e não recebe e-mail.
 | Admin de outro cliente   | `admin.abradilan@demo.test`            | Só a ABRADILAN — **não** pode ver a ABIEC                                |
 | Dono de outro assinante  | `dono.outraagencia@demo.test`          | Só a "Outra Agência" e seu cliente — **não** vê nada da Mais Corporativo |
 
-Os papéis de balcão, leitor, aprovador e vendas ganham telas próprias na Fase 2 (credenciamento,
-viagens corporativas, feiras). Perfis externos — associado, empresa com cota de convites,
-participante e viajante — entram quando as áreas deles forem construídas.
+Os papéis de balcão, leitor e vendas ganham telas próprias na Fase 2 (credenciamento, feiras).
+O aprovador já decide em **Viagens corporativas › Aprovações**. Perfis externos com área própria:
+associado (abaixo), empresa com cota de convites e viajante (projetos demo).
 
 ## Projetos de demonstração (ABIEC)
 
@@ -50,3 +50,23 @@ final da saída do comando (também ficam na ficha de cada inscrição no consol
 - Convite e credencial: `/t/abiec/c/<token>`.
 - Portal da empresa: `/t/abiec/empresa`, com os logins `aurora-do-cerrado`, `vale-verde`,
   `pampa-alimentos` e `serra-azul` e a mesma senha dos usuários demo.
+
+## Viagens corporativas (ABIEC)
+
+O mesmo `npm run db:seed:demo` recria (sem mexer em outras solicitações do cliente):
+
+- **Política geral ABIEC**: econômica, aéreo até R$ 4.500 por trecho, hotel até R$ 1.200 por noite
+  e 4 estrelas, 10 dias de antecedência, seguro obrigatório no exterior.
+- **Diretoria ABIEC** (tipo de membro `DIRETOR`, prioridade 10): executiva, limites maiores.
+- **Aprovação só fora da política**, decidida pelo papel aprovador (`aprovador.abiec@demo.test`).
+- Seis solicitações: nova, em atendimento, cotada com duas opções (uma fora da política),
+  **fora da política aguardando aprovação** (SIAL Paris, com justificativa), reservada com
+  localizadores (diretoria) e cancelada.
+
+| Área do associado — `/t/abiec/viagens` | E-mail                      | Deve conseguir                                                 |
+| -------------------------------------- | --------------------------- | -------------------------------------------------------------- |
+| Associado                              | `associado.abiec@demo.test` | Pedir viagens, escolher entre as opções da Gulfood, acompanhar |
+| Diretora (política da diretoria)       | `diretora.abiec@demo.test`  | Ver a viagem reservada com localizadores                       |
+
+Mesma senha dos usuários demo. No console: **ABIEC › Viagens corporativas** (fila, aprovações,
+política e acessos — onde a equipe gera senhas provisórias para outros associados).
