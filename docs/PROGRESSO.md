@@ -26,6 +26,17 @@ interrupção por limite de uso). Atualizado a cada etapa concluída.
 - Limite de tentativas de login em memória (mover para o banco ao escalar horizontalmente).
 - `packages/db/src/index.ts` usa `export *` do Prisma (aviso do Turbopack).
 
+## Fase 2 — em andamento (19/11/2026)
+
+**Onda 1** (worktrees em `C:/Users/Mais Corporativo/plataforma_mais_wt/`):
+- `a-projetos` (branch `f2-a-projetos`): projetos, pessoas, inscrições, importação, formulário
+  público, arquivos `/api/files`, webhook do WhatsApp, 404 real. Contrato em `docs/CONTRATO-PROJETOS.md`.
+- `b-comunicacao` (branch `f2-b-comunicacao`): telas de canais, modelos, campanhas e réguas.
+- `c-documentos` (branch `f2-c-documentos`): biblioteca e editor visual de documentos.
+
+**Onda 2** (depois da 2A): viagens de grupo, eventos e convites, linha direta/viagens
+corporativas, scripts de migração de dados ABIEC/ABRADILAN.
+
 ## Como retomar
 Ler este arquivo e `docs/BLUEPRINT.md` (seção 11, roteiro). Trabalho em frentes paralelas:
 criar worktrees fora do projeto (`../plataforma_mais_wt/<frente>`), cada frente com arquivos
