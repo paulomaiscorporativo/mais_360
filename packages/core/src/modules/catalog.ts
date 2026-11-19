@@ -93,7 +93,8 @@ export const MODULES: Readonly<Record<ModuleKey, ModuleDefinition>> = {
   EVENTS_INVITES: {
     key: "EVENTS_INVITES",
     name: "Eventos e convites",
-    summary: "Empresas com cota, convites digitais com QR, confirmação de presença e mapa de mesas.",
+    summary:
+      "Empresas com cota, convites digitais com QR, confirmação de presença e mapa de mesas.",
     requires: ["COMMUNICATION"],
     features: ["REGISTRATION_FORM", "INVITES", "TABLES"],
   },

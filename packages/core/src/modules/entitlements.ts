@@ -109,5 +109,7 @@ export function enabledProjectFeatures(
   active: ReadonlySet<ModuleKey>,
 ): Set<ProjectFeature> {
   const available = availableProjectFeatures(active);
-  return new Set(toggles.filter((t) => t.enabled && available.has(t.feature)).map((t) => t.feature));
+  return new Set(
+    toggles.filter((t) => t.enabled && available.has(t.feature)).map((t) => t.feature),
+  );
 }

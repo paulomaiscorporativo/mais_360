@@ -39,7 +39,9 @@ describe("activeTenantModules", () => {
       ),
       plan,
     );
-    expect(active).toEqual(new Set(["COMMUNICATION", "DOCUMENTS", "EVENTS_INVITES", "ACCREDITATION"]));
+    expect(active).toEqual(
+      new Set(["COMMUNICATION", "DOCUMENTS", "EVENTS_INVITES", "ACCREDITATION"]),
+    );
     expect(active.has("CORPORATE_TRAVEL")).toBe(false);
   });
 

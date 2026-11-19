@@ -8,10 +8,10 @@ function key(): Buffer {
 }
 
 /** Cifra um segredo para gravar no banco (senha SMTP, token de WhatsApp). */
-export const sealSecret = (plain: string) => encryptOptional(plain, key());
+export const sealSecret = (plain: string) => (plain ? encryptOptional(plain, key()) : "");
 
 /** Decifra um segredo lido do banco. */
-export const openSecret = (sealed: string) => decryptOptional(sealed, key());
+export const openSecret = (sealed: string) => (sealed ? decryptOptional(sealed, key()) : "");
 
 /** Só para testes: troca a chave em uso. */
 export function __setEncryptionKeyForTests(k: Buffer | null) {
