@@ -6,6 +6,8 @@ export class AppError extends Error {
     message: string,
     readonly code:
       "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "INVALID" = "INVALID",
+    /** Erros por campo, exibidos ao lado de cada controle. */
+    readonly fieldErrors?: Record<string, string>,
   ) {
     super(message);
     this.name = "AppError";
@@ -16,3 +18,9 @@ export const forbidden = (msg = "Você não tem permissão para esta ação.") =
   new AppError(msg, "FORBIDDEN");
 export const notFound = (msg = "Não encontramos o que você procura.") =>
   new AppError(msg, "NOT_FOUND");
+
+/** Erro de validação com mensagens por campo. */
+export const invalidFields = (
+  fieldErrors: Record<string, string>,
+  msg = "Revise os campos destacados.",
+) => new AppError(msg, "INVALID", fieldErrors);

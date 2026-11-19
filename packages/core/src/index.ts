@@ -3,3 +3,6 @@ export * from "./catalog";
 export * from "./documents";
 export * from "./messaging";
 export * from "./theme";
+export * from "./people";
+export * from "./registrations";
+export * from "./projects";

@@ -10,6 +10,13 @@ import { loadEnvConfig } from "@next/env";
  * Variáveis já definidas no ambiente (produção) têm precedência.
  */
 let loaded = false;
+let root: string | null = null;
+
+/** Raiz do monorepo (pasta do package.json com "workspaces"); cwd se não achar. */
+export function monorepoRoot(): string {
+  loadMonorepoEnv();
+  return root ?? process.cwd();
+}
 
 export function loadMonorepoEnv() {
   if (loaded) return;
@@ -20,6 +27,7 @@ export function loadMonorepoEnv() {
     if (fs.existsSync(pkg)) {
       try {
         if (JSON.parse(fs.readFileSync(pkg, "utf8")).workspaces) {
+          root = dir;
           if (dir !== process.cwd()) loadEnvConfig(dir, process.env.NODE_ENV !== "production");
           return;
         }

@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
   // Fontes TTF do motor de documentos (lidas do disco na geração de PDF/HTML).
   outputFileTracingIncludes: { "/**": ["../../packages/documents/fonts/**"] },
   poweredByHeader: false,
+  experimental: {
+    // Uploads de imagem (até 5 MB) e importação de planilhas (até 5 mil linhas)
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   async headers() {
     return [
       {

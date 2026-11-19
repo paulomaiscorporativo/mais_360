@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Contact,
+  FolderKanban,
   Building2,
   Check,
   ChevronsUpDown,
@@ -101,6 +103,8 @@ function tenantNav(ws: NavWorkspace, t: NavTenant): { main: NavItem[]; modules: 
   return {
     main: [
       { href: base, label: "Visão geral", icon: <Home />, exact: true },
+      { href: `${base}/projetos`, label: "Projetos", icon: <FolderKanban /> },
+      { href: `${base}/pessoas`, label: "Pessoas", icon: <Contact /> },
       { href: `${base}/modulos`, label: "Módulos", icon: <LayoutGrid /> },
       { href: `${base}/identidade`, label: "Identidade visual", icon: <Palette /> },
       { href: `${base}/termos`, label: "Nomenclatura", icon: <Type /> },
