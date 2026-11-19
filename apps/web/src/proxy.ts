@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { legacyRedirect } from "./lib/legacy-redirects";
 
 /**
  * Proxy (antigo middleware, Next 16).
@@ -9,7 +10,9 @@ import { NextResponse, type NextRequest } from "next/server";
  *      eventos.abiec.com.br/…    → /t/_host/…  (+ cabeçalho x-tenant-host; a página
  *                                  resolve o domínio próprio em TenantDomain)
  *    O domínio raiz (e app./www.) serve o console normalmente.
- * 2. Checagem otimista de sessão no console: sem cookie, vai ao login.
+ * 2. Endereços dos portais antigos (/convite/<token>, /f/<token>, /portal…)
+ *    redirecionam (308) para as rotas novas, preservando os tokens migrados.
+ * 3. Checagem otimista de sessão no console: sem cookie, vai ao login.
  *    A validação real (sessão revogável no banco) acontece no servidor.
  */
 
@@ -66,6 +69,12 @@ export function proxy(req: NextRequest) {
     (sub !== null && RESERVED.has(sub));
 
   if (!isRoot && host) {
+    const legacy = legacyRedirect(pathname);
+    if (legacy) {
+      const url = req.nextUrl.clone();
+      url.pathname = legacy;
+      return NextResponse.redirect(url, 308);
+    }
     if (sub !== null) {
       const slug = sub;
       if (slug && !slug.includes(".")) {
@@ -80,6 +89,15 @@ export function proxy(req: NextRequest) {
       headers.set("x-tenant-host", host);
       return NextResponse.rewrite(url, { request: { headers } });
     }
+  }
+
+  // Mesmo redirecionamento no endereço de desenvolvimento /t/<cliente>/…
+  const dev = /^\/t\/([^/]+)(\/.*)$/.exec(pathname);
+  const devLegacy = dev ? legacyRedirect(dev[2]!) : null;
+  if (dev && devLegacy) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/t/${dev[1]}${devLegacy}`;
+    return NextResponse.redirect(url, 308);
   }
 
   if (pathname.startsWith("/console") && !req.cookies.has(SESSION_COOKIE)) {
