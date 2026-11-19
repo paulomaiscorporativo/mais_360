@@ -93,7 +93,10 @@ class PdfWriter {
     let img: PDFImage | null = null;
     try {
       const asset = await this.loadAsset?.(fileId);
-      if (asset) img = isPng(asset) ? await this.doc.embedPng(asset.bytes) : await this.doc.embedJpg(asset.bytes);
+      if (asset)
+        img = isPng(asset)
+          ? await this.doc.embedPng(asset.bytes)
+          : await this.doc.embedJpg(asset.bytes);
       else this.warnings.push(`Imagem ${fileId} não encontrada.`);
     } catch {
       this.warnings.push(`Imagem ${fileId} em formato não suportado (use PNG ou JPG).`);
@@ -140,7 +143,10 @@ async function drawText(w: PdfWriter, page: PDFPage, item: TextItem) {
   // A partir daqui: origem no canto inferior esquerdo da caixa local, em pt.
   if (item.background) {
     page.drawSvgPath(roundedRectPath(lw * MM_TO_PT, lh * MM_TO_PT, item.radius * MM_TO_PT), {
-      x: 0, y: lh * MM_TO_PT, color: color(item.background), borderWidth: 0,
+      x: 0,
+      y: lh * MM_TO_PT,
+      color: color(item.background),
+      borderWidth: 0,
     });
   }
   if (item.letterSpacing) page.pushOperators(setCharacterSpacing(item.letterSpacing));
@@ -190,7 +196,12 @@ async function drawImage(w: PdfWriter, page: PDFPage, item: ImageItem) {
         appendBezierCurve(cx + rx * k, cy - ry, cx + rx, cy - ry * k, cx + rx, cy),
       );
     } else {
-      page.pushOperators(moveTo(x0, y0), lineTo(x0 + W, y0), lineTo(x0 + W, y0 + H), lineTo(x0, y0 + H));
+      page.pushOperators(
+        moveTo(x0, y0),
+        lineTo(x0 + W, y0),
+        lineTo(x0 + W, y0 + H),
+        lineTo(x0, y0 + H),
+      );
     }
     page.pushOperators(closePath(), clip(), endPath());
   }
@@ -208,19 +219,25 @@ async function drawItem(w: PdfWriter, page: PDFPage, item: DisplayItem) {
   switch (item.kind) {
     case "rect": {
       if (!item.fill && !item.stroke) return;
-      page.drawSvgPath(roundedRectPath(item.w * MM_TO_PT, item.h * MM_TO_PT, item.radius * MM_TO_PT), {
-        x: px(item.x),
-        y: py(item.y),
-        color: item.fill ? color(item.fill) : undefined,
-        borderColor: item.stroke ? color(item.stroke) : undefined,
-        borderWidth: item.stroke ? item.strokeWidth * MM_TO_PT : 0,
-        opacity: item.opacity,
-        borderOpacity: item.opacity,
-      });
+      page.drawSvgPath(
+        roundedRectPath(item.w * MM_TO_PT, item.h * MM_TO_PT, item.radius * MM_TO_PT),
+        {
+          x: px(item.x),
+          y: py(item.y),
+          color: item.fill ? color(item.fill) : undefined,
+          borderColor: item.stroke ? color(item.stroke) : undefined,
+          borderWidth: item.stroke ? item.strokeWidth * MM_TO_PT : 0,
+          opacity: item.opacity,
+          borderOpacity: item.opacity,
+        },
+      );
       return;
     }
     case "text":
-      if (item.overflow) w.warnings.push(`Texto “${item.lines.map((l) => l.text).join(" ")}” não coube e foi abreviado.`);
+      if (item.overflow)
+        w.warnings.push(
+          `Texto “${item.lines.map((l) => l.text).join(" ")}” não coube e foi abreviado.`,
+        );
       return drawText(w, page, item);
     case "qr": {
       const n = item.modules.length;
@@ -249,7 +266,13 @@ async function drawItem(w: PdfWriter, page: PDFPage, item: DisplayItem) {
     case "barcode": {
       const c = color(item.color);
       for (const bar of item.bars) {
-        page.drawRectangle({ x: px(item.x + bar.x), y: py(item.y, item.h), width: bar.w * MM_TO_PT, height: item.h * MM_TO_PT, color: c });
+        page.drawRectangle({
+          x: px(item.x + bar.x),
+          y: py(item.y, item.h),
+          width: bar.w * MM_TO_PT,
+          height: item.h * MM_TO_PT,
+          color: c,
+        });
       }
       if (item.text) await drawText(w, page, item.text);
       return;
@@ -264,14 +287,44 @@ function drawGuides(w: PdfWriter, page: PDFPage) {
   const p = w.def.page;
   const dash = { borderDashArray: [3, 2] };
   if (p.bleed > 0) {
-    page.drawRectangle({ x: px(-p.bleed), y: py(-p.bleed, p.height + 2 * p.bleed), width: (p.width + 2 * p.bleed) * MM_TO_PT, height: (p.height + 2 * p.bleed) * MM_TO_PT, borderColor: rgb(0.86, 0.15, 0.15), borderWidth: 0.6 });
+    page.drawRectangle({
+      x: px(-p.bleed),
+      y: py(-p.bleed, p.height + 2 * p.bleed),
+      width: (p.width + 2 * p.bleed) * MM_TO_PT,
+      height: (p.height + 2 * p.bleed) * MM_TO_PT,
+      borderColor: rgb(0.86, 0.15, 0.15),
+      borderWidth: 0.6,
+    });
   }
-  page.drawRectangle({ x: px(0), y: py(0, p.height), width: p.width * MM_TO_PT, height: p.height * MM_TO_PT, borderColor: rgb(0.15, 0.39, 0.92), borderWidth: 0.6 });
+  page.drawRectangle({
+    x: px(0),
+    y: py(0, p.height),
+    width: p.width * MM_TO_PT,
+    height: p.height * MM_TO_PT,
+    borderColor: rgb(0.15, 0.39, 0.92),
+    borderWidth: 0.6,
+  });
   if (p.safeMargin > 0) {
-    page.drawRectangle({ x: px(p.safeMargin), y: py(p.safeMargin, p.height - 2 * p.safeMargin), width: (p.width - 2 * p.safeMargin) * MM_TO_PT, height: (p.height - 2 * p.safeMargin) * MM_TO_PT, borderColor: rgb(0.09, 0.64, 0.29), borderWidth: 0.6, ...dash });
+    page.drawRectangle({
+      x: px(p.safeMargin),
+      y: py(p.safeMargin, p.height - 2 * p.safeMargin),
+      width: (p.width - 2 * p.safeMargin) * MM_TO_PT,
+      height: (p.height - 2 * p.safeMargin) * MM_TO_PT,
+      borderColor: rgb(0.09, 0.64, 0.29),
+      borderWidth: 0.6,
+      ...dash,
+    });
   }
   for (const h of p.holes) {
-    page.drawEllipse({ x: px(h.x), y: py(h.y), xScale: ((h.shape === "slot" ? (h.width ?? h.diameter * 3) : h.diameter) / 2) * MM_TO_PT, yScale: (h.diameter / 2) * MM_TO_PT, color: rgb(1, 1, 1), borderColor: rgb(0.3, 0.3, 0.3), borderWidth: 0.5 });
+    page.drawEllipse({
+      x: px(h.x),
+      y: py(h.y),
+      xScale: ((h.shape === "slot" ? (h.width ?? h.diameter * 3) : h.diameter) / 2) * MM_TO_PT,
+      yScale: (h.diameter / 2) * MM_TO_PT,
+      color: rgb(1, 1, 1),
+      borderColor: rgb(0.3, 0.3, 0.3),
+      borderWidth: 0.5,
+    });
   }
 }
 
@@ -340,13 +393,25 @@ export async function renderPdf(
       }
       if (def.page.rotate) page.setRotation(degrees(def.page.rotate));
       if (def.page.fill) {
-        page.drawRectangle({ x: 0, y: 0, width: g.mediaW * MM_TO_PT, height: g.mediaH * MM_TO_PT, color: color(def.page.fill.startsWith("#") ? def.page.fill : "#ffffff") });
+        page.drawRectangle({
+          x: 0,
+          y: 0,
+          width: g.mediaW * MM_TO_PT,
+          height: g.mediaH * MM_TO_PT,
+          color: color(def.page.fill.startsWith("#") ? def.page.fill : "#ffffff"),
+        });
       }
       // A arte de fundo cobre a mídia inteira quando foi feita com sangria; senão, a área final.
       const bgTarget = (wPt: number, hPt: number) => {
-        const withBleed = Math.abs(wPt - g.mediaW * MM_TO_PT) < 3 && Math.abs(hPt - g.mediaH * MM_TO_PT) < 3;
+        const withBleed =
+          Math.abs(wPt - g.mediaW * MM_TO_PT) < 3 && Math.abs(hPt - g.mediaH * MM_TO_PT) < 3;
         const b = withBleed ? 0 : def.page.bleed * MM_TO_PT;
-        return { x: b, y: b, width: (withBleed ? g.mediaW : def.page.width) * MM_TO_PT, height: (withBleed ? g.mediaH : def.page.height) * MM_TO_PT };
+        return {
+          x: b,
+          y: b,
+          width: (withBleed ? g.mediaW : def.page.width) * MM_TO_PT,
+          height: (withBleed ? g.mediaH : def.page.height) * MM_TO_PT,
+        };
       };
       if (prepared.backgroundPage !== null) {
         const emb = bgPdfPages[prepared.backgroundPage];
@@ -362,7 +427,11 @@ export async function renderPdf(
   return {
     bytes,
     pageCount: doc.getPageCount(),
-    fileName: safeFileName(list.length === 1 ? interpolate(def.fileName, list[0] ?? {}) : `${def.fileName.replace(/\{\{.*?\}\}/g, "").replace(/-+$/, "") || "documentos"}-lote`),
+    fileName: safeFileName(
+      list.length === 1
+        ? interpolate(def.fileName, list[0] ?? {})
+        : `${def.fileName.replace(/\{\{.*?\}\}/g, "").replace(/-+$/, "") || "documentos"}-lote`,
+    ),
     warnings: [...new Set(w.warnings)],
   };
 }

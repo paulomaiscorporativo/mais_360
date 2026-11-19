@@ -59,7 +59,10 @@ export type LayoutWarning = {
  * segurança ou um furo, QR pequeno demais para leitura confiável…
  * `knownField` permite ao chamador validar campos contra o catálogo.
  */
-export function validateLayout(def: DocumentDefinition, knownField: (key: string) => boolean): LayoutWarning[] {
+export function validateLayout(
+  def: DocumentDefinition,
+  knownField: (key: string) => boolean,
+): LayoutWarning[] {
   const out: LayoutWarning[] = [];
   const { page } = def;
   const safe: Rect = {
@@ -77,19 +80,56 @@ export function validateLayout(def: DocumentDefinition, knownField: (key: string
     if (el.hidden) continue;
     const r = elementRect(el);
     const isBackgroundShape = el.type === "box" && !el.stroke; // faixas de cor podem sangrar
-    if (r.x < -page.bleed - 0.01 || r.y < -page.bleed - 0.01 || r.x + r.w > page.width + page.bleed + 0.01 || r.y + r.h > page.height + page.bleed + 0.01) {
-      out.push({ elementId: el.id, code: "OUTSIDE_PAGE", message: `“${el.label || el.id}” sai da página.` });
-    } else if (!isBackgroundShape && page.safeMargin > 0 && !(r.x >= safe.x - 0.01 && r.y >= safe.y - 0.01 && r.x + r.w <= safe.x + safe.w + 0.01 && r.y + r.h <= safe.y + safe.h + 0.01)) {
-      out.push({ elementId: el.id, code: "OUTSIDE_SAFE_AREA", message: `“${el.label || el.id}” invade a margem de segurança e pode ser cortado.` });
+    if (
+      r.x < -page.bleed - 0.01 ||
+      r.y < -page.bleed - 0.01 ||
+      r.x + r.w > page.width + page.bleed + 0.01 ||
+      r.y + r.h > page.height + page.bleed + 0.01
+    ) {
+      out.push({
+        elementId: el.id,
+        code: "OUTSIDE_PAGE",
+        message: `“${el.label || el.id}” sai da página.`,
+      });
+    } else if (
+      !isBackgroundShape &&
+      page.safeMargin > 0 &&
+      !(
+        r.x >= safe.x - 0.01 &&
+        r.y >= safe.y - 0.01 &&
+        r.x + r.w <= safe.x + safe.w + 0.01 &&
+        r.y + r.h <= safe.y + safe.h + 0.01
+      )
+    ) {
+      out.push({
+        elementId: el.id,
+        code: "OUTSIDE_SAFE_AREA",
+        message: `“${el.label || el.id}” invade a margem de segurança e pode ser cortado.`,
+      });
     }
     if (!isBackgroundShape && holeRects.some((h) => intersects(r, h))) {
-      out.push({ elementId: el.id, code: "OVER_HOLE", message: `“${el.label || el.id}” fica sobre um furo do crachá.` });
+      out.push({
+        elementId: el.id,
+        code: "OVER_HOLE",
+        message: `“${el.label || el.id}” fica sobre um furo do crachá.`,
+      });
     }
-    if ((el.type === "field" || el.type === "qrcode" || el.type === "barcode") && !knownField(el.field)) {
-      out.push({ elementId: el.id, code: "UNKNOWN_FIELD", message: `Campo “${el.field}” não existe.` });
+    if (
+      (el.type === "field" || el.type === "qrcode" || el.type === "barcode") &&
+      !knownField(el.field)
+    ) {
+      out.push({
+        elementId: el.id,
+        code: "UNKNOWN_FIELD",
+        message: `Campo “${el.field}” não existe.`,
+      });
     }
     if (el.type === "qrcode" && el.size < 12) {
-      out.push({ elementId: el.id, code: "TOO_SMALL_QR", message: "QR menor que 12 mm pode falhar na leitura pelo celular." });
+      out.push({
+        elementId: el.id,
+        code: "TOO_SMALL_QR",
+        message: "QR menor que 12 mm pode falhar na leitura pelo celular.",
+      });
     }
   }
   return out;

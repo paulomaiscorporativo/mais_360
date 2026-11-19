@@ -29,14 +29,17 @@ async function mappedCodepoints(bytes: Uint8Array): Promise<Set<number>> {
     if (!(stream instanceof PDFRawStream)) continue;
     const cmap = new TextDecoder().decode(decodePDFRawStream(stream).decode());
     for (const m of cmap.matchAll(/<([0-9A-Fa-f]{4})>\s*$/gm)) out.add(parseInt(m[1] ?? "0", 16));
-    for (const m of cmap.matchAll(/<[0-9A-Fa-f]+>\s*<([0-9A-Fa-f]{4})>/g)) out.add(parseInt(m[1] ?? "0", 16));
+    for (const m of cmap.matchAll(/<[0-9A-Fa-f]+>\s*<([0-9A-Fa-f]{4})>/g))
+      out.add(parseInt(m[1] ?? "0", 16));
   }
   return out;
 }
 
 function texts(def: DocumentDefinitionInput, data: DocumentData): string[] {
   return prepareRecord(parseDefinition(def), data).flatMap((p) =>
-    p.items.filter((i): i is TextItem => i.kind === "text").flatMap((i) => i.lines.map((l) => l.text)),
+    p.items
+      .filter((i): i is TextItem => i.kind === "text")
+      .flatMap((i) => i.lines.map((l) => l.text)),
   );
 }
 
@@ -68,7 +71,11 @@ describe("PDF", () => {
   it("voucher transborda para novas páginas e numera corretamente", async () => {
     const many: DocumentData = {
       ...SAMPLE_TRAVELER,
-      itinerary: Array.from({ length: 60 }, (_, i) => ({ date: "2027-05-14T12:00:00Z", startTime: "09:00", title: `Atividade ${i + 1}` })),
+      itinerary: Array.from({ length: 60 }, (_, i) => ({
+        date: "2027-05-14T12:00:00Z",
+        startTime: "09:00",
+        title: `Atividade ${i + 1}`,
+      })),
     };
     const r = await renderPdf(VOUCHER_A4, [many]);
     expect(r.pageCount).toBeGreaterThanOrEqual(3);
@@ -79,7 +86,12 @@ describe("PDF", () => {
 
   it("PDF de fundo multipágina: cada página do arquivo vira uma página, por registro", async () => {
     const bg = await PDFDocument.create();
-    bg.addPage([210 * MM_TO_PT, 297 * MM_TO_PT]).drawRectangle({ x: 0, y: 0, width: 100, height: 100 });
+    bg.addPage([210 * MM_TO_PT, 297 * MM_TO_PT]).drawRectangle({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+    });
     bg.addPage([210 * MM_TO_PT, 297 * MM_TO_PT]); // verso em branco: precisa ser tolerado
     const bgBytes = await bg.save();
     const def: DocumentDefinitionInput = {
@@ -90,13 +102,20 @@ describe("PDF", () => {
         { id: "h", type: "field", field: "hotel.name", x: 20, y: 40, w: 120, h: 8, page: 1 },
       ],
     };
-    const r = await renderPdf(def, [SAMPLE_TRAVELER, SAMPLE_TRAVELER], { loadAsset: async (id) => (id === "bg" ? { bytes: bgBytes, mimeType: "application/pdf" } : null) });
+    const r = await renderPdf(def, [SAMPLE_TRAVELER, SAMPLE_TRAVELER], {
+      loadAsset: async (id) =>
+        id === "bg" ? { bytes: bgBytes, mimeType: "application/pdf" } : null,
+    });
     expect(r.pageCount).toBe(4);
     expect(r.warnings).toEqual([]);
   });
 
   it("imagem ausente gera aviso, não erro", async () => {
-    const r = await renderPdf(BADGE_A6, [{ ...SAMPLE_REGISTRATION, tenant: { logoFileId: "sumiu" } }], { loadAsset: async () => null });
+    const r = await renderPdf(
+      BADGE_A6,
+      [{ ...SAMPLE_REGISTRATION, tenant: { logoFileId: "sumiu" } }],
+      { loadAsset: async () => null },
+    );
     expect(r.pageCount).toBe(1);
     expect(r.warnings.some((w) => w.includes("sumiu"))).toBe(true);
   });
@@ -108,31 +127,55 @@ describe("lista de exibição", () => {
       kind: "LABEL",
       page: { width: 80, height: 40 },
       elements: [
-        { id: "a", type: "text", text: "Somente expositor", x: 2, y: 2, w: 60, h: 6, when: { categories: ["EXPOSITOR"] } },
+        {
+          id: "a",
+          type: "text",
+          text: "Somente expositor",
+          x: 2,
+          y: 2,
+          w: 60,
+          h: 6,
+          when: { categories: ["EXPOSITOR"] },
+        },
         { id: "b", type: "text", text: "Todos", x: 2, y: 10, w: 60, h: 6 },
       ],
     };
     expect(texts(def, SAMPLE_REGISTRATION)).toEqual(["Todos"]);
-    expect(texts(def, { registration: { category: "Expositor" } })).toEqual(["Somente expositor", "Todos"]);
+    expect(texts(def, { registration: { category: "Expositor" } })).toEqual([
+      "Somente expositor",
+      "Todos",
+    ]);
   });
 
   it("autoFit com métricas reais: reduz a fonte e não ultrapassa a caixa", () => {
     const style = textStyleSchema.parse({ size: 30, weight: "bold", minSize: 8 });
-    const item = layoutText("Maria Eduarda de Albuquerque Figueiredo", { x: 0, y: 0, w: 60, h: 12 }, style, { color: "#000000" });
+    const item = layoutText(
+      "Maria Eduarda de Albuquerque Figueiredo",
+      { x: 0, y: 0, w: 60, h: 12 },
+      style,
+      { color: "#000000" },
+    );
     expect(item.size).toBeLessThan(30);
     for (const l of item.lines) {
-      expect(fontMeasurer(l.text, item.size, { font: "sans", weight: "bold" })).toBeLessThanOrEqual(60.01);
+      expect(fontMeasurer(l.text, item.size, { font: "sans", weight: "bold" })).toBeLessThanOrEqual(
+        60.01,
+      );
     }
   });
 
   it("campo vazio com fallback", () => {
-    expect(texts(BADGE_A6, { ...SAMPLE_REGISTRATION, registration: { shortCode: "1" } })).toContain("PARTICIPANTE");
+    expect(texts(BADGE_A6, { ...SAMPLE_REGISTRATION, registration: { shortCode: "1" } })).toContain(
+      "PARTICIPANTE",
+    );
   });
 });
 
 describe("HTML térmico", () => {
   it("@page no tamanho da etiqueta e uma página por inscrição", () => {
-    const { html, pageCount } = renderThermalHtml(LABEL_80X40, [SAMPLE_REGISTRATION, SAMPLE_REGISTRATION]);
+    const { html, pageCount } = renderThermalHtml(LABEL_80X40, [
+      SAMPLE_REGISTRATION,
+      SAMPLE_REGISTRATION,
+    ]);
     expect(pageCount).toBe(2);
     expect(html).toContain("@page{size:80mm 40mm;margin:0}");
     expect(html.match(/<section class="page">/g)?.length).toBe(2);
@@ -141,15 +184,23 @@ describe("HTML térmico", () => {
 
   it("rotação de 90° troca as dimensões da folha", () => {
     const def = { ...LABEL_80X40, page: { ...LABEL_80X40.page, rotate: 90 as const } };
-    expect(renderThermalHtml(def, [SAMPLE_REGISTRATION], { embedFonts: false }).html).toContain("@page{size:40mm 80mm;margin:0}");
+    expect(renderThermalHtml(def, [SAMPLE_REGISTRATION], { embedFonts: false }).html).toContain(
+      "@page{size:40mm 80mm;margin:0}",
+    );
   });
 
   it("escapa HTML vindo dos dados", () => {
-    const { html } = renderThermalHtml(LABEL_80X40, [{ ...SAMPLE_REGISTRATION, person: { badgeName: "<script>x</script>" } }], { embedFonts: false });
+    const { html } = renderThermalHtml(
+      LABEL_80X40,
+      [{ ...SAMPLE_REGISTRATION, person: { badgeName: "<script>x</script>" } }],
+      { embedFonts: false },
+    );
     expect(html).not.toContain("<script>x");
   });
 
   it("página de calibração", () => {
-    expect(renderCalibrationHtml(parseDefinition(LABEL_80X40).page, { embedFonts: false })).toContain("80 × 40 mm");
+    expect(
+      renderCalibrationHtml(parseDefinition(LABEL_80X40).page, { embedFonts: false }),
+    ).toContain("80 × 40 mm");
   });
 });

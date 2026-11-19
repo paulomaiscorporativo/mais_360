@@ -42,8 +42,12 @@ class Flow {
   ) {
     this.y = el.y;
   }
-  get x() { return this.el.x; }
-  get w() { return this.el.w; }
+  get x() {
+    return this.el.x;
+  }
+  get w() {
+    return this.el.w;
+  }
   private get bottom() {
     const first = this.pages.length === 1;
     const top = first ? this.el.y : (this.el.continuationY ?? this.el.y);
@@ -56,20 +60,44 @@ class Flow {
     this.pages.push([]);
     this.y = this.el.continuationY ?? this.el.y;
   }
-  push(item: DisplayItem) { this.pages[this.pages.length - 1]?.push(item); }
+  push(item: DisplayItem) {
+    this.pages[this.pages.length - 1]?.push(item);
+  }
   text(value: string, x: number, y: number, w: number, h: number, s: Style, color = INK) {
     if (!value) return;
     this.push(layoutText(value, { x, y, w, h }, st(s), { color }));
   }
-  rect(x: number, y: number, w: number, h: number, o: { fill?: string; stroke?: string; radius?: number; strokeWidth?: number } = {}) {
-    this.push({ kind: "rect", x, y, w, h, fill: o.fill, stroke: o.stroke, strokeWidth: o.strokeWidth ?? 0.25, radius: o.radius ?? 0, opacity: 1 });
+  rect(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    o: { fill?: string; stroke?: string; radius?: number; strokeWidth?: number } = {},
+  ) {
+    this.push({
+      kind: "rect",
+      x,
+      y,
+      w,
+      h,
+      fill: o.fill,
+      stroke: o.stroke,
+      strokeWidth: o.strokeWidth ?? 0.25,
+      radius: o.radius ?? 0,
+      opacity: 1,
+    });
   }
 }
 
 function title(flow: Flow, label: string, firstBlockH: number) {
   flow.ensure(9 + firstBlockH);
   flow.rect(flow.x, flow.y + 0.4, 1, 4.2, { fill: flow.accent, radius: 0.3 });
-  flow.text(label, flow.x + 3.2, flow.y, flow.w - 3.2, 5, { size: 9, weight: "semibold", uppercase: true, letterSpacing: 1.1 });
+  flow.text(label, flow.x + 3.2, flow.y, flow.w - 3.2, 5, {
+    size: 9,
+    weight: "semibold",
+    uppercase: true,
+    letterSpacing: 1.1,
+  });
   flow.y += 8;
 }
 
@@ -85,14 +113,32 @@ function grid(flow: Flow, cells: Cell[], cols = 3) {
     const c = visible[i];
     if (!c) continue;
     const span = Math.min(cols, c.span ?? 1);
-    if (col + span > cols) { col = 0; flow.y += rowH; }
+    if (col + span > cols) {
+      col = 0;
+      flow.y += rowH;
+    }
     if (col === 0) flow.ensure(rowH);
     const x = flow.x + col * (colW + gap);
     const w = colW * span + gap * (span - 1);
-    flow.text(c.label, x, flow.y, w, 3.4, { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 }, MUTED);
-    flow.text(c.value, x, flow.y + 3.7, w, 5.6, { size: 10, minSize: 7, font: c.mono ? "mono" : "sans" });
+    flow.text(
+      c.label,
+      x,
+      flow.y,
+      w,
+      3.4,
+      { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 },
+      MUTED,
+    );
+    flow.text(c.value, x, flow.y + 3.7, w, 5.6, {
+      size: 10,
+      minSize: 7,
+      font: c.mono ? "mono" : "sans",
+    });
     col += span;
-    if (col >= cols) { col = 0; flow.y += rowH; }
+    if (col >= cols) {
+      col = 0;
+      flow.y += rowH;
+    }
   }
   if (col !== 0) flow.y += rowH;
   flow.y += 2;
@@ -117,12 +163,34 @@ function flightCard(flow: Flow, f: DocFlight, tz: string) {
   // Coluna da companhia
   const cx = x + 5;
   if (f.airlineLogoFileId) {
-    flow.push({ kind: "image", x: cx, y: y + 4, w: 22, h: 7, fileId: f.airlineLogoFileId, fit: "contain", align: "left", circle: false });
+    flow.push({
+      kind: "image",
+      x: cx,
+      y: y + 4,
+      w: 22,
+      h: 7,
+      fileId: f.airlineLogoFileId,
+      fit: "contain",
+      align: "left",
+      circle: false,
+    });
   } else {
-    flow.text(f.airlineName || f.airlineCode || "", cx, y + 4.5, 30, 5, { size: 9.5, weight: "bold" });
+    flow.text(f.airlineName || f.airlineCode || "", cx, y + 4.5, 30, 5, {
+      size: 9.5,
+      weight: "bold",
+    });
   }
-  flow.text(f.flightNumber, cx, y + 12.5, 30, 4.5, { font: "mono", size: 8.5, letterSpacing: 0.4 }, INK);
-  if (f.cabin) flow.text(f.cabin, cx, y + 17, 30, 4, { size: 7, uppercase: true, letterSpacing: 0.5 }, MUTED);
+  flow.text(
+    f.flightNumber,
+    cx,
+    y + 12.5,
+    30,
+    4.5,
+    { font: "mono", size: 8.5, letterSpacing: 0.4 },
+    INK,
+  );
+  if (f.cabin)
+    flow.text(f.cabin, cx, y + 17, 30, 4, { size: 7, uppercase: true, letterSpacing: 0.5 }, MUTED);
 
   // Rota
   const rx = x + 42;
@@ -132,9 +200,26 @@ function flightCard(flow: Flow, f: DocFlight, tz: string) {
   flow.text(formatTime(f.departure, tz), rx, y + 12.8, side, 4.5, { size: 9, weight: "semibold" });
   flow.text(f.originName ?? "", rx, y + 17.2, side + 6, 4, { size: 6.8, minSize: 5 }, MUTED);
   const dx = rx + routeW - side;
-  flow.text(f.destIata, dx, y + 3.5, side, 9, { size: 21, weight: "bold", align: "right", letterSpacing: -0.2 });
-  flow.text(formatTime(f.arrival, tz), dx, y + 12.8, side, 4.5, { size: 9, weight: "semibold", align: "right" });
-  flow.text(f.destName ?? "", dx - 6, y + 17.2, side + 6, 4, { size: 6.8, minSize: 5, align: "right" }, MUTED);
+  flow.text(f.destIata, dx, y + 3.5, side, 9, {
+    size: 21,
+    weight: "bold",
+    align: "right",
+    letterSpacing: -0.2,
+  });
+  flow.text(formatTime(f.arrival, tz), dx, y + 12.8, side, 4.5, {
+    size: 9,
+    weight: "semibold",
+    align: "right",
+  });
+  flow.text(
+    f.destName ?? "",
+    dx - 6,
+    y + 17.2,
+    side + 6,
+    4,
+    { size: 6.8, minSize: 5, align: "right" },
+    MUTED,
+  );
   // Linha da rota com marcadores
   const lx = rx + side + 2;
   const lw = routeW - 2 * side - 4;
@@ -143,21 +228,55 @@ function flightCard(flow: Flow, f: DocFlight, tz: string) {
   flow.rect(lx + lw - 0.7, y + 7.7, 1.3, 1.3, { fill: flow.accent, radius: 0.65 });
   const dur = duration(f);
   if (dur) flow.text(dur, lx, y + 3.4, lw, 3.8, { size: 6.8, align: "center" }, MUTED);
-  flow.text(formatDate(f.departure, tz), lx, y + 10.2, lw, 3.8, { size: 6.8, align: "center" }, MUTED);
+  flow.text(
+    formatDate(f.departure, tz),
+    lx,
+    y + 10.2,
+    lw,
+    3.8,
+    { size: 6.8, align: "center" },
+    MUTED,
+  );
 
   // Assento e localizador
   const sx = x + w - 52;
   flow.rect(sx - 4, y + 4, 0.25, 15.5, { fill: LINE });
-  flow.text("Assento", sx, y + 4.2, 20, 3.4, { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 }, MUTED);
+  flow.text(
+    "Assento",
+    sx,
+    y + 4.2,
+    20,
+    3.4,
+    { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 },
+    MUTED,
+  );
   flow.text(f.seat || "—", sx, y + 7.8, 20, 6, { size: 13, weight: "bold" });
-  flow.text("Localizador", sx + 22, y + 4.2, 26, 3.4, { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 }, MUTED);
-  flow.text(f.locator || "—", sx + 22, y + 7.8, 26, 6, { font: "mono", size: 11.5, weight: "semibold", letterSpacing: 0.6 });
+  flow.text(
+    "Localizador",
+    sx + 22,
+    y + 4.2,
+    26,
+    3.4,
+    { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 },
+    MUTED,
+  );
+  flow.text(f.locator || "—", sx + 22, y + 7.8, 26, 6, {
+    font: "mono",
+    size: 11.5,
+    weight: "semibold",
+    letterSpacing: 0.6,
+  });
 
   if (f.operatedBy) {
     flow.rect(x + 5, y + 22.6, w - 10, 0.25, { fill: LINE });
     flow.text(
       `Voo comercializado pela ${f.airlineName || f.airlineCode} e operado pela ${f.operatedBy}. Faça o check-in no balcão da operadora.`,
-      x + 5, y + 23.8, w - 10, 4, { size: 7, weight: "semibold", minSize: 5.5 }, "#9a3412",
+      x + 5,
+      y + 23.8,
+      w - 10,
+      4,
+      { size: 7, weight: "semibold", minSize: 5.5 },
+      "#9a3412",
     );
   }
   flow.y += h + 3;
@@ -170,7 +289,15 @@ function stayCard(flow: Flow, s: DocStay, tz: string) {
   const y = flow.y;
   flow.rect(x, y, w, h, { fill: CARD, stroke: LINE, radius: 2.2 });
   flow.text(s.name, x + 5, y + 4, w - 10, 6, { size: 12, weight: "bold" });
-  flow.text([s.address, s.city, s.country].filter(Boolean).join(", "), x + 5, y + 10, w - 10, 4.2, { size: 8 }, MUTED);
+  flow.text(
+    [s.address, s.city, s.country].filter(Boolean).join(", "),
+    x + 5,
+    y + 10,
+    w - 10,
+    4.2,
+    { size: 8 },
+    MUTED,
+  );
   const cols: Cell[] = [
     { label: "Check-in", value: formatDate(s.checkIn, tz) },
     { label: "Check-out", value: formatDate(s.checkOut, tz) },
@@ -180,8 +307,21 @@ function stayCard(flow: Flow, s: DocStay, tz: string) {
   const colW = (w - 10) / Math.max(1, cols.length);
   cols.forEach((c, i) => {
     const cx = x + 5 + i * colW;
-    flow.text(c.label, cx, y + 16, colW - 3, 3.4, { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 }, MUTED);
-    flow.text(c.value, cx, y + 19.6, colW - 3, 5, { size: 9.5, weight: "semibold", font: c.mono ? "mono" : "sans", minSize: 6.5 });
+    flow.text(
+      c.label,
+      cx,
+      y + 16,
+      colW - 3,
+      3.4,
+      { size: 6.2, weight: "semibold", uppercase: true, letterSpacing: 0.7 },
+      MUTED,
+    );
+    flow.text(c.value, cx, y + 19.6, colW - 3, 5, {
+      size: 9.5,
+      weight: "semibold",
+      font: c.mono ? "mono" : "sans",
+      minSize: 6.5,
+    });
   });
   flow.y += h + 3;
 }
@@ -192,9 +332,25 @@ function itinerary(flow: Flow, data: DocumentData, tz: string) {
     flow.ensure(rowH);
     const { x, w, y } = flow;
     flow.text(formatDate(item.date, tz), x, y + 1.6, 22, 4.5, { size: 8.5, weight: "semibold" });
-    flow.text([item.startTime, item.endTime].filter(Boolean).join("–"), x + 23, y + 1.6, 16, 4.5, { size: 8.5, font: "mono" }, MUTED);
+    flow.text(
+      [item.startTime, item.endTime].filter(Boolean).join("–"),
+      x + 23,
+      y + 1.6,
+      16,
+      4.5,
+      { size: 8.5, font: "mono" },
+      MUTED,
+    );
     flow.text(item.title, x + 41, y + 1.6, w - 41 - 46, 4.5, { size: 9, minSize: 6.5 });
-    flow.text(item.location ?? "", x + w - 44, y + 1.6, 44, 4.5, { size: 8, align: "right", minSize: 6 }, MUTED);
+    flow.text(
+      item.location ?? "",
+      x + w - 44,
+      y + 1.6,
+      44,
+      4.5,
+      { size: 8, align: "right", minSize: 6 },
+      MUTED,
+    );
     flow.rect(x, y + rowH - 0.25, w, 0.2, { fill: LINE });
     flow.y += rowH;
   }
@@ -207,20 +363,38 @@ function paragraph(flow: Flow, text: string) {
   const lines = wrapText(text, flow.w, size, { font: "sans", weight: "regular" }, fontMeasurer);
   for (const line of lines) {
     flow.ensure(lineH);
-    flow.text(line, flow.x, flow.y, flow.w, lineH, { size, autoFit: false, lineHeight: 1.45 }, "#2b3a4d");
+    flow.text(
+      line,
+      flow.x,
+      flow.y,
+      flow.w,
+      lineH,
+      { size, autoFit: false, lineHeight: 1.45 },
+      "#2b3a4d",
+    );
     flow.y += lineH;
   }
   flow.y += 4;
 }
 
-function hasContent(key: VoucherSection["key"], data: DocumentData, section: VoucherSection): boolean {
+function hasContent(
+  key: VoucherSection["key"],
+  data: DocumentData,
+  section: VoucherSection,
+): boolean {
   switch (key) {
-    case "flights": return (data.flights?.length ?? 0) > 0;
-    case "accommodation": return (data.stays?.length ?? 0) > 0;
-    case "itinerary": return (data.itinerary?.length ?? 0) > 0;
-    case "emergency": return !!(data.person?.emergencyName || data.person?.emergencyPhone);
-    case "freeText": return !!section.content?.trim();
-    case "passenger": return true;
+    case "flights":
+      return (data.flights?.length ?? 0) > 0;
+    case "accommodation":
+      return (data.stays?.length ?? 0) > 0;
+    case "itinerary":
+      return (data.itinerary?.length ?? 0) > 0;
+    case "emergency":
+      return !!(data.person?.emergencyName || data.person?.emergencyPhone);
+    case "freeText":
+      return !!section.content?.trim();
+    case "passenger":
+      return true;
   }
 }
 
@@ -233,7 +407,11 @@ const DEFAULT_TITLES: Record<VoucherSection["key"], string> = {
   freeText: "Informações",
 };
 
-export function layoutSections(el: SectionsElement, data: DocumentData, accent: string): DisplayItem[][] {
+export function layoutSections(
+  el: SectionsElement,
+  data: DocumentData,
+  accent: string,
+): DisplayItem[][] {
   const tz = data.timezone || "America/Sao_Paulo";
   const flow = new Flow(el, accent);
   for (const section of el.sections) {
@@ -256,7 +434,8 @@ export function layoutSections(el: SectionsElement, data: DocumentData, accent: 
       case "flights": {
         title(flow, label, 27);
         const t = (f: DocFlight) => (f.departure ? new Date(f.departure).getTime() : 0);
-        for (const f of [...(data.flights ?? [])].sort((a, b) => t(a) - t(b))) flightCard(flow, f, tz);
+        for (const f of [...(data.flights ?? [])].sort((a, b) => t(a) - t(b)))
+          flightCard(flow, f, tz);
         flow.y += 2;
         break;
       }
@@ -273,7 +452,10 @@ export function layoutSections(el: SectionsElement, data: DocumentData, accent: 
         title(flow, label, 11);
         grid(flow, [
           { label: "Nome", value: data.person?.emergencyName ?? "", span: 2 },
-          { label: "Telefone", value: resolveField({ person: { phone: data.person?.emergencyPhone } }, "person.phone") },
+          {
+            label: "Telefone",
+            value: resolveField({ person: { phone: data.person?.emergencyPhone } }, "person.phone"),
+          },
         ]);
         break;
       case "freeText":

@@ -24,8 +24,15 @@ import { layoutSections } from "./sections";
 
 export type RectItem = {
   kind: "rect";
-  x: number; y: number; w: number; h: number;
-  fill?: string; stroke?: string; strokeWidth: number; radius: number; opacity: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fill?: string;
+  stroke?: string;
+  strokeWidth: number;
+  radius: number;
+  opacity: number;
 };
 
 export type TextLine = { text: string; x: number; baseline: number; top: number; width: number };
@@ -33,7 +40,10 @@ export type TextLine = { text: string; x: number; baseline: number; top: number;
 export type TextItem = {
   kind: "text";
   /** Caixa no papel. Com rotação, as linhas usam a caixa local (w e h trocados). */
-  x: number; y: number; w: number; h: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
   rotate: 0 | 90 | 180 | 270;
   lines: TextLine[];
   size: number; // pt
@@ -46,14 +56,34 @@ export type TextItem = {
   overflow: boolean;
 };
 
-export type QrItem = { kind: "qr"; x: number; y: number; size: number; modules: boolean[][]; color: string };
+export type QrItem = {
+  kind: "qr";
+  x: number;
+  y: number;
+  size: number;
+  modules: boolean[][];
+  color: string;
+};
 export type BarcodeItem = {
-  kind: "barcode"; x: number; y: number; w: number; h: number;
-  bars: { x: number; w: number }[]; color: string; text?: TextItem;
+  kind: "barcode";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  bars: { x: number; w: number }[];
+  color: string;
+  text?: TextItem;
 };
 export type ImageItem = {
-  kind: "image"; x: number; y: number; w: number; h: number;
-  fileId: string; fit: "contain" | "cover"; align: "left" | "center" | "right"; circle: boolean;
+  kind: "image";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fileId: string;
+  fit: "contain" | "cover";
+  align: "left" | "center" | "right";
+  circle: boolean;
 };
 export type DisplayItem = RectItem | TextItem | QrItem | BarcodeItem | ImageItem;
 
@@ -97,20 +127,43 @@ export function layoutText(
   const block = fit.lines.length * lineBox;
   const innerH = lh - 2 * pad;
   const top0 =
-    pad + (style.valign === "top" ? 0 : style.valign === "bottom" ? innerH - block : (innerH - block) / 2);
+    pad +
+    (style.valign === "top"
+      ? 0
+      : style.valign === "bottom"
+        ? innerH - block
+        : (innerH - block) / 2);
   const { ascent, descent } = verticalMetrics(fs);
   const content = (ascent - descent) * fit.size * PT_TO_MM;
   const lines: TextLine[] = fit.lines.map((t, i) => {
     const width = fontMeasurer(t, fit.size, fs, style.letterSpacing);
     const avail = lw - 2 * pad;
-    const x = pad + (style.align === "center" ? (avail - width) / 2 : style.align === "right" ? avail - width : 0);
+    const x =
+      pad +
+      (style.align === "center"
+        ? (avail - width) / 2
+        : style.align === "right"
+          ? avail - width
+          : 0);
     const top = top0 + i * lineBox;
-    return { text: t, x, top, width, baseline: top + (lineBox - content) / 2 + ascent * fit.size * PT_TO_MM };
+    return {
+      text: t,
+      x,
+      top,
+      width,
+      baseline: top + (lineBox - content) / 2 + ascent * fit.size * PT_TO_MM,
+    };
   });
   return {
     kind: "text",
-    x: box.x, y: box.y, w: box.w, h: box.h, rotate,
-    lines, size: fit.size, lineBox,
+    x: box.x,
+    y: box.y,
+    w: box.w,
+    h: box.h,
+    rotate,
+    lines,
+    size: fit.size,
+    lineBox,
     fontFile: fontFile(fs),
     color: colors.color,
     letterSpacing: style.letterSpacing,
@@ -152,10 +205,16 @@ function prepareElement(
   switch (el.type) {
     case "box":
       return {
-        kind: "rect", x: el.x, y: el.y, w: el.w, h: el.h,
+        kind: "rect",
+        x: el.x,
+        y: el.y,
+        w: el.w,
+        h: el.h,
         fill: el.fill ? color(el.fill) : undefined,
         stroke: el.stroke ? color(el.stroke) : undefined,
-        strokeWidth: el.strokeWidth, radius: el.radius, opacity: el.opacity,
+        strokeWidth: el.strokeWidth,
+        radius: el.radius,
+        opacity: el.opacity,
       };
     case "text":
     case "field": {
@@ -175,7 +234,14 @@ function prepareElement(
     case "qrcode": {
       const value = resolveField(data, el.field);
       if (!value) return null;
-      return { kind: "qr", x: el.x, y: el.y, size: el.size, modules: qrModules(value, el.errorCorrection, el.quietZone), color: color(el.color) };
+      return {
+        kind: "qr",
+        x: el.x,
+        y: el.y,
+        size: el.size,
+        modules: qrModules(value, el.errorCorrection, el.quietZone),
+        color: color(el.color),
+      };
     }
     case "barcode": {
       const value = resolveField(data, el.field);
@@ -190,19 +256,53 @@ function prepareElement(
         cursor += wd;
       });
       return {
-        kind: "barcode", x: el.x, y: el.y, w: el.w, h: el.h - textH, bars, color: color(el.color),
+        kind: "barcode",
+        x: el.x,
+        y: el.y,
+        w: el.w,
+        h: el.h - textH,
+        bars,
+        color: color(el.color),
         text: el.showText
-          ? layoutText(value, { x: el.x, y: el.y + el.h - textH, w: el.w, h: textH }, {
-              font: "mono", weight: "regular", size: 7, minSize: 4, autoFit: true, maxLines: 1, lineHeight: 1,
-              align: "center", valign: "middle", color: "black", uppercase: false, letterSpacing: 0.4, radius: 0, padding: 0,
-            }, { color: color(el.color) })
+          ? layoutText(
+              value,
+              { x: el.x, y: el.y + el.h - textH, w: el.w, h: textH },
+              {
+                font: "mono",
+                weight: "regular",
+                size: 7,
+                minSize: 4,
+                autoFit: true,
+                maxLines: 1,
+                lineHeight: 1,
+                align: "center",
+                valign: "middle",
+                color: "black",
+                uppercase: false,
+                letterSpacing: 0.4,
+                radius: 0,
+                padding: 0,
+              },
+              { color: color(el.color) },
+            )
           : undefined,
       };
     }
     case "image": {
-      const fileId = el.source.kind === "file" ? el.source.fileId : resolveField(data, el.source.field);
+      const fileId =
+        el.source.kind === "file" ? el.source.fileId : resolveField(data, el.source.field);
       if (!fileId) return null;
-      return { kind: "image", x: el.x, y: el.y, w: el.w, h: el.h, fileId, fit: el.fit, align: el.align, circle: el.circle };
+      return {
+        kind: "image",
+        x: el.x,
+        y: el.y,
+        w: el.w,
+        h: el.h,
+        fileId,
+        fit: el.fit,
+        align: el.align,
+        circle: el.circle,
+      };
     }
     case "sections":
       return null; // expandidas em prepareRecord
@@ -267,7 +367,10 @@ export function prepareRecord(
           .filter((el) => el.repeat && el.type !== "sections" && isElementVisible(el, data))
           .map((el) => prepareElement(el, def, data, { pageNumber: n, pageCount }))
           .filter((x): x is DisplayItem => !!x);
-        out.push({ items: [...repeated, ...extra], backgroundPage: bg ? bg.continuationPage : null });
+        out.push({
+          items: [...repeated, ...extra],
+          backgroundPage: bg ? bg.continuationPage : null,
+        });
       }
     }
     return out;

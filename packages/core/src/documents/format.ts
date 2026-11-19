@@ -11,7 +11,12 @@ function toDate(v: Date | string | null | undefined): Date | null {
 export function formatDate(v: Date | string | null | undefined, timeZone = DEFAULT_TZ): string {
   const d = toDate(v);
   if (!d) return "";
-  return d.toLocaleDateString("pt-BR", { timeZone, day: "2-digit", month: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("pt-BR", {
+    timeZone,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 /** "14h30" — o formato usado em vouchers de viagem. */
@@ -48,7 +53,8 @@ export function formatPeriod(
   const a = parts(s);
   if (!e) return `${a.day} de ${a.month} de ${a.year}`;
   const b = parts(e);
-  if (a.year !== b.year) return `${a.day} de ${a.month} de ${a.year} a ${b.day} de ${b.month} de ${b.year}`;
+  if (a.year !== b.year)
+    return `${a.day} de ${a.month} de ${a.year} a ${b.day} de ${b.month} de ${b.year}`;
   if (a.month !== b.month) return `${a.day} de ${a.month} a ${b.day} de ${b.month} de ${b.year}`;
   if (a.day === b.day) return `${a.day} de ${a.month} de ${a.year}`;
   return `${a.day} a ${b.day} de ${a.month} de ${a.year}`;

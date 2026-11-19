@@ -23,7 +23,10 @@ export function hexToRgb(hex: string): Rgb {
 }
 
 export function rgbToHex({ r, g, b }: Rgb): string {
-  const h = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, "0");
+  const h = (v: number) =>
+    Math.round(Math.min(1, Math.max(0, v)) * 255)
+      .toString(16)
+      .padStart(2, "0");
   return `#${h(r)}${h(g)}${h(b)}`;
 }
 
@@ -59,20 +62,42 @@ export function resolveColor(value: ColorValue, data: DocumentData, monochrome =
     (isHex(data.tenant?.secondaryColor) && data.tenant?.secondaryColor) ||
     PALETTE.brandSecondary;
   const accent = (isHex(data.tenant?.accentColor) && data.tenant?.accentColor) || PALETTE.accent;
-  const category = (isHex(data.registration?.categoryColor) && data.registration?.categoryColor) || brand;
+  const category =
+    (isHex(data.registration?.categoryColor) && data.registration?.categoryColor) || brand;
 
   let out: string;
   switch (value) {
-    case "brand": out = brand; break;
-    case "brandSecondary": out = brandSecondary; break;
-    case "accent": out = accent; break;
-    case "category": out = category; break;
-    case "onBrand": out = readableOn(brand); break;
-    case "onCategory": out = readableOn(category); break;
-    case "onAccent": out = readableOn(accent); break;
-    case "ink": case "muted": case "subtle": case "line": case "white": case "black":
-      out = PALETTE[value]; break;
-    default: out = isHex(value) ? value.toLowerCase() : PALETTE.ink;
+    case "brand":
+      out = brand;
+      break;
+    case "brandSecondary":
+      out = brandSecondary;
+      break;
+    case "accent":
+      out = accent;
+      break;
+    case "category":
+      out = category;
+      break;
+    case "onBrand":
+      out = readableOn(brand);
+      break;
+    case "onCategory":
+      out = readableOn(category);
+      break;
+    case "onAccent":
+      out = readableOn(accent);
+      break;
+    case "ink":
+    case "muted":
+    case "subtle":
+    case "line":
+    case "white":
+    case "black":
+      out = PALETTE[value];
+      break;
+    default:
+      out = isHex(value) ? value.toLowerCase() : PALETTE.ink;
   }
   if (!monochrome) return out;
   // Térmica: só preto ou branco. Claro vira branco; o resto, preto.

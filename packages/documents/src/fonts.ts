@@ -86,6 +86,7 @@ export const fontMeasurer: TextMeasurer = (text, sizePt, spec, letterSpacingPt =
     units = m.font.glyphsForString(text).reduce((sum, g) => sum + g.advanceWidth, 0);
     if (m.widths.size < 5000) m.widths.set(text, units);
   }
-  const pt = (units / m.font.unitsPerEm) * sizePt + Math.max(0, [...text].length - 1) * letterSpacingPt;
+  const pt =
+    (units / m.font.unitsPerEm) * sizePt + Math.max(0, [...text].length - 1) * letterSpacingPt;
   return pt * PT_TO_MM;
 };

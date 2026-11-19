@@ -1,0 +1,86 @@
+// ============================================================================
+// DOCUMENTOS — motor único de vouchers, crachás, etiquetas, certificados,
+// contratos e listas. A definição (layout em mm, elementos, condições) é
+// validada por `documentDefinitionSchema` em @mais/core/documents; a
+// renderização fica em @mais/documents (PDF e HTML para impressão térmica).
+//
+// tenantId/projectId são escalares de propósito: as relações com o núcleo
+// são adicionadas na integração dos módulos.
+// ============================================================================
+
+enum DocumentKind {
+  VOUCHER
+  BADGE // crachá completo (impressão direta)
+  LABEL // etiqueta térmica para colar no crachá
+  CERTIFICATE
+  CONTRACT
+  ROOMING_LIST
+  OTHER
+}
+
+model DocumentTemplate {
+  id               String       @id @default(cuid())
+  tenantId         String
+  projectId        String? // null = modelo do cliente, reutilizável em vários projetos
+  kind             DocumentKind
+  name             String // "Crachá SIRAN Summit", "Voucher Internacional"
+  description      String       @default("")
+  // DocumentDefinition (schemaVersion, page, elements, output, monochrome, fileName)
+  definition       Json
+  // Arte de fundo (PDF ou imagem) — também referenciada dentro de `definition.page.background`
+  backgroundFileId String?
+  // Exibe o documento à pessoa (portal do viajante, área do participante), gerado sob demanda
+  visibleToPerson  Boolean      @default(false)
+  // Modelo usado por padrão para este tipo no projeto (balcão e totem imprimem este)
+  isDefault        Boolean      @default(false)
+  // Incrementa a cada alteração da definição; DocumentRender guarda a versão usada
+  version          Int          @default(1)
+  archivedAt       DateTime?
+  createdBy        String       @default("")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  renders DocumentRender[]
+
+  @@index([tenantId, projectId, kind])
+}
+
+enum RenderPurpose {
+  PRINT // balcão, totem, impressão em lote
+  EMAIL // anexo de mensagem
+  DOWNLOAD // baixado pelo operador ou pela pessoa
+  PREVIEW // pré-visualização do editor (não conta impressão)
+}
+
+enum RenderFormat {
+  PDF
+  THERMAL_HTML
+}
+
+// Log de emissão: quem gerou, quando, quantas páginas, para quê
+model DocumentRender {
+  id              String        @id @default(cuid())
+  tenantId        String
+  projectId       String?
+  templateId      String?
+  templateVersion Int           @default(1)
+  purpose         RenderPurpose
+  format          RenderFormat  @default(PDF)
+  pages           Int           @default(0)
+  recordCount     Int           @default(1)
+  // Inscrições incluídas (lote); para documento único, uma só
+  registrationIds String[]      @default([])
+  actorType       ActorType     @default(USER)
+  actorLabel      String        @default("") // operador, "Totem 3", nome da pessoa
+  userId          String?
+  kioskId         String?
+  // Arquivo gerado, quando guardado (ex.: voucher enviado por e-mail)
+  fileId          String?
+  warnings        String[]      @default([])
+  createdAt       DateTime      @default(now())
+
+  template DocumentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, projectId, createdAt])
+  @@index([templateId])
+}
