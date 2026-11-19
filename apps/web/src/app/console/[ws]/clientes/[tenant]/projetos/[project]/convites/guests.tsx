@@ -696,16 +696,36 @@ function AddGuestSheet({
     >
       <div className="flex flex-col gap-4">
         <Field label="Nome completo" error={errors.fullName}>
-          {(a) => <Input {...a} value={f.fullName} onChange={set("fullName")} autoFocus />}
+          {(a) => (
+            <Input
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
+              value={f.fullName}
+              onChange={set("fullName")}
+              autoFocus
+            />
+          )}
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="E-mail" optional error={errors.email}>
-            {(a) => <Input {...a} type="email" value={f.email} onChange={set("email")} />}
+            {(a) => (
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                type="email"
+                value={f.email}
+                onChange={set("email")}
+              />
+            )}
           </Field>
           <Field label="WhatsApp" optional error={errors.phone}>
             {(a) => (
               <Input
-                {...a}
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
                 inputMode="tel"
                 placeholder="(11) 99999-9999"
                 value={f.phone}
@@ -716,10 +736,26 @@ function AddGuestSheet({
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Empresa" optional>
-            {(a) => <Input {...a} value={f.company} onChange={set("company")} />}
+            {(a) => (
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                value={f.company}
+                onChange={set("company")}
+              />
+            )}
           </Field>
           <Field label="Cargo" optional>
-            {(a) => <Input {...a} value={f.jobTitle} onChange={set("jobTitle")} />}
+            {(a) => (
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                value={f.jobTitle}
+                onChange={set("jobTitle")}
+              />
+            )}
           </Field>
         </div>
         <Field label="Origem do convite">

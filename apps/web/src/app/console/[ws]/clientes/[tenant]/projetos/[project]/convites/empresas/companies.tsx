@@ -529,16 +529,35 @@ function CompanySheet({
     >
       <div className="flex flex-col gap-4">
         <Field label="Empresa" error={errors.companyName}>
-          {(a) => <Input {...a} value={f.companyName} onChange={set("companyName")} autoFocus />}
+          {(a) => (
+            <Input
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
+              value={f.companyName}
+              onChange={set("companyName")}
+              autoFocus
+            />
+          )}
         </Field>
         <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
           <Field label="Responsável" optional error={errors.contactName}>
-            {(a) => <Input {...a} value={f.contactName} onChange={set("contactName")} />}
+            {(a) => (
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                value={f.contactName}
+                onChange={set("contactName")}
+              />
+            )}
           </Field>
           <Field label="Cota" error={errors.quota} hint="convites">
             {(a) => (
               <Input
-                {...a}
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
                 type="number"
                 min={1}
                 inputMode="numeric"
@@ -549,14 +568,40 @@ function CompanySheet({
           </Field>
         </div>
         <Field label="Cargo do responsável" optional>
-          {(a) => <Input {...a} value={f.contactRole} onChange={set("contactRole")} />}
+          {(a) => (
+            <Input
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
+              value={f.contactRole}
+              onChange={set("contactRole")}
+            />
+          )}
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="E-mail" optional error={errors.email}>
-            {(a) => <Input {...a} type="email" value={f.email} onChange={set("email")} />}
+            {(a) => (
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                type="email"
+                value={f.email}
+                onChange={set("email")}
+              />
+            )}
           </Field>
           <Field label="WhatsApp" optional error={errors.phone}>
-            {(a) => <Input {...a} inputMode="tel" value={f.phone} onChange={set("phone")} />}
+            {(a) => (
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                inputMode="tel"
+                value={f.phone}
+                onChange={set("phone")}
+              />
+            )}
           </Field>
         </div>
         {!editing && (

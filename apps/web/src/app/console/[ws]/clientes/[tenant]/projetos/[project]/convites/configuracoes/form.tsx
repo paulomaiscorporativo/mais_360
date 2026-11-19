@@ -108,12 +108,23 @@ export function EventSettingsForm({
       >
         <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
           <Field label="Horário" error={errors.eventTime}>
-            {(a) => <Input {...a} type="time" value={f.eventTime} onChange={set("eventTime")} />}
+            {(a) => (
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                type="time"
+                value={f.eventTime}
+                onChange={set("eventTime")}
+              />
+            )}
           </Field>
           <Field label="Local" optional>
             {(a) => (
               <Input
-                {...a}
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
                 value={f.venueName}
                 onChange={set("venueName")}
                 placeholder="Casa Bizutt"
@@ -124,7 +135,9 @@ export function EventSettingsForm({
         <Field label="Endereço" optional>
           {(a) => (
             <Input
-              {...a}
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
               value={f.venueAddress}
               onChange={set("venueAddress")}
               placeholder="Rua do Ator, 577 — São Paulo/SP"
@@ -144,7 +157,9 @@ export function EventSettingsForm({
         <Field label="Traje" optional>
           {(a) => (
             <Input
-              {...a}
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
               value={f.dressCode}
               onChange={set("dressCode")}
               placeholder="Esporte fino"
@@ -160,7 +175,9 @@ export function EventSettingsForm({
         <Field label="Apresentação" optional error={errors.description}>
           {(a) => (
             <Textarea
-              {...a}
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
               rows={4}
               value={f.description}
               onChange={set("description")}
@@ -182,13 +199,22 @@ export function EventSettingsForm({
             error={errors.inviteDeadline}
           >
             {(a) => (
-              <Input {...a} type="date" value={f.inviteDeadline} onChange={set("inviteDeadline")} />
+              <Input
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
+                type="date"
+                value={f.inviteDeadline}
+                onChange={set("inviteDeadline")}
+              />
             )}
           </Field>
           <Field label="Cota padrão por empresa" error={errors.defaultQuota}>
             {(a) => (
               <Input
-                {...a}
+                id={a.id}
+                aria-describedby={a.describedBy}
+                aria-invalid={a.invalid || undefined}
                 type="number"
                 min={1}
                 inputMode="numeric"
@@ -331,7 +357,9 @@ export function EventSettingsForm({
         <Field label="Assunto do e-mail">
           {(a) => (
             <Input
-              {...a}
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
               value={m.emailSubject}
               onChange={(e) => setM({ ...m, emailSubject: e.target.value })}
             />
@@ -343,7 +371,9 @@ export function EventSettingsForm({
         >
           {(a) => (
             <Textarea
-              {...a}
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
               rows={9}
               value={m.emailBody}
               onChange={(e) => setM({ ...m, emailBody: e.target.value })}
@@ -356,7 +386,9 @@ export function EventSettingsForm({
         >
           {(a) => (
             <Textarea
-              {...a}
+              id={a.id}
+              aria-describedby={a.describedBy}
+              aria-invalid={a.invalid || undefined}
               rows={6}
               value={m.whatsappBody}
               onChange={(e) => setM({ ...m, whatsappBody: e.target.value })}

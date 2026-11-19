@@ -504,7 +504,8 @@ function TablePanel({
             <Field label="Número">
               {(a) => (
                 <Input
-                  {...a}
+                  id={a.id}
+                  aria-describedby={a.describedBy}
                   type="number"
                   min={1}
                   value={f.number}
@@ -515,7 +516,8 @@ function TablePanel({
             <Field label="Lugares">
               {(a) => (
                 <Input
-                  {...a}
+                  id={a.id}
+                  aria-describedby={a.describedBy}
                   type="number"
                   min={1}
                   value={f.capacity}
@@ -527,7 +529,8 @@ function TablePanel({
           <Field label="Reservada para" optional>
             {(a) => (
               <Input
-                {...a}
+                id={a.id}
+                aria-describedby={a.describedBy}
                 value={f.reservedFor}
                 placeholder="Diretoria, empresa…"
                 onChange={(e) => setF({ ...f, reservedFor: e.target.value })}
@@ -680,7 +683,8 @@ function AddTables({
           <Field label="Quantidade">
             {(a) => (
               <Input
-                {...a}
+                id={a.id}
+                aria-describedby={a.describedBy}
                 type="number"
                 min={1}
                 max={100}
@@ -692,7 +696,8 @@ function AddTables({
           <Field label="Lugares por mesa">
             {(a) => (
               <Input
-                {...a}
+                id={a.id}
+                aria-describedby={a.describedBy}
                 type="number"
                 min={1}
                 max={40}
