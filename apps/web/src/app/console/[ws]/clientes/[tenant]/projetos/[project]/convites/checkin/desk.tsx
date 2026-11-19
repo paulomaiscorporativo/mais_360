@@ -1,6 +1,14 @@
 "use client";
 
-import { AlertTriangle, Camera, CameraOff, CheckCircle2, Info, RotateCcw, ScanLine } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  CameraOff,
+  CheckCircle2,
+  Info,
+  RotateCcw,
+  ScanLine,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Button, Input } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
@@ -101,11 +109,7 @@ export function CheckinDesk({
           </Button>
         </form>
 
-        <Button
-          variant="secondary"
-          className="self-start"
-          onClick={() => setCamera((c) => !c)}
-        >
+        <Button variant="secondary" className="self-start" onClick={() => setCamera((c) => !c)}>
           {camera ? <CameraOff /> : <Camera />}
           {camera ? "Fechar câmera" : "Ler QR pela câmera"}
         </Button>
@@ -124,7 +128,10 @@ export function CheckinDesk({
             <span className="text-fg-faint text-xl font-normal"> / {stats.total}</span>
           </p>
           <div className="bg-surface-sunken mt-3 h-2 overflow-hidden rounded-full">
-            <div className="bg-brand h-full rounded-full transition-[width]" style={{ width: `${pct}%` }} />
+            <div
+              className="bg-brand h-full rounded-full transition-[width]"
+              style={{ width: `${pct}%` }}
+            />
           </div>
           <p className="text-fg-subtle mt-2 text-xs">
             {pct}% dos convites ativos · {stats.confirmed} confirmaram presença
@@ -132,7 +139,9 @@ export function CheckinDesk({
         </div>
         {recent.length > 0 && (
           <div className="border-border bg-surface rounded-lg border">
-            <p className="border-border border-b px-4 py-2.5 text-sm font-medium">Últimas leituras</p>
+            <p className="border-border border-b px-4 py-2.5 text-sm font-medium">
+              Últimas leituras
+            </p>
             <ul className="divide-border divide-y">
               {recent.map((r) => (
                 <li key={r.at} className="flex items-center gap-3 px-4 py-2.5 text-sm">
@@ -149,7 +158,10 @@ export function CheckinDesk({
                     {r.result.guest?.name ?? (r.result.ok ? "" : r.result.error)}
                   </span>
                   <span className="text-fg-faint tabular text-xs">
-                    {new Date(r.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(r.at).toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </li>
               ))}
@@ -182,7 +194,11 @@ function ResultCard({
       : "border-success-border bg-success-bg text-success";
   const title = !result.ok ? result.error : result.already ? "Já credenciado" : "Bem-vindo(a)!";
   return (
-    <div role="status" aria-live="assertive" className={`animate-rise rounded-lg border p-6 ${tone}`}>
+    <div
+      role="status"
+      aria-live="assertive"
+      className={`animate-rise rounded-lg border p-6 ${tone}`}
+    >
       <p className="flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
         {!result.ok ? (
           <AlertTriangle className="size-5" />

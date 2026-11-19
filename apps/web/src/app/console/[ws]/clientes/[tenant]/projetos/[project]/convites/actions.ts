@@ -15,10 +15,10 @@ import {
   expireQuotas,
   issueInvite,
   openPassword,
+  requireEventWriter,
   resetCompanyPassword,
   undoCheckIn,
 } from "@/server/events";
-import { requireProjectWriter } from "@/server/projects";
 import { requireTenant } from "@/server/auth";
 import { tenantDb } from "@/server/tenant-db";
 
@@ -65,7 +65,7 @@ export const saveEventSettings = defineAction(
     amenities: z.array(amenity).max(20),
   }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     const tz = p.project.timezone ?? p.tenant.timezone;
     // Data-limite vale até o fim do dia no fuso do projeto
     const deadline = i.inviteDeadline ? endOfDay(i.inviteDeadline, tz) : null;
@@ -128,7 +128,7 @@ export const saveInviteMessage = defineAction(
     whatsappBody: v.text("o texto do WhatsApp", 4000),
   }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     const existing = await p.db.messageTemplate.findFirst({
       where: { projectId: p.projectId, purpose: "INVITE", archivedAt: null },
     });
@@ -170,7 +170,7 @@ const companyFields = z.object({
 export const addCompany = defineAction(
   z.object({ ...ref, data: companyFields, sendInvite: z.boolean().default(false) }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     const { company, password } = await createCompany(
       p.db,
       { tenantId: p.tenantId, projectId: p.projectId },
@@ -198,10 +198,14 @@ export const addCompany = defineAction(
 export const updateCompany = defineAction(
   z.object({ ...ref, id: z.string(), data: companyFields }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     const c = await p.db.companyQuota.findFirst({
       where: { id: i.id, projectId: p.projectId },
-      include: { _count: { select: { invites: { where: { registration: { status: { not: "CANCELED" } } } } } } },
+      include: {
+        _count: {
+          select: { invites: { where: { registration: { status: { not: "CANCELED" } } } } },
+        },
+      },
     });
     if (!c) throw new AppError("Empresa não encontrada.");
     if (i.data.quota < c._count.invites)
@@ -227,10 +231,11 @@ export const updateCompany = defineAction(
 export const revealCompanyPassword = defineAction(
   z.object({ ...ref, id: z.string() }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     const c = await p.db.companyQuota.findFirst({ where: { id: i.id, projectId: p.projectId } });
     if (!c) throw new AppError("Empresa não encontrada.");
-    if (c.passwordChangedAt) throw new AppError("A empresa já trocou a senha. Gere uma nova se precisar.");
+    if (c.passwordChangedAt)
+      throw new AppError("A empresa já trocou a senha. Gere uma nova se precisar.");
     await audit({
       action: "event.company.password.reveal",
       userId: p.viewer.user.id,
@@ -246,7 +251,7 @@ export const revealCompanyPassword = defineAction(
 export const regenerateCompanyPassword = defineAction(
   z.object({ ...ref, id: z.string() }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     const c = await p.db.companyQuota.findFirst({ where: { id: i.id, projectId: p.projectId } });
     if (!c) throw new AppError("Empresa não encontrada.");
     const password = await resetCompanyPassword(p.db, c.id);
@@ -263,35 +268,32 @@ export const regenerateCompanyPassword = defineAction(
   },
 );
 
-export const deleteCompany = defineAction(
-  z.object({ ...ref, id: z.string() }),
-  async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
-    const c = await p.db.companyQuota.findFirst({
-      where: { id: i.id, projectId: p.projectId },
-      include: { _count: { select: { invites: { where: { kind: { not: "RESPONSIBLE" } } } } } },
-    });
-    if (!c) throw new AppError("Empresa não encontrada.");
-    if (c._count.invites > 0)
-      throw new AppError("A empresa já inscreveu convidados. Cancele os convites antes de excluir.");
-    // O convite do responsável sai junto (a inscrição dele só existia por causa da cota)
-    const resp = await p.db.eventInvite.findMany({
-      where: { companyQuotaId: c.id, kind: "RESPONSIBLE" },
-      select: { registrationId: true },
-    });
-    await p.db.registration.deleteMany({
-      where: { id: { in: resp.map((r) => r.registrationId) }, projectId: p.projectId },
-    });
-    await p.db.companyQuota.delete({ where: { id: c.id } });
-    refresh(i.tenant);
-    return null;
-  },
-);
+export const deleteCompany = defineAction(z.object({ ...ref, id: z.string() }), async (i) => {
+  const p = await requireEventWriter(i.tenant, i.projectId);
+  const c = await p.db.companyQuota.findFirst({
+    where: { id: i.id, projectId: p.projectId },
+    include: { _count: { select: { invites: { where: { kind: { not: "RESPONSIBLE" } } } } } },
+  });
+  if (!c) throw new AppError("Empresa não encontrada.");
+  if (c._count.invites > 0)
+    throw new AppError("A empresa já inscreveu convidados. Cancele os convites antes de excluir.");
+  // O convite do responsável sai junto (a inscrição dele só existia por causa da cota)
+  const resp = await p.db.eventInvite.findMany({
+    where: { companyQuotaId: c.id, kind: "RESPONSIBLE" },
+    select: { registrationId: true },
+  });
+  await p.db.registration.deleteMany({
+    where: { id: { in: resp.map((r) => r.registrationId) }, projectId: p.projectId },
+  });
+  await p.db.companyQuota.delete({ where: { id: c.id } });
+  refresh(i.tenant);
+  return null;
+});
 
 export const processExpiration = defineAction(
   z.object({ ...ref, force: z.boolean().default(false) }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     const plan = await expireQuotas(p.db, p, i.force);
     await audit({
       action: "event.quotas.expire",
@@ -323,7 +325,7 @@ export const addGuest = defineAction(
     send: channels.optional(),
   }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     if (!i.personId && i.fullName.length < 3) throw new AppError("Informe o nome do convidado.");
     const { firstName, lastName } = splitFullName(i.fullName);
     const reg = await issueInvite(p.db, p, {
@@ -353,7 +355,7 @@ export const addGuest = defineAction(
 export const sendInvites = defineAction(
   z.object({ ...ref, ids: z.array(z.string()).min(1).max(1000), channels, resend: z.boolean() }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     let sent = 0;
     const problems: string[] = [];
     for (const id of i.ids) {
@@ -380,7 +382,7 @@ export const sendInvites = defineAction(
 export const cancelGuests = defineAction(
   z.object({ ...ref, ids: z.array(z.string()).min(1).max(1000), notify: z.boolean() }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     for (const id of i.ids) await cancelInvite(p, id, p.viewer.user.name, i.notify);
     await audit({
       action: "event.invites.cancel",
@@ -395,7 +397,7 @@ export const cancelGuests = defineAction(
 );
 
 export const reactivateGuest = defineAction(z.object({ ...ref, id: z.string() }), async (i) => {
-  const p = await requireProjectWriter(i.tenant, i.projectId);
+  const p = await requireEventWriter(i.tenant, i.projectId);
   await p.db.registration.updateMany({
     where: { id: i.id, projectId: p.projectId, status: "CANCELED" },
     data: { status: "PENDING", canceledAt: null, canceledBy: "" },
@@ -407,7 +409,7 @@ export const reactivateGuest = defineAction(z.object({ ...ref, id: z.string() })
 export const setGuestStatus = defineAction(
   z.object({ ...ref, id: z.string(), status: z.enum(["CONFIRMED", "DECLINED", "PENDING"]) }),
   async (i) => {
-    const p = await requireProjectWriter(i.tenant, i.projectId);
+    const p = await requireEventWriter(i.tenant, i.projectId);
     await p.db.registration.updateMany({
       where: { id: i.id, projectId: p.projectId, status: { not: "CANCELED" } },
       data: {
@@ -460,7 +462,11 @@ export const checkinStats = defineAction(
   async (i) => {
     const ctx = await requireTenant(i.tenant, "DESK");
     const db = tenantDb(ctx);
-    const where = { projectId: i.projectId, role: "GUEST" as const, status: { not: "CANCELED" as const } };
+    const where = {
+      projectId: i.projectId,
+      role: "GUEST" as const,
+      status: { not: "CANCELED" as const },
+    };
     const [total, checked, confirmed] = await Promise.all([
       db.registration.count({ where }),
       db.registration.count({ where: { ...where, checkedInAt: { not: null } } }),

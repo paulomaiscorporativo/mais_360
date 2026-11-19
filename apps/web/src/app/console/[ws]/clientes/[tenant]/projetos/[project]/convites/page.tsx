@@ -109,7 +109,10 @@ export default async function GuestsPage({
       categories={categories}
       pool={
         settings.quotasExpiredAt
-          ? { available: poolAvailable(settings.individualPool, individualUsed), total: settings.individualPool }
+          ? {
+              available: poolAvailable(settings.individualPool, individualUsed),
+              total: settings.individualPool,
+            }
           : null
       }
       filters={{ q: sp.q ?? "", status: sp.status ?? "", empresa: sp.empresa ?? "" }}

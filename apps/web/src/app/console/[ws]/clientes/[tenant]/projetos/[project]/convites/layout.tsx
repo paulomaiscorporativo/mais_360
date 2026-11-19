@@ -24,13 +24,28 @@ export default async function InvitesLayout({
     p.db.companyQuota.count({ where: { projectId: p.projectId } }),
   ]);
   const items = [
-    { href: base, label: "Convidados", icon: <Users className="size-4" />, exact: true, count: guests },
-    { href: `${base}/empresas`, label: "Empresas", icon: <Building2 className="size-4" />, count: companies },
+    {
+      href: base,
+      label: "Convidados",
+      icon: <Users className="size-4" />,
+      exact: true,
+      count: guests,
+    },
+    {
+      href: `${base}/empresas`,
+      label: "Empresas",
+      icon: <Building2 className="size-4" />,
+      count: companies,
+    },
     { href: `${base}/checkin`, label: "Check-in", icon: <ScanLine className="size-4" /> },
     { href: `${base}/relatorios`, label: "Relatórios", icon: <BarChart3 className="size-4" /> },
   ];
   if (p.canEdit)
-    items.push({ href: `${base}/configuracoes`, label: "Evento", icon: <Settings2 className="size-4" /> });
+    items.push({
+      href: `${base}/configuracoes`,
+      label: "Evento",
+      icon: <Settings2 className="size-4" />,
+    });
   return (
     <div className="flex flex-col gap-6">
       <LinkTabs items={items} className="-mt-2" />

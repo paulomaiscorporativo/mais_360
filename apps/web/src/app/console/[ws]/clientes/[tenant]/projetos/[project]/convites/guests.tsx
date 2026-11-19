@@ -33,13 +33,7 @@ import {
 } from "@/components/ui/overlay";
 import { toast } from "@/components/ui/toast";
 import { INVITE_KIND_LABEL, INVITE_STATUS_UI } from "@/components/events/labels";
-import {
-  addGuest,
-  cancelGuests,
-  reactivateGuest,
-  sendInvites,
-  setGuestStatus,
-} from "./actions";
+import { addGuest, cancelGuests, reactivateGuest, sendInvites, setGuestStatus } from "./actions";
 
 export type GuestRow = {
   id: string;
@@ -143,14 +137,16 @@ export function GuestsManager(props: {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border sm:grid-cols-4 [&>*]:bg-surface">
+      <div className="[&>*]:bg-surface grid grid-cols-2 gap-px overflow-hidden rounded-md border sm:grid-cols-4">
         <Kpi label="Convites ativos" value={counts.active} />
         <Kpi label="Enviados" value={counts.sent} hint={`${counts.pending} a enviar`} />
         <Kpi label="Confirmados" value={counts.confirmed} hint={`${counts.declined} recusaram`} />
         <Kpi
           label={props.pool ? "Pool individual" : "Credenciados"}
           value={props.pool ? props.pool.available : counts.checkedIn}
-          hint={props.pool ? `de ${props.pool.total} devolvidos pelas empresas` : "no dia do evento"}
+          hint={
+            props.pool ? `de ${props.pool.total} devolvidos pelas empresas` : "no dia do evento"
+          }
         />
       </div>
 
@@ -206,7 +202,9 @@ export function GuestsManager(props: {
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-fg-subtle py-10 text-center text-sm">Nenhum convidado com estes filtros.</p>
+        <p className="text-fg-subtle py-10 text-center text-sm">
+          Nenhum convidado com estes filtros.
+        </p>
       ) : (
         <DataTable
           caption="Convidados do evento"
@@ -284,7 +282,9 @@ export function GuestsManager(props: {
               key: "code",
               header: "Código",
               mobile: "desktopOnly",
-              cell: (r) => <span className="tabular text-fg-muted font-mono text-sm">{r.shortCode}</span>,
+              cell: (r) => (
+                <span className="tabular text-fg-muted font-mono text-sm">{r.shortCode}</span>
+              ),
             },
             {
               key: "status",
@@ -335,7 +335,12 @@ export function GuestsManager(props: {
                           <MenuItem
                             onSelect={() =>
                               quick(
-                                setGuestStatus({ tenant, projectId, id: r.id, status: "CONFIRMED" }),
+                                setGuestStatus({
+                                  tenant,
+                                  projectId,
+                                  id: r.id,
+                                  status: "CONFIRMED",
+                                }),
                                 "Presença confirmada.",
                               )
                             }
@@ -364,7 +369,10 @@ export function GuestsManager(props: {
                     {canEdit && r.status === "CANCELED" && (
                       <MenuItem
                         onSelect={() =>
-                          quick(reactivateGuest({ tenant, projectId, id: r.id }), "Convite reativado.")
+                          quick(
+                            reactivateGuest({ tenant, projectId, id: r.id }),
+                            "Convite reativado.",
+                          )
                         }
                       >
                         <RotateCcw /> Reativar convite
@@ -413,9 +421,9 @@ export function GuestsManager(props: {
             if (r.ok) {
               const { sent, skipped, sample } = r.data;
               if (sent) toast.success(`${sent} envio(s) na fila. Acompanhe o status na lista.`);
-              if (skipped)
-                toast.warning(`${skipped} envio(s) não saíram: ${sample.join(" · ")}`);
-              if (!sent && !skipped) toast.info("Nada novo a enviar — os convites já tinham saído.");
+              if (skipped) toast.warning(`${skipped} envio(s) não saíram: ${sample.join(" · ")}`);
+              if (!sent && !skipped)
+                toast.info("Nada novo a enviar — os convites já tinham saído.");
               setSending(null);
               setSelected(new Set());
               router.refresh();
@@ -491,15 +499,17 @@ function DeliveryIcons({ row }: { row: GuestRow }) {
     `${c}: ${
       !s
         ? "não enviado"
-        : ({
-            FAILED: "falhou",
-            SKIPPED: "não enviado (sem contato)",
-            QUEUED: "na fila",
-            SENDING: "enviando",
-            SENT: "enviado",
-            DELIVERED: "entregue",
-            READ: "lido",
-          } as Record<string, string>)[s] ?? s
+        : ((
+            {
+              FAILED: "falhou",
+              SKIPPED: "não enviado (sem contato)",
+              QUEUED: "na fila",
+              SENDING: "enviando",
+              SENT: "enviado",
+              DELIVERED: "entregue",
+              READ: "lido",
+            } as Record<string, string>
+          )[s] ?? s)
     }`;
   const e = best("EMAIL");
   const w = best("WHATSAPP");
@@ -515,7 +525,13 @@ function DeliveryIcons({ row }: { row: GuestRow }) {
   );
 }
 
-function ChannelPicker({ value, onChange }: { value: Channel[]; onChange: (v: Channel[]) => void }) {
+function ChannelPicker({
+  value,
+  onChange,
+}: {
+  value: Channel[];
+  onChange: (v: Channel[]) => void;
+}) {
   const toggle = (c: Channel, on: boolean) =>
     onChange(on ? [...new Set([...value, c])] : value.filter((x) => x !== c));
   return (
@@ -688,7 +704,13 @@ function AddGuestSheet({
           </Field>
           <Field label="WhatsApp" optional error={errors.phone}>
             {(a) => (
-              <Input {...a} inputMode="tel" placeholder="(11) 99999-9999" value={f.phone} onChange={set("phone")} />
+              <Input
+                {...a}
+                inputMode="tel"
+                placeholder="(11) 99999-9999"
+                value={f.phone}
+                onChange={set("phone")}
+              />
             )}
           </Field>
         </div>

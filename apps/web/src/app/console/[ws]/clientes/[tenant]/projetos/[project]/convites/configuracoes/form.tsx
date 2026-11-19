@@ -112,7 +112,12 @@ export function EventSettingsForm({
           </Field>
           <Field label="Local" optional>
             {(a) => (
-              <Input {...a} value={f.venueName} onChange={set("venueName")} placeholder="Casa Bizutt" />
+              <Input
+                {...a}
+                value={f.venueName}
+                onChange={set("venueName")}
+                placeholder="Casa Bizutt"
+              />
             )}
           </Field>
         </div>
@@ -138,7 +143,12 @@ export function EventSettingsForm({
         )}
         <Field label="Traje" optional>
           {(a) => (
-            <Input {...a} value={f.dressCode} onChange={set("dressCode")} placeholder="Esporte fino" />
+            <Input
+              {...a}
+              value={f.dressCode}
+              onChange={set("dressCode")}
+              placeholder="Esporte fino"
+            />
           )}
         </Field>
       </FormSection>
@@ -165,7 +175,12 @@ export function EventSettingsForm({
         description="Depois da data-limite, as sobras voltam ao pool individual da organização."
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Data-limite" optional hint="Até 23h59 deste dia" error={errors.inviteDeadline}>
+          <Field
+            label="Data-limite"
+            optional
+            hint="Até 23h59 deste dia"
+            error={errors.inviteDeadline}
+          >
             {(a) => (
               <Input {...a} type="date" value={f.inviteDeadline} onChange={set("inviteDeadline")} />
             )}
@@ -191,7 +206,10 @@ export function EventSettingsForm({
         />
       </FormSection>
 
-      <FormSection title="Hotéis próximos" description="Ajudam quem vem de fora. Aparecem no convite.">
+      <FormSection
+        title="Hotéis próximos"
+        description="Ajudam quem vem de fora. Aparecem no convite."
+      >
         {f.hotels.map((h, i) => (
           <div key={i} className="border-border grid gap-3 rounded-md border p-4 sm:grid-cols-2">
             <Input
@@ -212,7 +230,9 @@ export function EventSettingsForm({
               aria-label="Endereço do hotel"
               placeholder="Endereço"
               value={h.endereco}
-              onChange={(e) => setF({ ...f, hotels: patch(f.hotels, i, { endereco: e.target.value }) })}
+              onChange={(e) =>
+                setF({ ...f, hotels: patch(f.hotels, i, { endereco: e.target.value }) })
+              }
             />
             <div className="flex gap-2">
               <Input
@@ -240,7 +260,10 @@ export function EventSettingsForm({
           onClick={() =>
             setF({
               ...f,
-              hotels: [...f.hotels, { nome: "", endereco: "", telefone: "", distancia: "", link: "" }],
+              hotels: [
+                ...f.hotels,
+                { nome: "", endereco: "", telefone: "", distancia: "", link: "" },
+              ],
             })
           }
         >
@@ -307,10 +330,17 @@ export function EventSettingsForm({
       >
         <Field label="Assunto do e-mail">
           {(a) => (
-            <Input {...a} value={m.emailSubject} onChange={(e) => setM({ ...m, emailSubject: e.target.value })} />
+            <Input
+              {...a}
+              value={m.emailSubject}
+              onChange={(e) => setM({ ...m, emailSubject: e.target.value })}
+            />
           )}
         </Field>
-        <Field label="Texto do e-mail" hint="**negrito** e quebras de linha. O convite digital e os botões entram sozinhos.">
+        <Field
+          label="Texto do e-mail"
+          hint="**negrito** e quebras de linha. O convite digital e os botões entram sozinhos."
+        >
           {(a) => (
             <Textarea
               {...a}
@@ -320,7 +350,10 @@ export function EventSettingsForm({
             />
           )}
         </Field>
-        <Field label="Texto do WhatsApp" hint="*negrito* do WhatsApp. Inclua {{link_cracha}} para o convite.">
+        <Field
+          label="Texto do WhatsApp"
+          hint="*negrito* do WhatsApp. Inclua {{link_cracha}} para o convite."
+        >
           {(a) => (
             <Textarea
               {...a}
@@ -343,7 +376,12 @@ export function EventSettingsForm({
           </Link>
           .
         </Notice>
-        <Button variant="secondary" onClick={saveMessage} loading={savingMsg} className="self-start">
+        <Button
+          variant="secondary"
+          onClick={saveMessage}
+          loading={savingMsg}
+          className="self-start"
+        >
           Salvar mensagem
         </Button>
       </FormSection>

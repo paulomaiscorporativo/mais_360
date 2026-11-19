@@ -76,10 +76,10 @@ export function CompaniesManager(props: {
   const [expiring, setExpiring] = useState(false);
   const [pending, start] = useTransition();
 
-  const totals = rows.reduce(
-    (t, r) => ({ quota: t.quota + r.quota, used: t.used + r.used }),
-    { quota: 0, used: 0 },
-  );
+  const totals = rows.reduce((t, r) => ({ quota: t.quota + r.quota, used: t.used + r.used }), {
+    quota: 0,
+    used: 0,
+  });
 
   function showAccess(row: CompanyRow, regenerate: boolean) {
     start(async () => {
@@ -123,7 +123,7 @@ export function CompaniesManager(props: {
   return (
     <>
       <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
-        <div className="grid flex-1 grid-cols-3 gap-px overflow-hidden rounded-md border [&>*]:bg-surface">
+        <div className="[&>*]:bg-surface grid flex-1 grid-cols-3 gap-px overflow-hidden rounded-md border">
           <Stat label="Empresas" value={String(rows.length)} />
           <Stat label="Convites usados" value={`${totals.used} / ${totals.quota}`} />
           <Stat
@@ -498,7 +498,9 @@ function CompanySheet({
         if (!editing && r.data) onCreated({ company: data.companyName, ...r.data });
       } else {
         const fe = r.fieldErrors ?? {};
-        setErrors(Object.fromEntries(Object.entries(fe).map(([k, v]) => [k.replace("data.", ""), v])));
+        setErrors(
+          Object.fromEntries(Object.entries(fe).map(([k, v]) => [k.replace("data.", ""), v])),
+        );
         toast.error(r.error);
       }
     });
@@ -535,7 +537,14 @@ function CompanySheet({
           </Field>
           <Field label="Cota" error={errors.quota} hint="convites">
             {(a) => (
-              <Input {...a} type="number" min={1} inputMode="numeric" value={f.quota} onChange={set("quota")} />
+              <Input
+                {...a}
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={f.quota}
+                onChange={set("quota")}
+              />
             )}
           </Field>
         </div>

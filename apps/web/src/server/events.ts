@@ -12,12 +12,13 @@ import {
 import { encryptSecret, decryptSecret, parseKey } from "@mais/core/crypto";
 import type { Channel } from "@mais/core/messaging";
 import type { InviteKind, Prisma } from "@mais/db";
+import type { ProjectFeature } from "@mais/core";
 import { sendTransactional } from "@mais/messaging";
 import { prisma } from "./db";
 import { AppError } from "./errors";
 import { hashPassword } from "./password";
 import { upsertPerson, type PersonInput } from "./people";
-import { newRegistrationToken, shortCodeAllocator } from "./projects";
+import { newRegistrationToken, requireProjectWriter, shortCodeAllocator } from "./projects";
 import type { TenantDb } from "./tenant-db";
 
 /**
@@ -38,6 +39,21 @@ export function openPassword(enc: string): string {
   } catch {
     return "";
   }
+}
+
+/**
+ * Para Server Actions do módulo: permissão de edição + recurso ligado no
+ * projeto (a tela esconder não basta — CLAUDE.md).
+ */
+export async function requireEventWriter(
+  tenantSlug: string,
+  projectId: string,
+  feature: ProjectFeature = "INVITES",
+) {
+  const p = await requireProjectWriter(tenantSlug, projectId);
+  if (!p.features.has(feature))
+    throw new AppError("Este recurso não está ligado no projeto.", "FORBIDDEN");
+  return p;
 }
 
 // ---------------------------------------------------------------------------

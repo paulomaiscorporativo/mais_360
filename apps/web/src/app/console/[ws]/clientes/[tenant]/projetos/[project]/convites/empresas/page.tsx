@@ -55,9 +55,11 @@ export default async function CompaniesPage({
       deadlinePassed={!!settings.inviteDeadline && settings.inviteDeadline < new Date()}
       expiredAt={
         settings.quotasExpiredAt
-          ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: tz }).format(
-              settings.quotasExpiredAt,
-            )
+          ? new Intl.DateTimeFormat("pt-BR", {
+              dateStyle: "short",
+              timeStyle: "short",
+              timeZone: tz,
+            }).format(settings.quotasExpiredAt)
           : null
       }
       pool={settings.individualPool}
