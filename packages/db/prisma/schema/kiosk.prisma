@@ -1,0 +1,99 @@
+// ============================================================================
+// AUTOATENDIMENTO — totens de autocredenciamento (facial, QR ou login) com
+// impressão automática de etiqueta ou crachá. A biometria em si fica em
+// FaceEnrollment (núcleo) e no serviço services/face; aqui não se guarda
+// imagem — só o resultado de cada tentativa.
+// ============================================================================
+
+enum KioskStatus {
+  PENDING_PAIRING // aguardando o código de pareamento ser digitado no aparelho
+  ACTIVE
+  DISABLED
+}
+
+enum KioskPrinterDriver {
+  BROWSER_KIOSK // Chrome com --kiosk-printing (impressora padrão do sistema)
+  LOCAL_AGENT // agente local de impressão (várias impressoras, ZPL direto)
+}
+
+enum IdentificationMethod {
+  FACE
+  QR
+  LOGIN // login + código de acesso de 6 dígitos
+}
+
+model KioskDevice {
+  id                 String                 @id @default(cuid())
+  tenantId           String
+  projectId          String
+  name               String // "Totem 03 — Entrada principal"
+  location           String                 @default("")
+  status             KioskStatus            @default(PENDING_PAIRING)
+  // Pareamento: código curto exibido no console e digitado no totem
+  pairingCodeHash    String?
+  pairingExpiresAt   DateTime?
+  // Segredo do aparelho após o pareamento (só o hash; a sessão é Session KIOSK)
+  deviceSecretHash   String?
+  pairedAt           DateTime?
+  // Impressão
+  printMode          PrintMode              @default(LABEL)
+  printerDriver      KioskPrinterDriver     @default(BROWSER_KIOSK)
+  printerName        String                 @default("")
+  labelTemplateId    String? // DocumentTemplate (etiqueta)
+  badgeTemplateId    String? // DocumentTemplate (crachá)
+  // Identificação
+  methods            IdentificationMethod[]
+  // Similaridade mínima (0–1) para aceitar um rosto sem pedir outra forma
+  faceThreshold      Float                  @default(0.62)
+  livenessRequired   Boolean                @default(true)
+  // Mostra só o nome e a empresa para confirmação (LGPD: mínimo necessário)
+  confirmBeforePrint Boolean                @default(true)
+  allowReprint       Boolean                @default(false) // segunda via só no balcão, por padrão
+  idleSeconds        Int                    @default(20) // volta à tela inicial
+  // Telemetria
+  lastSeenAt         DateTime?
+  appVersion         String                 @default("")
+  agentVersion       String                 @default("")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  project  Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  attempts KioskIdentificationAttempt[]
+  prints   BadgePrint[]
+
+  @@index([tenantId, projectId])
+}
+
+enum IdentificationOutcome {
+  MATCHED // encontrou a inscrição
+  CONFIRMED // a pessoa confirmou "sou eu"
+  REJECTED_BY_USER // a pessoa disse "não sou eu"
+  NO_MATCH
+  LOW_CONFIDENCE // abaixo do limiar: totem pediu QR/login
+  LIVENESS_FAILED // suspeita de foto/tela
+  ALREADY_CHECKED_IN
+  NOT_ALLOWED // inscrição cancelada/pendente
+  ERROR
+}
+
+// Uma tentativa de identificação no totem — sem imagem, só métricas
+model KioskIdentificationAttempt {
+  id             String                @id @default(cuid())
+  tenantId       String
+  projectId      String
+  kioskId        String
+  method         IdentificationMethod
+  outcome        IdentificationOutcome
+  registrationId String?
+  score          Float? // similaridade do melhor candidato
+  livenessScore  Float?
+  durationMs     Int?
+  errorCode      String                @default("")
+  createdAt      DateTime              @default(now())
+
+  kiosk        KioskDevice   @relation(fields: [kioskId], references: [id], onDelete: Cascade)
+  registration Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, projectId, createdAt])
+  @@index([kioskId, createdAt])
+}

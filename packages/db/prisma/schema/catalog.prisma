@@ -1,0 +1,258 @@
+// ============================================================================
+// CATÁLOGO DE SERVIÇOS TURÍSTICOS — fornecedores, acordos e itens de serviço.
+//
+// Toda reserva ou item de cotação, em qualquer módulo (viagem corporativa,
+// incentivo, evento, feira), é um `ServiceItem` de um `ServiceType`. Os detalhes
+// específicos de cada tipo ficam em `details` (Json) e são validados pelos
+// schemas zod de @mais/core/catalog — a lista de tipos é espelhada lá e um
+// teste garante que não divergem.
+//
+// Fornecedores pertencem ao ASSINANTE (a agência negocia com a cia aérea uma
+// vez e usa em todos os clientes); `tenantId` opcional restringe a um cliente.
+// ============================================================================
+
+enum ServiceCategory {
+  TRANSPORT
+  LODGING
+  DOCUMENTATION
+  EXPERIENCE
+  EVENT_PRODUCTION
+  OTHER
+}
+
+enum ServiceType {
+  // Transporte
+  AIR
+  AIR_CHARTER
+  BUS_CHARTER
+  TRAIN
+  CRUISE
+  TRANSFER
+  CAR_RENTAL
+  CHAUFFEUR
+  EXECUTIVE_TRANSPORT
+  // Hospedagem
+  HOTEL
+  RESORT
+  VACATION_RENTAL
+  ROOM_BLOCK
+  // Documentação e proteção
+  TRAVEL_INSURANCE
+  VISA
+  PASSPORT
+  CURRENCY_EXCHANGE
+  CONNECTIVITY
+  // Experiências
+  EVENT_TICKET
+  SPORTS_HOSPITALITY
+  TOUR
+  GUIDE
+  DINING
+  CONCIERGE
+  // Produção de eventos e feiras
+  VENUE
+  FOOD_BEVERAGE
+  AUDIOVISUAL
+  SCENOGRAPHY
+  STAND_BUILD
+  MERCHANDISE
+  ACCREDITATION_SERVICE
+  EVENT_STAFF
+  INTERPRETATION
+  BRAND_ACTIVATION
+  // Outros
+  EQUIPMENT_RENTAL
+  SERVICE_FEE
+  CUSTOM
+}
+
+// Quem executa a reserva. MANUAL = o atendente emite fora e registra aqui.
+// TRAVELLINK = integração futura com o Travellink (Wooba), via API.
+enum BookingProvider {
+  MANUAL
+  TRAVELLINK
+}
+
+enum ServiceItemStatus {
+  DRAFT
+  QUOTED
+  ON_HOLD // bloqueio/opção com prazo
+  BOOKED // reservado
+  ISSUED // emitido (bilhete, voucher)
+  CHANGED
+  CANCELED
+  REFUNDED
+}
+
+model Supplier {
+  id           String            @id @default(cuid())
+  workspaceId  String
+  tenantId     String? // null = disponível para todos os clientes do assinante
+  name         String
+  legalName    String            @default("")
+  document     String            @default("") // CNPJ / tax id
+  categories   ServiceCategory[]
+  serviceTypes ServiceType[]
+  // Código no setor: IATA da cia, código da rede hoteleira…
+  code         String            @default("")
+  email        String            @default("")
+  phone        String            @default("")
+  website      String            @default("")
+  city         String            @default("")
+  country      String            @default("BR")
+  contacts     Json              @default("[]") // [{ nome, cargo, email, telefone }]
+  rating       Int? // 1–5, avaliação interna
+  notes        String            @default("")
+  archivedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  workspace    Workspace                       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agreements   SupplierAgreement[]
+  serviceItems ServiceItem[]
+  preferredIn  TravelPolicyPreferredSupplier[]
+
+  @@index([workspaceId, name])
+  @@index([workspaceId, tenantId])
+}
+
+// Acordo tarifário / comercial negociado com o fornecedor
+model SupplierAgreement {
+  id            String        @id @default(cuid())
+  supplierId    String
+  tenantId      String? // acordo exclusivo de um cliente (ex.: tarifa corporativa ABIEC)
+  name          String
+  serviceTypes  ServiceType[]
+  validFrom     DateTime?
+  validUntil    DateTime?
+  // Desconto e comissão em pontos-base (100 = 1%) para não usar ponto flutuante
+  discountBps   Int           @default(0)
+  commissionBps Int           @default(0)
+  // Tarifas fixas negociadas: [{ descricao, valorCentavos, moeda, unidade: "noite"|"trecho"|"diaria" }]
+  rates         Json          @default("[]")
+  terms         String        @default("")
+  fileId        String? // contrato do acordo (StoredFile)
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([tenantId])
+}
+
+// Credenciais de um provedor de reservas no assinante (Travellink etc.)
+model BookingProviderAccount {
+  id             String          @id @default(cuid())
+  workspaceId    String
+  provider       BookingProvider
+  name           String
+  credentialsEnc String          @default("") // cifrado com ENCRYPTION_KEY
+  settings       Json            @default("{}")
+  active         Boolean         @default(true)
+  lastSyncAt     DateTime?
+  lastError      String          @default("")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider, name])
+}
+
+// Item de serviço: um voo, uma diária de hotel, um transfer, um seguro, um
+// ingresso, a montagem de um stand… Pode pertencer a um projeto, a uma
+// solicitação de viagem corporativa e/ou a uma opção de cotação.
+model ServiceItem {
+  id              String            @id @default(cuid())
+  tenantId        String
+  projectId       String?
+  travelRequestId String?
+  quoteId         String? // opção de cotação a que o item pertence
+  type            ServiceType
+  status          ServiceItemStatus @default(DRAFT)
+  supplierId      String?
+  provider        BookingProvider   @default(MANUAL)
+  providerRef     String            @default("") // id da reserva no provedor
+  locator         String            @default("") // PNR / número da reserva
+  title           String // "LA 8065 GRU → MAD", "Hotel Arts — 3 noites"
+  description     String            @default("")
+  startsAt        DateTime?
+  endsAt          DateTime?
+  origin          String            @default("")
+  destination     String            @default("")
+  quantity        Int               @default(1)
+  // Detalhes específicos do tipo (validados por @mais/core/catalog)
+  details         Json              @default("{}")
+  // Valores em centavos
+  currency        String            @default("BRL")
+  costCents       Int               @default(0) // custo do fornecedor
+  saleCents       Int               @default(0) // preço ao cliente
+  feeCents        Int               @default(0) // taxa de serviço da agência
+  taxesCents      Int               @default(0)
+  exchangeRate    Decimal?          @db.Decimal(14, 6) // câmbio aplicado quando currency ≠ BRL
+  holdUntil       DateTime? // prazo da opção/bloqueio
+  // Conformidade com a política de viagens (viagens corporativas)
+  inPolicy        Boolean?
+  policyNotes     String            @default("")
+  notes           String            @default("")
+  createdBy       String            @default("")
+  canceledAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tenant        Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project       Project?                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  travelRequest TravelRequest?          @relation(fields: [travelRequestId], references: [id], onDelete: Cascade)
+  quote         TravelQuote?            @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  supplier      Supplier?               @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  travelers     ServiceItemTraveler[]
+  attachments   ServiceItemAttachment[]
+
+  @@index([tenantId, projectId, type])
+  @@index([tenantId, status])
+  @@index([travelRequestId])
+  @@index([quoteId])
+  @@index([locator])
+}
+
+// Pessoas atendidas pelo item (bilhete de cada passageiro, ocupante de cada quarto…)
+model ServiceItemTraveler {
+  id             String  @id @default(cuid())
+  serviceItemId  String
+  personId       String?
+  registrationId String?
+  name           String  @default("") // nome como no documento, quando não há Person
+  ticketNumber   String  @default("")
+  seat           String  @default("")
+  notes          String  @default("")
+
+  serviceItem  ServiceItem   @relation(fields: [serviceItemId], references: [id], onDelete: Cascade)
+  person       Person?       @relation(fields: [personId], references: [id], onDelete: SetNull)
+  registration Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  @@index([serviceItemId])
+  @@index([personId])
+  @@index([registrationId])
+}
+
+enum ServiceAttachmentKind {
+  VOUCHER
+  ETICKET
+  INVOICE
+  CONFIRMATION
+  OTHER
+}
+
+model ServiceItemAttachment {
+  id            String                @id @default(cuid())
+  serviceItemId String
+  fileId        String // StoredFile
+  kind          ServiceAttachmentKind @default(OTHER)
+  createdAt     DateTime              @default(now())
+
+  serviceItem ServiceItem @relation(fields: [serviceItemId], references: [id], onDelete: Cascade)
+
+  @@index([serviceItemId])
+}

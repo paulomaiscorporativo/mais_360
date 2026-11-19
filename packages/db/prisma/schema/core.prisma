@@ -49,10 +49,13 @@ model Workspace {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
-  tenants      Tenant[]
-  members      WorkspaceMember[]
-  subscription Subscription?
-  usage        UsageRecord[]
+  tenants                 Tenant[]
+  members                 WorkspaceMember[]
+  subscription            Subscription?
+  usage                   UsageRecord[]
+  // ── back-relations dos módulos de domínio (Frente 4) ──
+  suppliers               Supplier[]
+  bookingProviderAccounts BookingProviderAccount[]
 }
 
 enum WorkspaceRole {
@@ -98,18 +101,25 @@ model Tenant {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  workspace     Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  branding      TenantBranding?
-  domains       TenantDomain[]
-  modules       TenantModule[]
-  terms         TenantTerm[]
-  memberships   Membership[]
-  people        Person[]
-  organizations Organization[]
-  projects      Project[]
-  channels      MessagingChannel[]
-  auditLogs     AuditLog[]
-  files         StoredFile[]
+  workspace      Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  branding       TenantBranding?
+  domains        TenantDomain[]
+  modules        TenantModule[]
+  terms          TenantTerm[]
+  memberships    Membership[]
+  people         Person[]
+  organizations  Organization[]
+  projects       Project[]
+  channels       MessagingChannel[]
+  auditLogs      AuditLog[]
+  files          StoredFile[]
+  // ── back-relations dos módulos de domínio (Frente 4) ──
+  serviceItems   ServiceItem[]
+  costCenters    CostCenter[]
+  travelPolicies TravelPolicy[]
+  approvalFlows  ApprovalFlow[]
+  travelRequests TravelRequest[]
+  expenseReports ExpenseReport[]
 
   @@index([workspaceId])
 }
@@ -209,10 +219,12 @@ model User {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
-  workspaces  WorkspaceMember[]
-  memberships Membership[]
-  sessions    Session[]
-  auditLogs   AuditLog[]
+  workspaces        WorkspaceMember[]
+  memberships       Membership[]
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  // ── back-relations dos módulos de domínio (Frente 4) ──
+  standReservations StandReservation[]
 }
 
 enum TenantRole {
@@ -332,12 +344,21 @@ model Person {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  organizations   PersonOrganization[]
-  registrations   Registration[]
-  consents        Consent[]
-  sessions        Session[]
-  faceEnrollments FaceEnrollment[]
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organizations           PersonOrganization[]
+  registrations           Registration[]
+  consents                Consent[]
+  sessions                Session[]
+  faceEnrollments         FaceEnrollment[]
+  // ── back-relations dos módulos de domínio (Frente 4) ──
+  accessInvites           PersonAccessInvite[]
+  documents               PersonDocument[]
+  loyaltyMemberships      LoyaltyMembership[]
+  travelRequests          TravelRequest[]          @relation("TravelRequester")
+  travelRequestPassengers TravelRequestPassenger[]
+  expenseReports          ExpenseReport[]
+  managedCostCenters      CostCenter[]             @relation("CostCenterManager")
+  serviceItemTravelers    ServiceItemTraveler[]
 
   @@index([tenantId, emailNorm])
   @@index([tenantId, cpf])
@@ -361,8 +382,12 @@ model Organization {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  tenant  Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  members PersonOrganization[]
+  tenant            Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members           PersonOrganization[]
+  // ── back-relations dos módulos de domínio (Frente 4) ──
+  travelRequests    TravelRequest[]
+  companyQuotas     CompanyQuota[]
+  standReservations StandReservation[]
 
   @@index([tenantId, name])
 }
@@ -476,12 +501,33 @@ model Project {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  tenant        Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  features      ProjectFeatureToggle[]
-  access        ProjectAccess[]
-  registrations Registration[]
-  categories    RegistrationCategory[]
-  groups        ProjectGroup[]
+  tenant            Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  features          ProjectFeatureToggle[]
+  access            ProjectAccess[]
+  registrations     Registration[]
+  categories        RegistrationCategory[]
+  groups            ProjectGroup[]
+  // ── back-relations dos módulos de domínio (Frente 4) ──
+  serviceItems      ServiceItem[]
+  travelRequests    TravelRequest[]
+  flights           Flight[]
+  accommodations    Accommodation[]
+  itineraryItems    ItineraryItem[]
+  checklistItems    ChecklistItem[]
+  muralPosts        MuralPost[]
+  supportTickets    SupportTicket[]
+  documents         ProjectDocument[]
+  inviteSettings    EventInviteSettings?
+  companyQuotas     CompanyQuota[]
+  eventTables       EventTable[]
+  accessAreas       AccessArea[]
+  importBatches     ImportBatch[]
+  formIntegrations  FormIntegration[]
+  kioskDevices      KioskDevice[]
+  floorPlans        ExhibitionFloorPlan[]
+  sponsorTiers      SponsorTier[]
+  stands            Stand[]
+  standReservations StandReservation[]
 
   @@unique([tenantId, slug])
   @@index([tenantId, status])
@@ -506,8 +552,9 @@ model RegistrationCategory {
   color     String @default("#64748b")
   sortOrder Int    @default(0)
 
-  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
   registrations Registration[]
+  accessAreas   AccessAreaCategory[]
 
   @@unique([projectId, name])
   @@index([tenantId])
@@ -594,16 +641,54 @@ model Registration {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
-  project     Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  person      Person                @relation(fields: [personId], references: [id], onDelete: Cascade)
-  category    RegistrationCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  group       ProjectGroup?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  companionOf Registration?         @relation("Companions", fields: [companionOfId], references: [id], onDelete: SetNull)
-  companions  Registration[]        @relation("Companions")
+  project              Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  person               Person                       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  category             RegistrationCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  group                ProjectGroup?                @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  companionOf          Registration?                @relation("Companions", fields: [companionOfId], references: [id], onDelete: SetNull)
+  companions           Registration[]               @relation("Companions")
+  // ── back-relations dos módulos de domínio (Frente 4) ──
+  flights              FlightPassenger[]
+  rooms                RoomOccupant[]
+  supportTickets       SupportTicket[]
+  documents            ProjectDocument[]
+  invite               EventInvite?
+  seat                 SeatAssignment?
+  accessScans          AccessScan[]
+  networkingOwned      NetworkingContact[]          @relation("NetworkingOwner")
+  networkingContactOf  NetworkingContact[]          @relation("NetworkingContactOf")
+  badgePrints          BadgePrint[]
+  kioskAttempts        KioskIdentificationAttempt[]
+  serviceItemTravelers ServiceItemTraveler[]
 
   @@unique([projectId, personId, role])
   @@unique([projectId, shortCode])
   @@index([tenantId, projectId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Convite de primeiro acesso / redefinição de senha do membro (antigo
+// AssociateInvite da ABIEC). Guarda só o hash do token.
+// ---------------------------------------------------------------------------
+
+enum AccessInvitePurpose {
+  FIRST_ACCESS
+  PASSWORD_RESET
+}
+
+model PersonAccessInvite {
+  id        String              @id @default(cuid())
+  tenantId  String
+  personId  String
+  purpose   AccessInvitePurpose @default(FIRST_ACCESS)
+  tokenHash String              @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, personId])
 }
 
 // ---------------------------------------------------------------------------

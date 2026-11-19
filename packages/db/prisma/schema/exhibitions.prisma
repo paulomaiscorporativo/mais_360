@@ -1,0 +1,268 @@
+// ============================================================================
+// FEIRAS, STANDS E PATROCÍNIO — portado do siran_stands, agora multiprojeto.
+//
+// Trava concorrente de reserva: a reserva só é criada se este UPDATE afetar
+// exatamente 1 linha, dentro da mesma transação:
+//   UPDATE "Stand" SET status='RESERVED', version=version+1
+//   WHERE id=$1 AND status='AVAILABLE' AND version=$2
+// Dois vendedores clicando ao mesmo tempo → um vence, o outro recebe
+// "indisponível". O job "exhibitions.reservations.expire" devolve ao estado
+// AVAILABLE as reservas ACTIVE vencidas.
+//
+// Assinatura eletrônica: MP 2.200-2/2001, art. 10, §2º — trilha de evidências
+// (identificação, OTP no fluxo remoto, IP, dispositivo, data/hora e SHA-256 do
+// documento exibido). Sem ICP-Brasil.
+// ============================================================================
+
+model ExhibitionFloorPlan {
+  id          String   @id @default(cuid())
+  tenantId    String
+  projectId   String
+  name        String // "Pavilhão A", "Planta geral"
+  imageFileId String? // planta (imagem ou PDF rasterizado)
+  width       Int      @default(1600) // dimensões do canvas do editor
+  height      Int      @default(900)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stands  Stand[]
+
+  @@index([tenantId, projectId])
+}
+
+// Cota de patrocínio (Raiz, Semeadura, Colheita, Parceiro…). Preço, tamanho e
+// benefícios valem para todos os stands da cota, salvo sobrescrita no stand.
+model SponsorTier {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  projectId          String
+  name               String
+  priceCents         Int? // null = "a definir"
+  currency           String   @default("BRL")
+  sizeLabel          String   @default("") // "18m² (9m² stand / 9m² exposição)"
+  areaM2             Decimal? @db.Decimal(8, 2)
+  description        String   @default("")
+  benefits           String[]
+  color              String   @default("#64748b")
+  // Modelo de contrato da cota (DocumentTemplate do tipo CONTRACT)
+  contractTemplateId String?
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stands  Stand[]
+
+  @@unique([projectId, name])
+  @@index([tenantId, projectId])
+}
+
+enum StandStatus {
+  AVAILABLE
+  RESERVED // reserva ativa aguardando confirmação
+  SOLD
+  UNAVAILABLE // bloqueado pela administração
+}
+
+model Stand {
+  id          String      @id @default(cuid())
+  tenantId    String
+  projectId   String
+  floorPlanId String?
+  tierId      String?
+  code        String // "S12", "P1"
+  name        String
+  description String      @default("")
+  // Sobrescritas da cota (null = herda)
+  priceCents  Int?
+  sizeLabel   String?
+  areaM2      Decimal?    @db.Decimal(8, 2)
+  imageFileId String?
+  status      StandStatus @default(AVAILABLE)
+  // Posição na planta (px do canvas)
+  x           Float?
+  y           Float?
+  width       Float?
+  height      Float?
+  sortOrder   Int         @default(0)
+  // Controle otimista para a trava de reserva
+  version     Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  floorPlan    ExhibitionFloorPlan? @relation(fields: [floorPlanId], references: [id], onDelete: SetNull)
+  tier         SponsorTier?         @relation(fields: [tierId], references: [id], onDelete: SetNull)
+  reservations StandReservation[]
+
+  @@unique([projectId, code])
+  @@index([tenantId, projectId, status])
+}
+
+enum ReservationStatus {
+  ACTIVE // segurando o stand até expiresAt
+  CONFIRMED // vendido
+  EXPIRED
+  CANCELED
+}
+
+model StandReservation {
+  id                 String            @id @default(cuid())
+  tenantId           String
+  projectId          String
+  standId            String
+  sellerUserId       String
+  organizationId     String?
+  status             ReservationStatus @default(ACTIVE)
+  // Cliente/patrocinador
+  contactName        String
+  companyName        String            @default("")
+  contactPhone       String            @default("")
+  contactEmail       String            @default("")
+  notes              String            @default("")
+  // Dados que alimentam o contrato
+  legalName          String            @default("")
+  cnpj               String            @default("")
+  address            String            @default("")
+  zipCode            String            @default("")
+  city               String            @default("")
+  state              String            @default("")
+  representativeName String            @default("")
+  representativeCpf  String            @default("")
+  representativeRole String            @default("")
+  paymentTerms       String            @default("")
+  negotiatedCents    Int? // null = preço efetivo do stand/cota
+  currency           String            @default("BRL")
+  // Prazo
+  expiresAt          DateTime
+  confirmedAt        DateTime?
+  confirmedBy        String            @default("")
+  canceledAt         DateTime?
+  cancelReason       String            @default("")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  project      Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stand        Stand                   @relation(fields: [standId], references: [id], onDelete: Restrict)
+  seller       User                    @relation(fields: [sellerUserId], references: [id], onDelete: Restrict)
+  organization Organization?           @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  attachments  ReservationAttachment[]
+  contracts    SponsorshipContract[]
+
+  @@index([tenantId, projectId, status])
+  @@index([status, expiresAt])
+  @@index([standId])
+  @@index([sellerUserId])
+}
+
+// Documentos do cliente anexados à reserva — sempre StoredFile PRIVATE,
+// servidos só por rota autenticada (dono da reserva ou admin), como attachment.
+model ReservationAttachment {
+  id               String   @id @default(cuid())
+  reservationId    String
+  fileId           String
+  originalName     String
+  uploadedByUserId String?
+  createdAt        DateTime @default(now())
+
+  reservation StandReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
+}
+
+enum ContractStatus {
+  DRAFT
+  GENERATED // PDF gerado
+  SENT // link de assinatura enviado
+  PARTIALLY_SIGNED
+  SIGNED
+  VOID // substituído por nova versão ou cancelado
+}
+
+// Proposta/contrato de patrocínio. Cada regeneração cria nova versão; a
+// anterior vira VOID e mantém o histórico.
+model SponsorshipContract {
+  id            String         @id @default(cuid())
+  tenantId      String
+  reservationId String
+  version       Int            @default(1)
+  status        ContractStatus @default(DRAFT)
+  templateId    String? // DocumentTemplate usado
+  fileId        String? // PDF gerado
+  sha256        String         @default("") // hash do PDF exibido para assinatura
+  generatedAt   DateTime?
+  signedFileId  String? // PDF final com página de evidências
+  signedSha256  String         @default("")
+  signedAt      DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  reservation StandReservation    @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  signatures  ContractSignature[]
+  requests    SignatureRequest[]
+
+  @@unique([reservationId, version])
+  @@index([tenantId, status])
+}
+
+enum SignatureParty {
+  SPONSOR // patrocinador
+  ORGANIZER // organizadora
+  WITNESS
+}
+
+enum SignatureMode {
+  IN_PERSON // presencial, conduzida pelo vendedor (testemunha)
+  REMOTE // por link com código de confirmação
+}
+
+model ContractSignature {
+  id             String         @id @default(cuid())
+  contractId     String
+  party          SignatureParty @default(SPONSOR)
+  // Identificação declarada no ato
+  name           String
+  cpf            String         @default("")
+  role           String         @default("")
+  email          String         @default("")
+  phone          String         @default("")
+  // Traço da assinatura (PNG) — StoredFile PRIVATE, não mais LONGTEXT no banco
+  strokeFileId   String
+  // Evidências
+  mode           SignatureMode  @default(IN_PERSON)
+  documentSha256 String // hash do documento no momento da assinatura
+  ip             String         @default("")
+  userAgent      String         @default("")
+  geolocation    String         @default("")
+  otpVerified    Boolean        @default(false)
+  otpChannel     String         @default("") // "email" | "whatsapp" | "sms"
+  witnessUserId  String?
+  signedAt       DateTime       @default(now())
+
+  contract SponsorshipContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+}
+
+// Link de assinatura remota com OTP. Guardamos apenas hashes do token e do código.
+model SignatureRequest {
+  id          String         @id @default(cuid())
+  contractId  String
+  party       SignatureParty @default(SPONSOR)
+  tokenHash   String         @unique
+  otpHash     String?
+  otpSentTo   String         @default("") // destino mascarado: "(11) 9****-8816"
+  otpSentAt   DateTime?
+  attempts    Int            @default(0)
+  maxAttempts Int            @default(5)
+  usedAt      DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime       @default(now())
+
+  contract SponsorshipContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([expiresAt])
+}
