@@ -1,7 +1,7 @@
 import { foldText } from "@mais/core";
 import type { Prisma } from "@mais/db";
 import { guard } from "@/server/auth";
-import { requireProject } from "@/server/projects";
+import { projectBase, requireProject } from "@/server/projects";
 import { RegistrationsManager, type RegistrationRow } from "./registrations";
 
 const PAGE = 300;
@@ -85,6 +85,9 @@ export default async function RegistrationsPage({
       truncated={total > PAGE}
       categories={categories.map((c) => ({ id: c.id, name: c.name, color: c.color }))}
       groups={groups.map((g) => ({ id: g.id, name: g.name, color: g.color }))}
+      batchHref={
+        p.modules.has("DOCUMENTS") ? `${projectBase(ws, tenant, slug)}/inscricoes/documentos` : null
+      }
       filters={{ q: sp.q ?? "", status: sp.status ?? "ACTIVE", cat: sp.cat ?? "" }}
     />
   );
