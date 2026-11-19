@@ -1,4 +1,5 @@
 import { foldText, parseTravelRequestServices, type RequestableService } from "@mais/core";
+import { formatProtocol, protocolSeq } from "@mais/core/corporate-travel";
 import { CABIN_CLASS, HOTEL_ROOM_TYPE, HOTEL_STARS, SEAT_PREFERENCE, convert } from "./status";
 
 // ---------------------------------------------------------------------------
@@ -81,19 +82,13 @@ export function planRooms(rows: readonly LegacyRoomRow[]): PlannedRoom[] {
 // Linha direta: protocolo e blocos de serviço
 // ---------------------------------------------------------------------------
 
-/** Protocolo humano "VC-2026-000123" (ano da criação + sequência no ano). */
-export function formatProtocol(year: number, seq: number): string {
-  return `VC-${year}-${String(seq).padStart(6, "0")}`;
-}
+/** Protocolo "VC-2026-000123": mesmo formato das telas (regra única no core). */
+export { formatProtocol };
 
 /** Próximo número livre do ano, considerando os protocolos já existentes. */
 export function nextProtocolSeq(year: number, taken: Iterable<string>): number {
   let max = 0;
-  const re = new RegExp(`^VC-${year}-(\\d+)$`);
-  for (const p of taken) {
-    const m = re.exec(p);
-    if (m) max = Math.max(max, Number(m[1]));
-  }
+  for (const p of taken) max = Math.max(max, protocolSeq(p, year) ?? 0);
   return max + 1;
 }
 

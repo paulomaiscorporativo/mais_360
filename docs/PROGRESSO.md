@@ -80,7 +80,7 @@ importação grande como job; storage dos documentos usar a camada de arquivos d
 - Variáveis de mensagem condicionadas a recursos (`availableMessageFields`,
   `unavailableFieldsIn`); o editor esconde as indisponíveis e avisa.
 
-**Onda 2 — par 2:**
+**Onda 2 — par 2 concluído e integrado (19/11/2026):**
 
 - `f2-linha-direta` (Mais 360 Travel, viagens corporativas): regras puras em
   `@mais/core/corporate-travel` (solicitação multitrecho, protocolo `VC-AAAA-NNNNNN`, status,
@@ -92,7 +92,16 @@ importação grande como job; storage dos documentos usar a camada de arquivos d
   dos associados); área do associado `/t/<cliente>/viagens` (sessão PERSON revogável, troca da
   senha provisória, minhas solicitações, nova solicitação, escolha com justificativa,
   cancelamento, documentos). Sem mudança de schema. Demo em `docs/USUARIOS-DEMO.md`.
-- Scripts de migração de dados ABIEC/ABRADILAN (frente `migracao`).
+- `f2-migracao`: pacote `@mais/migrate` (`npm run migrate:legacy -- --source <db> --tenant <slug>
+[--dry-run] [--only …]`), lê o SQLite do legado só para leitura, idempotente (chave legada),
+  preserva tokens/códigos dos convites, não reaproveita PIN = CPF, não dispara mensagens,
+  relatório JSON em `tmp/migracao/`. Redirecionamento dos endereços antigos no `proxy.ts`.
+  Guia em `docs/MIGRACAO.md`. Protocolo da linha direta usa a regra do core.
+- Status de voo ao vivo: handler `flights.refresh` no worker (Apify
+  `apt_marble/flight-status-tracker`, mesmo da ABIEC; uma chamada por data de operação) e
+  varredura a cada 5 min dos voos de 6 h antes da partida a 2 h depois da chegada. Precisa de
+  `APIFY_TOKEN` no `.env`; sem ele o worker apenas avisa e não consulta.
+- 273 testes unitários + 30 de integração; check e build limpos.
 
 **Pendências da linha direta:** aviso ao aprovador e à equipe por e-mail (o motor de comunicação
 só envia a Person/inscrição; hoje eles veem na fila e na caixa de aprovações); edição da
@@ -100,6 +109,14 @@ solicitação pelo associado enquanto nova; link de aprovação por e-mail (`Tra
 reenvio da senha provisória por e-mail; modelos de mensagem do cliente para as finalidades
 `TRAVEL_*` (hoje o texto é fixo no código); fase 6: centros de custo, várias etapas e alçadas por
 valor na tela, despesas e relatórios de conformidade.
+
+**Pendências da migração:** redirecionar `/app/…` (área do associado), `/login` e `/c/<código>`
+do credenciamento; convites de associado pendentes não migram (reemitir); campos posicionados dos
+vouchers refazer no editor; migração real exige exportar os bancos do VPS (`docs/MIGRACAO.md`).
+
+**Próximo:** gestão de acessos (equipe do assinante e da plataforma, convite por e-mail com link
+de primeiro acesso, desativar/reativar, redefinir senha, acesso por projeto, editar/suspender
+assinante); depois worker (réguas) e infraestrutura de deploy (VPS).
 
 Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
 
