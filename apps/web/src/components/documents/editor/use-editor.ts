@@ -101,10 +101,13 @@ export function useEditor(initial: DocumentDefinition) {
       },
       updateStyle(id: string, patch: Record<string, unknown>) {
         set(
-          mapEls((el) => {
-            if (!("style" in el)) return el;
-            return { ...el, style: { ...el.style, ...patch } } as DocumentElement;
-          }, [id]),
+          mapEls(
+            (el) => {
+              if (!("style" in el)) return el;
+              return { ...el, style: { ...el.style, ...patch } } as DocumentElement;
+            },
+            [id],
+          ),
         );
       },
       updatePage(patch: Partial<PageSetup>) {
@@ -151,7 +154,13 @@ export function useEditor(initial: DocumentDefinition) {
         const [el] = els.splice(i, 1);
         if (!el) return;
         const to =
-          dir === "front" ? els.length : dir === "back" ? 0 : dir === "up" ? i + 1 : Math.max(0, i - 1);
+          dir === "front"
+            ? els.length
+            : dir === "back"
+              ? 0
+              : dir === "up"
+                ? i + 1
+                : Math.max(0, i - 1);
         els.splice(Math.min(to, els.length), 0, el);
         set({ ...s.def, elements: els });
       },

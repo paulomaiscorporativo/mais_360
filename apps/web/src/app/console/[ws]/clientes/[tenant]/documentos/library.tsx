@@ -19,12 +19,7 @@ import { toast } from "@/components/ui/toast";
 import { KIND_ORDER, KIND_UI, formatSize } from "@/components/documents/kinds";
 import { PagePreview } from "@/components/documents/page-preview";
 import { cn } from "@/lib/cn";
-import {
-  archiveTemplate,
-  createTemplate,
-  duplicateTemplate,
-  setDefaultTemplate,
-} from "./actions";
+import { archiveTemplate, createTemplate, duplicateTemplate, setDefaultTemplate } from "./actions";
 
 export type LibraryItem = {
   id: string;
@@ -67,8 +62,8 @@ export function Library({
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Modelos de documento</h2>
           <p className="text-fg-muted mt-1 max-w-xl text-base">
-            Crachás, etiquetas, vouchers e certificados com a marca deste cliente. O balcão, o
-            totem e o portal do viajante usam o modelo marcado como padrão.
+            Crachás, etiquetas, vouchers e certificados com a marca deste cliente. O balcão, o totem
+            e o portal do viajante usam o modelo marcado como padrão.
           </p>
         </div>
         {canEdit && (
@@ -247,7 +242,10 @@ function TemplateCard({
               <>
                 <MenuItem
                   onSelect={() =>
-                    run(() => duplicateTemplate({ tenant, templateId: item.id }), "Modelo duplicado.")
+                    run(
+                      () => duplicateTemplate({ tenant, templateId: item.id }),
+                      "Modelo duplicado.",
+                    )
                   }
                 >
                   <Copy /> Duplicar
@@ -366,7 +364,9 @@ function CreateSheet({
                   )}
                 >
                   <span className="flex items-center gap-2 text-sm font-medium">
-                    <it.icon className={cn("size-4", active ? "text-brand-text" : "text-fg-subtle")} />
+                    <it.icon
+                      className={cn("size-4", active ? "text-brand-text" : "text-fg-subtle")}
+                    />
                     {it.label}
                   </span>
                   <span className="text-fg-subtle line-clamp-2 text-xs">{it.hint}</span>
@@ -404,18 +404,18 @@ function CreateSheet({
         )}
         <Field label="Nome do modelo" error={error}>
           {(ids) => (
-          <Input
-            id={ids.id}
-            aria-describedby={ids.describedBy}
-            aria-invalid={ids.invalid || undefined}
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setError(null);
-            }}
-            placeholder={`${K.label} ${new Date().getFullYear()}`}
-            maxLength={120}
-          />
+            <Input
+              id={ids.id}
+              aria-describedby={ids.describedBy}
+              aria-invalid={ids.invalid || undefined}
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setError(null);
+              }}
+              placeholder={`${K.label} ${new Date().getFullYear()}`}
+              maxLength={120}
+            />
           )}
         </Field>
       </form>

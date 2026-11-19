@@ -31,9 +31,10 @@ export const createTemplate = defineAction(
   async ({ tenant: slug, kind, name, start }) => {
     const ctx = await requireDocumentsTenant(slug, "MANAGER");
     const def = starterDefinition(kind, start);
-    const isFirst = (await prisma.documentTemplate.count({
-      where: { tenantId: ctx.tenantId, kind, projectId: null, archivedAt: null },
-    })) === 0;
+    const isFirst =
+      (await prisma.documentTemplate.count({
+        where: { tenantId: ctx.tenantId, kind, projectId: null, archivedAt: null },
+      })) === 0;
     const t = await prisma.documentTemplate.create({
       data: {
         tenantId: ctx.tenantId,
@@ -152,7 +153,8 @@ export const saveTemplate = defineAction(
     const ctx = await requireDocumentsTenant(slug, "MANAGER");
     const t = await getTemplateForTenant(templateId, ctx.tenantId);
     const parsed = safeParseDefinition(definition);
-    if (!parsed.success) throw new AppError("O modelo tem dados inválidos. Revise os elementos destacados.");
+    if (!parsed.success)
+      throw new AppError("O modelo tem dados inválidos. Revise os elementos destacados.");
     if (parsed.data.kind !== t.kind) throw new AppError("O tipo do documento não pode mudar.");
     if (t.version !== expectedVersion) {
       throw new AppError(

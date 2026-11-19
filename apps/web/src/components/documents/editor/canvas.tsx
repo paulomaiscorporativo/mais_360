@@ -150,7 +150,9 @@ export function EditorCanvas({
       }
       const els = g.base.elements.map((el) => {
         const start = g.origin.get(el.id);
-        return start ? ({ ...el, x: r2(start.x + dx), y: r2(start.y + dy) } as DocumentElement) : el;
+        return start
+          ? ({ ...el, x: r2(start.x + dx), y: r2(start.y + dy) } as DocumentElement)
+          : el;
       });
       editor.gestureMove({ ...g.base, elements: els });
     } else {
@@ -195,7 +197,12 @@ export function EditorCanvas({
         if (el.id !== g.primary) return el;
         if (el.type === "qrcode") {
           const size = r2(Math.max(rw, rh));
-          return { ...el, x: r2(hd.includes("w") ? o.x + o.w - size : x), y: r2(hd.includes("n") ? o.y + o.h - size : y), size };
+          return {
+            ...el,
+            x: r2(hd.includes("w") ? o.x + o.w - size : x),
+            y: r2(hd.includes("n") ? o.y + o.h - size : y),
+            size,
+          };
         }
         return { ...el, x: r2(x), y: r2(y), w: r2(rw), h: r2(rh) } as DocumentElement;
       });
@@ -238,9 +245,21 @@ export function EditorCanvas({
       >
         {ticks(p.width).map((t) => (
           <g key={t.mm}>
-            <line x1={t.mm * scale} x2={t.mm * scale} y1={RULER} y2={RULER - t.size} stroke="currentColor" />
+            <line
+              x1={t.mm * scale}
+              x2={t.mm * scale}
+              y1={RULER}
+              y2={RULER - t.size}
+              stroke="currentColor"
+            />
             {t.label && (
-              <text x={t.mm * scale + 2} y={9} fontSize={9} fill="currentColor" className="font-mono">
+              <text
+                x={t.mm * scale + 2}
+                y={9}
+                fontSize={9}
+                fill="currentColor"
+                className="font-mono"
+              >
                 {t.label}
               </text>
             )}
@@ -254,7 +273,13 @@ export function EditorCanvas({
       >
         {ticks(p.height).map((t) => (
           <g key={t.mm}>
-            <line y1={t.mm * scale} y2={t.mm * scale} x1={RULER} x2={RULER - t.size} stroke="currentColor" />
+            <line
+              y1={t.mm * scale}
+              y2={t.mm * scale}
+              x1={RULER}
+              x2={RULER - t.size}
+              stroke="currentColor"
+            />
             {t.label && (
               <text
                 x={9}
@@ -363,7 +388,12 @@ export function EditorCanvas({
                       ? "outline-1 outline-amber-500 outline-dashed"
                       : "hover:outline-brand/60 outline-1 outline-transparent hover:outline-dashed",
                 )}
-                style={{ left: r.x * scale, top: r.y * scale, width: r.w * scale, height: r.h * scale }}
+                style={{
+                  left: r.x * scale,
+                  top: r.y * scale,
+                  width: r.w * scale,
+                  height: r.h * scale,
+                }}
               >
                 {isSel && selected.length === 1 && (
                   <span className="bg-brand text-brand-fg pointer-events-none absolute -top-5 left-0 max-w-[220px] truncate rounded-t-sm px-1.5 text-[10px] leading-5 font-medium whitespace-nowrap">

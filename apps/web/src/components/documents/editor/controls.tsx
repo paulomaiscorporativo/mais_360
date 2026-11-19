@@ -152,9 +152,7 @@ export function Segmented<T extends string | number>({
           onClick={() => onChange(o.value)}
           className={cn(
             "focus-visible:outline-brand-ring flex h-6 items-center justify-center gap-1 rounded-[3px] px-1.5 text-xs font-medium transition-colors focus-visible:outline-2 [&_svg]:size-3.5",
-            value === o.value
-              ? "bg-surface text-fg shadow-sm"
-              : "text-fg-subtle hover:text-fg",
+            value === o.value ? "bg-surface text-fg shadow-sm" : "text-fg-subtle hover:text-fg",
           )}
         >
           {o.label}

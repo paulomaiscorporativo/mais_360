@@ -12,12 +12,7 @@ import {
   type DocumentDefinition,
   type DocumentKind,
 } from "@mais/core";
-import {
-  CSS_FAMILIES,
-  renderPdf,
-  renderThermalHtml,
-  type AssetLoader,
-} from "@mais/documents";
+import { CSS_FAMILIES, renderPdf, renderThermalHtml, type AssetLoader } from "@mais/documents";
 import type { ActorType, Prisma, RenderPurpose, TenantRole } from "@mais/db";
 import { prisma } from "./db";
 import { env } from "./env";
@@ -36,8 +31,8 @@ import { requireTenant } from "./auth";
 // ── Fontes do motor: no Next o código é empacotado, então indicamos a pasta. ──
 if (!process.env.DOCUMENTS_FONTS_DIR) {
   const candidates = [
-    path.resolve(process.cwd(), "../../packages/documents/fonts"),
-    path.resolve(process.cwd(), "packages/documents/fonts"),
+    path.resolve(/*turbopackIgnore: true*/ process.cwd(), "../../packages/documents/fonts"),
+    path.resolve(/*turbopackIgnore: true*/ process.cwd(), "packages/documents/fonts"),
   ];
   const dir = candidates.find((d) => existsSync(d));
   if (dir) process.env.DOCUMENTS_FONTS_DIR = dir;
@@ -284,7 +279,9 @@ export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
 function storageRoot() {
   const dir = process.env.STORAGE_DIR || "./storage";
-  return path.isAbsolute(dir) ? dir : path.resolve(process.cwd(), "../..", dir);
+  return path.isAbsolute(dir)
+    ? dir
+    : path.resolve(/*turbopackIgnore: true*/ process.cwd(), "../..", dir);
 }
 
 export async function storeFile(opts: {
@@ -433,14 +430,23 @@ async function renderAndLog(opts: {
     for (const id of ids) {
       const hit = await readStoredFile(id, opts.tenantId);
       if (hit && hit.file.mimeType.startsWith("image/"))
-        urls.set(id, `data:${hit.file.mimeType};base64,${Buffer.from(hit.bytes).toString("base64")}`);
+        urls.set(
+          id,
+          `data:${hit.file.mimeType};base64,${Buffer.from(hit.bytes).toString("base64")}`,
+        );
     }
     const r = renderThermalHtml(opts.def, opts.records, {
       assetUrl: (id) => urls.get(id) ?? null,
       autoPrint: opts.autoPrint,
       title: fileBase,
     });
-    result = { format: "thermal", html: r.html, fileName: fileBase, pageCount: r.pageCount, warnings: [] };
+    result = {
+      format: "thermal",
+      html: r.html,
+      fileName: fileBase,
+      pageCount: r.pageCount,
+      warnings: [],
+    };
   }
 
   await prisma.documentRender.create({
@@ -561,7 +567,10 @@ export async function requireTemplateAccess(templateId: string, minRole: TenantR
     select: { tenantId: true },
   });
   if (!t) throw notFound("Modelo não encontrado.");
-  const tenant = await prisma.tenant.findUnique({ where: { id: t.tenantId }, select: { slug: true } });
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: t.tenantId },
+    select: { slug: true },
+  });
   if (!tenant) throw notFound("Modelo não encontrado.");
   const ctx = await requireDocumentsTenant(tenant.slug, minRole);
   const template = await getTemplateForTenant(templateId, ctx.tenantId);

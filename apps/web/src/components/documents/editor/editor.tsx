@@ -90,11 +90,16 @@ export type EditorProps = {
     templateId: string;
     auditId: string;
   }) => Promise<
-    { ok: true; data: { version: number; definition: DocumentDefinition } } | { ok: false; error: string }
+    | { ok: true; data: { version: number; definition: DocumentDefinition } }
+    | { ok: false; error: string }
   >;
 };
 
-const ADDABLE: { type: ElementType; icon: React.ComponentType<{ className?: string }>; hint: string }[] = [
+const ADDABLE: {
+  type: ElementType;
+  icon: React.ComponentType<{ className?: string }>;
+  hint: string;
+}[] = [
   { type: "field", icon: Braces, hint: "Nome, empresa, categoria…" },
   { type: "text", icon: Type, hint: "Texto fixo, aceita campos" },
   { type: "qrcode", icon: QrCode, hint: "Link do crachá" },
@@ -280,17 +285,59 @@ export function DocumentEditor(props: EditorProps) {
         break;
       case "qrcode": {
         const size = Math.round(Math.max(12, Math.min(28, Math.min(pw, ph) * 0.4)));
-        el = { ...base, type, x: cx(size), y: cy(size), size, field: "registration.qrValue", errorCorrection: "M", color: "black", quietZone: 0 };
+        el = {
+          ...base,
+          type,
+          x: cx(size),
+          y: cy(size),
+          size,
+          field: "registration.qrValue",
+          errorCorrection: "M",
+          color: "black",
+          quietZone: 0,
+        };
         break;
       }
       case "barcode":
-        el = { ...base, type, x: cx(40), y: cy(10), w: Math.min(40, pw - 6), h: 10, field: "registration.shortCode", showText: true, color: "black" };
+        el = {
+          ...base,
+          type,
+          x: cx(40),
+          y: cy(10),
+          w: Math.min(40, pw - 6),
+          h: 10,
+          field: "registration.shortCode",
+          showText: true,
+          color: "black",
+        };
         break;
       case "image":
-        el = { ...base, type, x: cx(30), y: cy(14), w: 30, h: 14, source: { kind: "field", field: "tenant.logo" }, fit: "contain", align: "center", circle: false };
+        el = {
+          ...base,
+          type,
+          x: cx(30),
+          y: cy(14),
+          w: 30,
+          h: 14,
+          source: { kind: "field", field: "tenant.logo" },
+          fit: "contain",
+          align: "center",
+          circle: false,
+        };
         break;
       case "box":
-        el = { ...base, type, x: 0, y: cy(8), w: pw, h: 8, fill: "brand", strokeWidth: 0.3, radius: 0, opacity: 1 };
+        el = {
+          ...base,
+          type,
+          x: 0,
+          y: cy(8),
+          w: pw,
+          h: 8,
+          fill: "brand",
+          strokeWidth: 0.3,
+          radius: 0,
+          opacity: 1,
+        };
         break;
       case "sections":
         el = {
@@ -300,7 +347,12 @@ export function DocumentEditor(props: EditorProps) {
           y: Math.round(ph * 0.22),
           w: pw - 24,
           h: Math.round(ph * 0.66),
-          sections: [{ key: "passenger" }, { key: "flights" }, { key: "accommodation" }, { key: "itinerary" }],
+          sections: [
+            { key: "passenger" },
+            { key: "flights" },
+            { key: "accommodation" },
+            { key: "itinerary" },
+          ],
           accent: "brand",
         };
         break;
@@ -325,7 +377,10 @@ export function DocumentEditor(props: EditorProps) {
   const zoomTo = (z: number) => setZoom(Math.max(0.2, Math.min(8, z)));
   const zoomStep = (dir: 1 | -1) => {
     const cur = scaleFactor;
-    const next = dir > 0 ? ZOOMS.find((z) => z > cur + 0.01) : [...ZOOMS].reverse().find((z) => z < cur - 0.01);
+    const next =
+      dir > 0
+        ? ZOOMS.find((z) => z > cur + 0.01)
+        : [...ZOOMS].reverse().find((z) => z < cur - 0.01);
     zoomTo(next ?? cur);
   };
 
@@ -355,33 +410,61 @@ export function DocumentEditor(props: EditorProps) {
             value={name}
             disabled={!canEdit}
             onChange={(e) => setName(e.target.value)}
-            className="hover:border-border focus:border-brand h-8 w-[min(320px,28vw)] min-w-0 truncate rounded-sm border border-transparent bg-transparent px-2 text-base font-semibold outline-none"
+            className="hover:border-border focus:border-brand h-8 w-[min(300px,20vw)] min-w-0 truncate rounded-sm border border-transparent bg-transparent px-2 text-base font-semibold outline-none"
           />
           <Badge size="sm">v{version}</Badge>
+          {dirty && (
+            <span
+              aria-label="Alterações não salvas"
+              title="Alterações não salvas"
+              className="bg-warning size-2 shrink-0 rounded-full 2xl:hidden"
+            />
+          )}
           {template.isDefault && (
             <Badge size="sm" tone="brand">
               Padrão
             </Badge>
           )}
-          <span className={cn("text-xs", dirty ? "text-warning" : "text-fg-faint")}>
+          <span
+            className={cn(
+              "hidden text-xs whitespace-nowrap 2xl:inline",
+              dirty ? "text-warning" : "text-fg-faint",
+            )}
+          >
             {saving ? "Salvando…" : dirty ? "Alterações não salvas" : "Tudo salvo"}
           </span>
 
           <div className="ml-auto flex items-center gap-0.5">
-            <ToolBtn label="Desfazer (Ctrl+Z)" disabled={!editor.canUndo || !canEdit} onClick={editor.undo}>
+            <ToolBtn
+              label="Desfazer (Ctrl+Z)"
+              disabled={!editor.canUndo || !canEdit}
+              onClick={editor.undo}
+            >
               <Undo2 />
             </ToolBtn>
-            <ToolBtn label="Refazer (Ctrl+Shift+Z)" disabled={!editor.canRedo || !canEdit} onClick={editor.redo}>
+            <ToolBtn
+              label="Refazer (Ctrl+Shift+Z)"
+              disabled={!editor.canRedo || !canEdit}
+              onClick={editor.redo}
+            >
               <Redo2 />
             </ToolBtn>
             <div className="border-border mx-1 h-6 border-l" />
             <ToolBtn label="Grade" active={grid} onClick={() => setGrid(!grid)}>
               <Grid3x3 />
             </ToolBtn>
-            <ToolBtn label="Ímã (segure Alt para soltar livre)" active={snap} onClick={() => setSnap(!snap)}>
+            <ToolBtn
+              label="Ímã (segure Alt para soltar livre)"
+              active={snap}
+              onClick={() => setSnap(!snap)}
+            >
               <Magnet />
             </ToolBtn>
-            <ToolBtn label="Guias de sangria, segurança e furos" active={guides} onClick={() => setGuides(!guides)}>
+            <ToolBtn
+              label="Guias de sangria, segurança e furos"
+              active={guides}
+              onClick={() => setGuides(!guides)}
+            >
               <Ruler />
             </ToolBtn>
             <div className="border-border mx-1 h-6 border-l" />
@@ -432,18 +515,20 @@ export function DocumentEditor(props: EditorProps) {
               <div className="border-border border-b p-3">
                 <p className="text-fg-subtle mb-2 text-xs font-semibold">Adicionar</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {ADDABLE.filter((a) => a.type !== "sections" || def.kind === "VOUCHER").map((a) => (
-                    <button
-                      key={a.type}
-                      type="button"
-                      onClick={() => add(a.type)}
-                      title={a.hint}
-                      className="border-border hover:border-border-strong hover:bg-hover focus-visible:outline-brand-ring flex h-14 flex-col items-center justify-center gap-1 rounded-md border text-xs font-medium transition-colors focus-visible:outline-2"
-                    >
-                      <a.icon className="text-fg-subtle size-4" />
-                      {ELEMENT_LABEL[a.type]}
-                    </button>
-                  ))}
+                  {ADDABLE.filter((a) => a.type !== "sections" || def.kind === "VOUCHER").map(
+                    (a) => (
+                      <button
+                        key={a.type}
+                        type="button"
+                        onClick={() => add(a.type)}
+                        title={a.hint}
+                        className="border-border hover:border-border-strong hover:bg-hover focus-visible:outline-brand-ring flex h-14 flex-col items-center justify-center gap-1 rounded-md border text-xs font-medium transition-colors focus-visible:outline-2"
+                      >
+                        <a.icon className="text-fg-subtle size-4" />
+                        {ELEMENT_LABEL[a.type]}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -475,8 +560,15 @@ export function DocumentEditor(props: EditorProps) {
                         >
                           <LayerIcon type={el.type} />
                           <span className="truncate">{elementName(el)}</span>
-                          {warned.has(el.id) && <TriangleAlert className="text-warning size-3.5 shrink-0" aria-label="Com aviso" />}
-                          {el.when && <span className="text-fg-faint shrink-0 text-[10px]">cond.</span>}
+                          {warned.has(el.id) && (
+                            <TriangleAlert
+                              className="text-warning size-3.5 shrink-0"
+                              aria-label="Com aviso"
+                            />
+                          )}
+                          {el.when && (
+                            <span className="text-fg-faint shrink-0 text-[10px]">cond.</span>
+                          )}
                         </button>
                         {canEdit && (
                           <button
@@ -505,18 +597,34 @@ export function DocumentEditor(props: EditorProps) {
           <div className="relative flex min-w-0 flex-1 flex-col">
             {selected.length > 0 && canEdit && (
               <div className="border-border bg-surface/95 shadow-pop absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-md border p-1 backdrop-blur">
-                <span className="text-fg-subtle px-2 text-xs">
+                <span className="text-fg-subtle px-2 text-xs whitespace-nowrap">
                   {selected.length === 1 ? "Alinhar à página" : `${selected.length} elementos`}
                 </span>
-                <ToolBtn label="Alinhar à esquerda" onClick={() => editor.align("left")}><AlignStartVertical /></ToolBtn>
-                <ToolBtn label="Centralizar na horizontal" onClick={() => editor.align("hcenter")}><AlignCenterVertical /></ToolBtn>
-                <ToolBtn label="Alinhar à direita" onClick={() => editor.align("right")}><AlignEndVertical /></ToolBtn>
-                <ToolBtn label="Alinhar ao topo" onClick={() => editor.align("top")}><AlignStartHorizontal /></ToolBtn>
-                <ToolBtn label="Centralizar na vertical" onClick={() => editor.align("vcenter")}><AlignCenterHorizontal /></ToolBtn>
-                <ToolBtn label="Alinhar à base" onClick={() => editor.align("bottom")}><AlignEndHorizontal /></ToolBtn>
+                <ToolBtn label="Alinhar à esquerda" onClick={() => editor.align("left")}>
+                  <AlignStartVertical />
+                </ToolBtn>
+                <ToolBtn label="Centralizar na horizontal" onClick={() => editor.align("hcenter")}>
+                  <AlignCenterVertical />
+                </ToolBtn>
+                <ToolBtn label="Alinhar à direita" onClick={() => editor.align("right")}>
+                  <AlignEndVertical />
+                </ToolBtn>
+                <ToolBtn label="Alinhar ao topo" onClick={() => editor.align("top")}>
+                  <AlignStartHorizontal />
+                </ToolBtn>
+                <ToolBtn label="Centralizar na vertical" onClick={() => editor.align("vcenter")}>
+                  <AlignCenterHorizontal />
+                </ToolBtn>
+                <ToolBtn label="Alinhar à base" onClick={() => editor.align("bottom")}>
+                  <AlignEndHorizontal />
+                </ToolBtn>
                 <div className="border-border mx-1 h-5 border-l" />
-                <ToolBtn label="Duplicar (Ctrl+D)" onClick={() => editor.duplicate()}><Copy /></ToolBtn>
-                <ToolBtn label="Excluir (Delete)" onClick={() => editor.remove()}><X /></ToolBtn>
+                <ToolBtn label="Duplicar (Ctrl+D)" onClick={() => editor.duplicate()}>
+                  <Copy />
+                </ToolBtn>
+                <ToolBtn label="Excluir (Delete)" onClick={() => editor.remove()}>
+                  <X />
+                </ToolBtn>
               </div>
             )}
             <div
@@ -546,16 +654,26 @@ export function DocumentEditor(props: EditorProps) {
             </div>
             {/* rodapé: páginas, tamanho e avisos */}
             <div className="border-border bg-surface flex h-10 shrink-0 items-center gap-3 border-t px-3 text-xs">
-              <span className="text-fg-subtle font-mono">{formatSize(def.page.width, def.page.height)}</span>
+              <span className="text-fg-subtle font-mono">
+                {formatSize(def.page.width, def.page.height)}
+              </span>
               {pageCount > 1 && (
                 <span className="flex items-center gap-1">
-                  <ToolBtn label="Página anterior" disabled={page === 0} onClick={() => editor.setPage(page - 1)}>
+                  <ToolBtn
+                    label="Página anterior"
+                    disabled={page === 0}
+                    onClick={() => editor.setPage(page - 1)}
+                  >
                     <ChevronLeft />
                   </ToolBtn>
                   <span className="tabular-nums">
                     Página {page + 1} de {pageCount}
                   </span>
-                  <ToolBtn label="Próxima página" disabled={page >= pageCount - 1} onClick={() => editor.setPage(page + 1)}>
+                  <ToolBtn
+                    label="Próxima página"
+                    disabled={page >= pageCount - 1}
+                    onClick={() => editor.setPage(page + 1)}
+                  >
                     <ChevronRight />
                   </ToolBtn>
                 </span>
@@ -582,20 +700,26 @@ export function DocumentEditor(props: EditorProps) {
                     <Check className="size-3.5" /> Layout sem problemas
                   </span>
                 ) : (
-                  <WarningsMenu warnings={warnings} onPick={(id) => {
-                    const el = def.elements.find((x) => x.id === id);
-                    if (el) {
-                      editor.setPage(el.page);
-                      editor.select([id]);
-                    }
-                  }} />
+                  <WarningsMenu
+                    warnings={warnings}
+                    onPick={(id) => {
+                      const el = def.elements.find((x) => x.id === id);
+                      if (el) {
+                        editor.setPage(el.page);
+                        editor.select([id]);
+                      }
+                    }}
+                  />
                 )}
               </div>
             </div>
           </div>
 
           {/* direita: propriedades */}
-          <aside className="border-border bg-surface w-[300px] shrink-0 overflow-y-auto border-l" aria-label="Propriedades">
+          <aside
+            className="border-border bg-surface w-[300px] shrink-0 overflow-y-auto border-l"
+            aria-label="Propriedades"
+          >
             <fieldset disabled={!canEdit} className="min-w-0">
               {sel1 ? (
                 <ElementInspector
@@ -617,7 +741,12 @@ export function DocumentEditor(props: EditorProps) {
                 </div>
               ) : (
                 <>
-                  <PageInspector editor={editor} brand={brand} tenant={tenant} calibrationHref={calibrationHref} />
+                  <PageInspector
+                    editor={editor}
+                    brand={brand}
+                    tenant={tenant}
+                    calibrationHref={calibrationHref}
+                  />
                   <div className="border-border border-t px-4 py-4">
                     <Toggle
                       checked={visibleToPerson}
@@ -701,7 +830,9 @@ function ToolBtn({
       onClick={onClick}
       className={cn(
         "focus-visible:outline-brand-ring grid size-8 shrink-0 place-items-center rounded-sm transition-colors focus-visible:outline-2 disabled:opacity-35 [&_svg]:size-4",
-        active ? "bg-brand-subtle text-brand-subtle-fg" : "text-fg-muted hover:bg-hover hover:text-fg",
+        active
+          ? "bg-brand-subtle text-brand-subtle-fg"
+          : "text-fg-muted hover:bg-hover hover:text-fg",
       )}
     >
       {children}
@@ -710,11 +841,25 @@ function ToolBtn({
 }
 
 function LayerIcon({ type }: { type: ElementType }) {
-  const I = { text: Type, field: Braces, qrcode: QrCode, barcode: Barcode, image: ImageIcon, box: Square, sections: LayoutList }[type];
+  const I = {
+    text: Type,
+    field: Braces,
+    qrcode: QrCode,
+    barcode: Barcode,
+    image: ImageIcon,
+    box: Square,
+    sections: LayoutList,
+  }[type];
   return <I className="text-fg-subtle size-3.5 shrink-0" aria-hidden />;
 }
 
-function WarningsMenu({ warnings, onPick }: { warnings: LayoutWarning[]; onPick: (id: string) => void }) {
+function WarningsMenu({
+  warnings,
+  onPick,
+}: {
+  warnings: LayoutWarning[];
+  onPick: (id: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
@@ -783,7 +928,9 @@ function PreviewData({
   onPick: (r: { id: string; name: string } | null) => void;
 }) {
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<{ id: string; name: string; project: string; shortCode: string }[] | null>(null);
+  const [rows, setRows] = useState<
+    { id: string; name: string; project: string; shortCode: string }[] | null
+  >(null);
   useEffect(() => {
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
@@ -815,7 +962,9 @@ function PreviewData({
         <Monitor className="text-fg-subtle size-4" />
         <span>
           <span className="block text-sm font-medium">Dados de exemplo</span>
-          <span className="text-fg-subtle text-xs">Nome longo, empresa e categoria fictícios — bom para testar o ajuste.</span>
+          <span className="text-fg-subtle text-xs">
+            Nome longo, empresa e categoria fictícios — bom para testar o ajuste.
+          </span>
         </span>
       </button>
       <input
@@ -828,7 +977,9 @@ function PreviewData({
         <p className="text-fg-subtle text-sm">Carregando…</p>
       ) : rows.length === 0 ? (
         <p className="text-fg-subtle text-sm">
-          {q ? "Nenhuma inscrição encontrada." : "Este cliente ainda não tem inscrições. Use os dados de exemplo."}
+          {q
+            ? "Nenhuma inscrição encontrada."
+            : "Este cliente ainda não tem inscrições. Use os dados de exemplo."}
         </p>
       ) : (
         <ul className="flex flex-col gap-1">
@@ -884,7 +1035,10 @@ function Versions({
         <li className="text-fg-subtle py-6 text-sm">Ainda não há versões anteriores.</li>
       )}
       {versions.map((v) => (
-        <li key={v.id} className="border-border flex items-center justify-between gap-3 border-b py-3">
+        <li
+          key={v.id}
+          className="border-border flex items-center justify-between gap-3 border-b py-3"
+        >
           <span className="min-w-0">
             <span className="block text-sm font-medium">Versão {v.version}</span>
             <span className="text-fg-subtle block truncate text-xs">

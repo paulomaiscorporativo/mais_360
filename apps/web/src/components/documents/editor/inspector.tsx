@@ -132,8 +132,20 @@ export function ElementInspector({
         ) : (
           <Row label="Tamanho">
             <Pair>
-              <NumberInput ariaLabel="Largura" value={el.w} unit="L" min={1} onChange={(w) => up({ w })} />
-              <NumberInput ariaLabel="Altura" value={el.h} unit="A" min={1} onChange={(h) => up({ h })} />
+              <NumberInput
+                ariaLabel="Largura"
+                value={el.w}
+                unit="L"
+                min={1}
+                onChange={(w) => up({ w })}
+              />
+              <NumberInput
+                ariaLabel="Altura"
+                value={el.h}
+                unit="A"
+                min={1}
+                onChange={(h) => up({ h })}
+              />
             </Pair>
           </Row>
         )}
@@ -254,7 +266,11 @@ export function ElementInspector({
             />
           </Row>
           <Row label="Cor">
-            <ColorInput value={el.color} onChange={(color) => up({ color: color ?? "black" })} brand={brand} />
+            <ColorInput
+              value={el.color}
+              onChange={(color) => up({ color: color ?? "black" })}
+              brand={brand}
+            />
           </Row>
         </Section>
       )}
@@ -262,16 +278,22 @@ export function ElementInspector({
       {el.type === "barcode" && (
         <Section title="Código de barras (CODE128)">
           <FieldSelect value={el.field} onChange={(field) => up({ field })} fields={fields} />
-          <Toggle checked={el.showText} onChange={(showText) => up({ showText })} label="Mostrar o código abaixo" />
+          <Toggle
+            checked={el.showText}
+            onChange={(showText) => up({ showText })}
+            label="Mostrar o código abaixo"
+          />
           <Row label="Cor">
-            <ColorInput value={el.color} onChange={(color) => up({ color: color ?? "black" })} brand={brand} />
+            <ColorInput
+              value={el.color}
+              onChange={(color) => up({ color: color ?? "black" })}
+              brand={brand}
+            />
           </Row>
         </Section>
       )}
 
-      {el.type === "image" && (
-        <ImageSection el={el} up={up} fields={fields} tenant={tenant} />
-      )}
+      {el.type === "image" && <ImageSection el={el} up={up} fields={fields} tenant={tenant} />}
 
       {el.type === "box" && (
         <Section title="Caixa / faixa">
@@ -279,16 +301,42 @@ export function ElementInspector({
             <ColorInput value={el.fill} onChange={(fill) => up({ fill })} brand={brand} allowNone />
           </Row>
           <Row label="Borda">
-            <ColorInput value={el.stroke} onChange={(stroke) => up({ stroke })} brand={brand} allowNone />
+            <ColorInput
+              value={el.stroke}
+              onChange={(stroke) => up({ stroke })}
+              brand={brand}
+              allowNone
+            />
           </Row>
           <Row label="Espessura / raio">
             <Pair>
-              <NumberInput ariaLabel="Espessura da borda" value={el.strokeWidth} step={0.1} min={0} unit="mm" onChange={(strokeWidth) => up({ strokeWidth })} />
-              <NumberInput ariaLabel="Raio" value={el.radius} step={0.5} min={0} unit="r" onChange={(radius) => up({ radius })} />
+              <NumberInput
+                ariaLabel="Espessura da borda"
+                value={el.strokeWidth}
+                step={0.1}
+                min={0}
+                unit="mm"
+                onChange={(strokeWidth) => up({ strokeWidth })}
+              />
+              <NumberInput
+                ariaLabel="Raio"
+                value={el.radius}
+                step={0.5}
+                min={0}
+                unit="r"
+                onChange={(radius) => up({ radius })}
+              />
             </Pair>
           </Row>
           <Row label="Opacidade">
-            <NumberInput value={Math.round(el.opacity * 100)} step={5} min={0} max={100} unit="%" onChange={(v) => up({ opacity: v / 100 })} />
+            <NumberInput
+              value={Math.round(el.opacity * 100)}
+              step={5}
+              min={0}
+              max={100}
+              unit="%"
+              onChange={(v) => up({ opacity: v / 100 })}
+            />
           </Row>
         </Section>
       )}
@@ -327,7 +375,13 @@ function IconBtn({
   );
 }
 
-function InsertField({ fields, onPick }: { fields: FieldDefinition[]; onPick: (k: string) => void }) {
+function InsertField({
+  fields,
+  onPick,
+}: {
+  fields: FieldDefinition[];
+  onPick: (k: string) => void;
+}) {
   return (
     <div className="flex items-center gap-2">
       <Braces className="text-fg-subtle size-3.5 shrink-0" aria-hidden />
@@ -378,8 +432,23 @@ function TextStyleSection({
       </Row>
       <Row label="Tamanho">
         <Pair>
-          <NumberInput ariaLabel="Tamanho" value={style.size} step={0.5} min={4} unit="pt" onChange={(size) => onChange({ size })} />
-          <NumberInput ariaLabel="Linhas" value={style.maxLines} step={1} min={1} max={50} unit="lin" onChange={(maxLines) => onChange({ maxLines })} />
+          <NumberInput
+            ariaLabel="Tamanho"
+            value={style.size}
+            step={0.5}
+            min={4}
+            unit="pt"
+            onChange={(size) => onChange({ size })}
+          />
+          <NumberInput
+            ariaLabel="Linhas"
+            value={style.maxLines}
+            step={1}
+            min={1}
+            max={50}
+            unit="lin"
+            onChange={(maxLines) => onChange({ maxLines })}
+          />
         </Pair>
       </Row>
       <Toggle
@@ -390,7 +459,13 @@ function TextStyleSection({
       />
       {style.autoFit && (
         <Row label="Mínimo">
-          <NumberInput value={style.minSize} step={0.5} min={3} unit="pt" onChange={(minSize) => onChange({ minSize })} />
+          <NumberInput
+            value={style.minSize}
+            step={0.5}
+            min={3}
+            unit="pt"
+            onChange={(minSize) => onChange({ minSize })}
+          />
         </Row>
       )}
       <Row label="Alinhamento">
@@ -419,22 +494,64 @@ function TextStyleSection({
       </Row>
       <Row label="Entrelinha / letra">
         <Pair>
-          <NumberInput ariaLabel="Entrelinha" value={style.lineHeight} step={0.05} min={0.8} max={3} onChange={(lineHeight) => onChange({ lineHeight })} />
-          <NumberInput ariaLabel="Espaço entre letras" value={style.letterSpacing} step={0.1} min={-2} max={10} unit="pt" onChange={(letterSpacing) => onChange({ letterSpacing })} />
+          <NumberInput
+            ariaLabel="Entrelinha"
+            value={style.lineHeight}
+            step={0.05}
+            min={0.8}
+            max={3}
+            onChange={(lineHeight) => onChange({ lineHeight })}
+          />
+          <NumberInput
+            ariaLabel="Espaço entre letras"
+            value={style.letterSpacing}
+            step={0.1}
+            min={-2}
+            max={10}
+            unit="pt"
+            onChange={(letterSpacing) => onChange({ letterSpacing })}
+          />
         </Pair>
       </Row>
-      <Toggle checked={style.uppercase} onChange={(uppercase) => onChange({ uppercase })} label="Caixa alta" />
+      <Toggle
+        checked={style.uppercase}
+        onChange={(uppercase) => onChange({ uppercase })}
+        label="Caixa alta"
+      />
       <Row label="Cor">
-        <ColorInput value={style.color} onChange={(color) => onChange({ color: color ?? "ink" })} brand={brand} />
+        <ColorInput
+          value={style.color}
+          onChange={(color) => onChange({ color: color ?? "ink" })}
+          brand={brand}
+        />
       </Row>
       <Row label="Fundo">
-        <ColorInput value={style.background} onChange={(background) => onChange({ background })} brand={brand} allowNone />
+        <ColorInput
+          value={style.background}
+          onChange={(background) => onChange({ background })}
+          brand={brand}
+          allowNone
+        />
       </Row>
       {style.background && (
         <Row label="Raio / respiro">
           <Pair>
-            <NumberInput ariaLabel="Raio" value={style.radius} step={0.5} min={0} unit="r" onChange={(radius) => onChange({ radius })} />
-            <NumberInput ariaLabel="Respiro interno" value={style.padding} step={0.5} min={0} unit="mm" onChange={(padding) => onChange({ padding })} />
+            <NumberInput
+              ariaLabel="Raio"
+              value={style.radius}
+              step={0.5}
+              min={0}
+              unit="r"
+              onChange={(radius) => onChange({ radius })}
+            />
+            <NumberInput
+              ariaLabel="Respiro interno"
+              value={style.padding}
+              step={0.5}
+              min={0}
+              unit="mm"
+              onChange={(padding) => onChange({ padding })}
+            />
           </Pair>
         </Row>
       )}
@@ -461,7 +578,12 @@ function ImageSection({
         ariaLabel="Origem da imagem"
         value={fromField ? "field" : "file"}
         onChange={(v) =>
-          up({ source: v === "field" ? { kind: "field", field: "tenant.logo" } : { kind: "file", fileId: "pending" } })
+          up({
+            source:
+              v === "field"
+                ? { kind: "field", field: "tenant.logo" }
+                : { kind: "file", fileId: "pending" },
+          })
         }
         options={[
           { value: "field", label: "Dos dados" },
@@ -478,7 +600,11 @@ function ImageSection({
       ) : (
         <label className="border-border-strong hover:bg-hover flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed text-sm">
           <Upload className="size-4" />
-          {busy ? "Enviando…" : el.source.fileId !== "pending" ? "Trocar imagem" : "Enviar PNG ou JPG"}
+          {busy
+            ? "Enviando…"
+            : el.source.fileId !== "pending"
+              ? "Trocar imagem"
+              : "Enviar PNG ou JPG"}
           <input
             type="file"
             accept="image/png,image/jpeg"
@@ -522,7 +648,12 @@ function ImageSection({
           ]}
         />
       </Row>
-      <Toggle checked={el.circle} onChange={(circle) => up({ circle })} label="Recorte circular" hint="Para foto do participante." />
+      <Toggle
+        checked={el.circle}
+        onChange={(circle) => up({ circle })}
+        label="Recorte circular"
+        hint="Para foto do participante."
+      />
     </Section>
   );
 }
@@ -551,23 +682,33 @@ function SectionsEditor({
           <li key={i} className="border-border bg-surface rounded-sm border p-2">
             <div className="flex items-center gap-1">
               <span className="flex-1 truncate text-sm font-medium">{SECTION_LABEL[s.key]}</span>
-              <IconBtn label="Subir" onClick={() => {
-                if (i === 0) return;
-                const n = [...el.sections];
-                [n[i - 1], n[i]] = [n[i]!, n[i - 1]!];
-                set(n);
-              }}>
+              <IconBtn
+                label="Subir"
+                onClick={() => {
+                  if (i === 0) return;
+                  const n = [...el.sections];
+                  [n[i - 1], n[i]] = [n[i]!, n[i - 1]!];
+                  set(n);
+                }}
+              >
                 <ArrowUp />
               </IconBtn>
-              <IconBtn label="Descer" onClick={() => {
-                if (i === el.sections.length - 1) return;
-                const n = [...el.sections];
-                [n[i + 1], n[i]] = [n[i]!, n[i + 1]!];
-                set(n);
-              }}>
+              <IconBtn
+                label="Descer"
+                onClick={() => {
+                  if (i === el.sections.length - 1) return;
+                  const n = [...el.sections];
+                  [n[i + 1], n[i]] = [n[i]!, n[i + 1]!];
+                  set(n);
+                }}
+              >
                 <ArrowDown />
               </IconBtn>
-              <IconBtn label="Remover seção" danger onClick={() => el.sections.length > 1 && set(el.sections.filter((_, j) => j !== i))}>
+              <IconBtn
+                label="Remover seção"
+                danger
+                onClick={() => el.sections.length > 1 && set(el.sections.filter((_, j) => j !== i))}
+              >
                 <X />
               </IconBtn>
             </div>
@@ -576,7 +717,13 @@ function SectionsEditor({
               className={cn(inputCls, "mt-1.5")}
               placeholder={SECTION_LABEL[s.key]}
               value={s.title ?? ""}
-              onChange={(e) => set(el.sections.map((x, j) => (j === i ? { ...x, title: e.target.value || undefined } : x)))}
+              onChange={(e) =>
+                set(
+                  el.sections.map((x, j) =>
+                    j === i ? { ...x, title: e.target.value || undefined } : x,
+                  ),
+                )
+              }
             />
             {s.key === "freeText" && (
               <textarea
@@ -585,7 +732,9 @@ function SectionsEditor({
                 className={cn(inputCls, "mt-1.5 h-auto py-1.5")}
                 placeholder="Aceita campos, como {{person.firstName}}"
                 value={s.content ?? ""}
-                onChange={(e) => set(el.sections.map((x, j) => (j === i ? { ...x, content: e.target.value } : x)))}
+                onChange={(e) =>
+                  set(el.sections.map((x, j) => (j === i ? { ...x, content: e.target.value } : x)))
+                }
               />
             )}
           </li>
@@ -595,7 +744,9 @@ function SectionsEditor({
         <select
           className={inputCls}
           value=""
-          onChange={(e) => e.target.value && set([...el.sections, { key: e.target.value as "freeText" }])}
+          onChange={(e) =>
+            e.target.value && set([...el.sections, { key: e.target.value as "freeText" }])
+          }
         >
           <option value="">Adicionar seção…</option>
           {missing.map((k) => (
@@ -606,7 +757,11 @@ function SectionsEditor({
         </select>
       )}
       <Row label="Destaque">
-        <ColorInput value={el.accent} onChange={(accent) => up({ accent: accent ?? "brand" })} brand={brand} />
+        <ColorInput
+          value={el.accent}
+          onChange={(accent) => up({ accent: accent ?? "brand" })}
+          brand={brand}
+        />
       </Row>
     </Section>
   );
@@ -641,7 +796,10 @@ function ConditionSection({
         <p className="text-fg-muted mb-1.5 text-sm">Categorias</p>
         <div className="flex flex-wrap gap-1">
           {(when.categories ?? []).map((c) => (
-            <span key={c} className="bg-surface-muted inline-flex h-6 items-center gap-1 rounded-full pr-1 pl-2.5 text-xs font-medium">
+            <span
+              key={c}
+              className="bg-surface-muted inline-flex h-6 items-center gap-1 rounded-full pr-1 pl-2.5 text-xs font-medium"
+            >
               {c}
               <button
                 type="button"
@@ -659,11 +817,17 @@ function ConditionSection({
           onSubmit={(e) => {
             e.preventDefault();
             const v = cat.trim().toUpperCase();
-            if (v && !(when.categories ?? []).includes(v)) set({ categories: [...(when.categories ?? []), v] });
+            if (v && !(when.categories ?? []).includes(v))
+              set({ categories: [...(when.categories ?? []), v] });
             setCat("");
           }}
         >
-          <input className={inputCls} placeholder="VISITANTE, EXPOSITOR…" value={cat} onChange={(e) => setCat(e.target.value)} />
+          <input
+            className={inputCls}
+            placeholder="VISITANTE, EXPOSITOR…"
+            value={cat}
+            onChange={(e) => setCat(e.target.value)}
+          />
           <Button type="submit" size="icon-sm" variant="secondary" aria-label="Adicionar categoria">
             <Plus />
           </Button>
@@ -680,11 +844,17 @@ function ConditionSection({
                 type="button"
                 aria-pressed={on}
                 onClick={() =>
-                  set({ roles: on ? (when.roles ?? []).filter((x) => x !== r.value) : [...(when.roles ?? []), r.value] })
+                  set({
+                    roles: on
+                      ? (when.roles ?? []).filter((x) => x !== r.value)
+                      : [...(when.roles ?? []), r.value],
+                  })
                 }
                 className={cn(
                   "h-6 rounded-full border px-2.5 text-xs font-medium transition-colors",
-                  on ? "border-brand bg-brand-subtle text-brand-subtle-fg" : "border-border-strong text-fg-subtle hover:text-fg",
+                  on
+                    ? "border-brand bg-brand-subtle text-brand-subtle-fg"
+                    : "border-border-strong text-fg-subtle hover:text-fg",
                 )}
               >
                 {r.label}
@@ -694,10 +864,20 @@ function ConditionSection({
         </div>
       </div>
       <Row label="Se preenchido">
-        <FieldSelect value={when.requiresField ?? ""} allowEmpty="—" onChange={(v) => set({ requiresField: v || undefined })} fields={fields} />
+        <FieldSelect
+          value={when.requiresField ?? ""}
+          allowEmpty="—"
+          onChange={(v) => set({ requiresField: v || undefined })}
+          fields={fields}
+        />
       </Row>
       <Row label="Se vazio">
-        <FieldSelect value={when.unlessField ?? ""} allowEmpty="—" onChange={(v) => set({ unlessField: v || undefined })} fields={[...fields.filter((f) => !f.image), ...fields.filter((f) => f.image)]} />
+        <FieldSelect
+          value={when.unlessField ?? ""}
+          allowEmpty="—"
+          onChange={(v) => set({ unlessField: v || undefined })}
+          fields={[...fields.filter((f) => !f.image), ...fields.filter((f) => f.image)]}
+        />
       </Row>
     </Section>
   );
@@ -746,19 +926,52 @@ export function PageInspector({
         </Row>
         <Row label="Tamanho">
           <Pair>
-            <NumberInput ariaLabel="Largura" value={p.width} unit="L" min={10} onChange={(width) => editor.updatePage({ width })} />
-            <NumberInput ariaLabel="Altura" value={p.height} unit="A" min={10} onChange={(height) => editor.updatePage({ height })} />
+            <NumberInput
+              ariaLabel="Largura"
+              value={p.width}
+              unit="L"
+              min={10}
+              onChange={(width) => editor.updatePage({ width })}
+            />
+            <NumberInput
+              ariaLabel="Altura"
+              value={p.height}
+              unit="A"
+              min={10}
+              onChange={(height) => editor.updatePage({ height })}
+            />
           </Pair>
         </Row>
         {current && <p className="text-fg-subtle -mt-1 text-xs">{current.hint}</p>}
         <Row label="Sangria / segurança">
           <Pair>
-            <NumberInput ariaLabel="Sangria" value={p.bleed} step={0.5} min={0} max={10} unit="mm" onChange={(bleed) => editor.updatePage({ bleed })} />
-            <NumberInput ariaLabel="Margem de segurança" value={p.safeMargin} step={0.5} min={0} max={30} unit="mm" onChange={(safeMargin) => editor.updatePage({ safeMargin })} />
+            <NumberInput
+              ariaLabel="Sangria"
+              value={p.bleed}
+              step={0.5}
+              min={0}
+              max={10}
+              unit="mm"
+              onChange={(bleed) => editor.updatePage({ bleed })}
+            />
+            <NumberInput
+              ariaLabel="Margem de segurança"
+              value={p.safeMargin}
+              step={0.5}
+              min={0}
+              max={30}
+              unit="mm"
+              onChange={(safeMargin) => editor.updatePage({ safeMargin })}
+            />
           </Pair>
         </Row>
         <Row label="Cor de fundo">
-          <ColorInput value={p.fill} onChange={(fill) => editor.updatePage({ fill })} brand={brand} allowNone />
+          <ColorInput
+            value={p.fill}
+            onChange={(fill) => editor.updatePage({ fill })}
+            brand={brand}
+            allowNone
+          />
         </Row>
       </Section>
 
@@ -766,15 +979,23 @@ export function PageInspector({
         {p.background ? (
           <>
             <div className="border-border bg-surface-muted flex items-center justify-between gap-2 rounded-sm border px-2.5 py-2 text-sm">
-              <span className="truncate">{p.background.kind === "pdf" ? "PDF de fundo" : "Imagem de fundo"}</span>
-              <Button size="sm" variant="ghost" onClick={() => editor.updatePage({ background: undefined })}>
+              <span className="truncate">
+                {p.background.kind === "pdf" ? "PDF de fundo" : "Imagem de fundo"}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => editor.updatePage({ background: undefined })}
+              >
                 Remover
               </Button>
             </div>
             {p.background.kind === "pdf" && (
               <Toggle
                 checked={p.background.allPages}
-                onChange={(allPages) => editor.updatePage({ background: { ...p.background!, allPages } })}
+                onChange={(allPages) =>
+                  editor.updatePage({ background: { ...p.background!, allPages } })
+                }
                 label="Uma página do documento por página do PDF"
                 hint="Desligado: usa só a primeira página como fundo."
               />
@@ -825,7 +1046,9 @@ export function PageInspector({
           <Segmented
             ariaLabel="Saída preferida"
             value={def.output}
-            onChange={(output) => editor.updateDef({ output, monochrome: output === "thermal" ? true : def.monochrome })}
+            onChange={(output) =>
+              editor.updateDef({ output, monochrome: output === "thermal" ? true : def.monochrome })
+            }
             options={[
               { value: "pdf", label: "PDF" },
               { value: "thermal", label: "Térmica" },
@@ -859,8 +1082,24 @@ export function PageInspector({
             </Row>
             <Row label="Deslocar X / Y">
               <Pair>
-                <NumberInput ariaLabel="Deslocamento horizontal" value={p.offsetX} step={0.5} min={-20} max={20} unit="mm" onChange={(offsetX) => editor.updatePage({ offsetX })} />
-                <NumberInput ariaLabel="Deslocamento vertical" value={p.offsetY} step={0.5} min={-20} max={20} unit="mm" onChange={(offsetY) => editor.updatePage({ offsetY })} />
+                <NumberInput
+                  ariaLabel="Deslocamento horizontal"
+                  value={p.offsetX}
+                  step={0.5}
+                  min={-20}
+                  max={20}
+                  unit="mm"
+                  onChange={(offsetX) => editor.updatePage({ offsetX })}
+                />
+                <NumberInput
+                  ariaLabel="Deslocamento vertical"
+                  value={p.offsetY}
+                  step={0.5}
+                  min={-20}
+                  max={20}
+                  unit="mm"
+                  onChange={(offsetY) => editor.updatePage({ offsetY })}
+                />
               </Pair>
             </Row>
             <Button variant="secondary" size="sm" asChild>
@@ -888,7 +1127,8 @@ function HolesSection({
   onChange: (h: Hole[]) => void;
   page: { width: number; height: number };
 }) {
-  const set = (i: number, patch: Partial<Hole>) => onChange(holes.map((h, j) => (j === i ? { ...h, ...patch } : h)));
+  const set = (i: number, patch: Partial<Hole>) =>
+    onChange(holes.map((h, j) => (j === i ? { ...h, ...patch } : h)));
   return (
     <Section
       title="Furos do crachá"
@@ -896,14 +1136,18 @@ function HolesSection({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onChange([...holes, { x: page.width / 2, y: 6, diameter: 5, shape: "circle" }])}
+          onClick={() =>
+            onChange([...holes, { x: page.width / 2, y: 6, diameter: 5, shape: "circle" }])
+          }
         >
           <Plus /> Furo
         </Button>
       }
     >
       {holes.length === 0 && (
-        <p className="text-fg-subtle -mt-1 text-xs">Marque os furos de cordão: o editor avisa se algo cair em cima.</p>
+        <p className="text-fg-subtle -mt-1 text-xs">
+          Marque os furos de cordão: o editor avisa se algo cair em cima.
+        </p>
       )}
       {holes.map((h, i) => (
         <div key={i} className="border-border flex flex-col gap-1.5 rounded-sm border p-2">
@@ -917,18 +1161,44 @@ function HolesSection({
                 { value: "slot", label: "Oblongo" },
               ]}
             />
-            <IconBtn label="Remover furo" danger onClick={() => onChange(holes.filter((_, j) => j !== i))}>
+            <IconBtn
+              label="Remover furo"
+              danger
+              onClick={() => onChange(holes.filter((_, j) => j !== i))}
+            >
               <Trash2 />
             </IconBtn>
           </div>
           <Pair>
-            <NumberInput ariaLabel="Centro X" value={h.x} unit="x" onChange={(x) => set(i, { x })} />
-            <NumberInput ariaLabel="Centro Y" value={h.y} unit="y" onChange={(y) => set(i, { y })} />
+            <NumberInput
+              ariaLabel="Centro X"
+              value={h.x}
+              unit="x"
+              onChange={(x) => set(i, { x })}
+            />
+            <NumberInput
+              ariaLabel="Centro Y"
+              value={h.y}
+              unit="y"
+              onChange={(y) => set(i, { y })}
+            />
           </Pair>
           <Pair>
-            <NumberInput ariaLabel="Diâmetro" value={h.diameter} unit="ø" min={1} onChange={(diameter) => set(i, { diameter })} />
+            <NumberInput
+              ariaLabel="Diâmetro"
+              value={h.diameter}
+              unit="ø"
+              min={1}
+              onChange={(diameter) => set(i, { diameter })}
+            />
             {h.shape === "slot" ? (
-              <NumberInput ariaLabel="Largura" value={h.width ?? h.diameter * 3} unit="L" min={1} onChange={(width) => set(i, { width })} />
+              <NumberInput
+                ariaLabel="Largura"
+                value={h.width ?? h.diameter * 3}
+                unit="L"
+                min={1}
+                onChange={(width) => set(i, { width })}
+              />
             ) : (
               <span />
             )}
