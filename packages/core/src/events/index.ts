@@ -349,3 +349,166 @@ export function readAmenities(raw: unknown): Amenity[] {
     .map((a) => ({ titulo: str(a.titulo), descricao: str(a.descricao) }))
     .filter((a) => a.titulo);
 }
+
+// ---------------------------------------------------------------------------
+// Resposta do convidado (RSVP) na página do convite
+// ---------------------------------------------------------------------------
+
+export type RsvpState =
+  | { open: true; until: Date | null }
+  | {
+      open: false;
+      reason: "CANCELED" | "CHECKED_IN" | "DEADLINE" | "EVENT_OVER";
+      message: string;
+    };
+
+/**
+ * O convidado ainda pode confirmar ou recusar? Até a data-limite do convite
+ * (quando houver) e nunca depois do fim do evento. Credenciado e cancelado
+ * não respondem mais. Mudar de ideia dentro do prazo é permitido.
+ */
+export function rsvpState(
+  r: { status: string; checkedInAt?: Date | null },
+  window: { deadline?: Date | null; eventEnd?: Date | null },
+  now: Date = new Date(),
+): RsvpState {
+  if (r.status === "CANCELED")
+    return {
+      open: false,
+      reason: "CANCELED",
+      message: "Este convite foi cancelado. Em caso de dúvida, fale com a organização.",
+    };
+  if (r.checkedInAt)
+    return { open: false, reason: "CHECKED_IN", message: "Presença registrada na entrada." };
+  if (window.eventEnd && now > window.eventEnd)
+    return { open: false, reason: "EVENT_OVER", message: "O evento já aconteceu." };
+  if (window.deadline && now > window.deadline)
+    return {
+      open: false,
+      reason: "DEADLINE",
+      message: "O prazo para responder terminou. Se precisar, fale com a organização.",
+    };
+  return { open: true, until: window.deadline ?? null };
+}
+
+// ---------------------------------------------------------------------------
+// Portal da empresa convidante: o que ela pode fazer com cada convidado
+// ---------------------------------------------------------------------------
+
+export type CompanyGuestCheck = { ok: true } | { ok: false; message: string };
+
+/**
+ * A empresa pode cancelar ou substituir este convidado? Só dentro do prazo,
+ * com a empresa aberta, convidado dela, ainda não credenciado. O responsável
+ * não é substituído pelo portal (a troca passa pela organização).
+ */
+export function canCompanyChangeGuest(
+  company: { id: string; lockedAt?: Date | null },
+  guest: {
+    companyQuotaId: string | null;
+    kind: "RESPONSIBLE" | "COMPANY_GUEST" | "INDIVIDUAL";
+    status: string;
+    checkedInAt?: Date | null;
+  },
+  deadline: Date | null | undefined,
+  now: Date = new Date(),
+): CompanyGuestCheck {
+  if (guest.companyQuotaId !== company.id)
+    return { ok: false, message: "Este convidado não é da sua empresa." };
+  if (company.lockedAt)
+    return {
+      ok: false,
+      message: "O prazo para alterar convidados terminou. Fale com a organização.",
+    };
+  if (deadline && now > deadline)
+    return { ok: false, message: "A data-limite para alterar convidados já passou." };
+  if (guest.kind === "RESPONSIBLE")
+    return { ok: false, message: "Para trocar o responsável, fale com a organização." };
+  if (guest.status === "CANCELED") return { ok: false, message: "Este convite já foi cancelado." };
+  if (guest.checkedInAt)
+    return { ok: false, message: "Este convidado já foi credenciado no evento." };
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Relatórios: confirmações, presença e cotas por empresa
+// ---------------------------------------------------------------------------
+
+export type ReportGuest = {
+  status: InviteStatus;
+  companyQuotaId: string | null;
+};
+export type ReportCompany = { id: string; name: string; quota: number; returnedToPool: number };
+
+export type StatusTotals = Record<InviteStatus, number> & {
+  /** Convites ativos (não cancelados) */
+  active: number;
+};
+
+export type CompanyReportRow = StatusTotals & {
+  id: string | null;
+  name: string;
+  quota: number | null;
+  returnedToPool: number;
+  /** Fração da cota usada (0..1); null no convite individual */
+  usage: number | null;
+  /** Credenciados entre os convites ativos (0..1); null sem convites */
+  attendance: number | null;
+};
+
+const emptyTotals = (): StatusTotals => ({
+  PENDING: 0,
+  SENT: 0,
+  CONFIRMED: 0,
+  DECLINED: 0,
+  CHECKED_IN: 0,
+  CANCELED: 0,
+  active: 0,
+});
+
+function addStatus(t: StatusTotals, s: InviteStatus) {
+  t[s] += 1;
+  if (s !== "CANCELED") t.active += 1;
+}
+
+/**
+ * Consolida os convites: totais gerais e uma linha por empresa (mais a linha
+ * "Convites individuais" quando houver). O status é o derivado: quem confirmou
+ * e foi credenciado conta só em CHECKED_IN.
+ */
+export function buildInviteReport(
+  guests: readonly ReportGuest[],
+  companies: readonly ReportCompany[],
+): { totals: StatusTotals; companies: CompanyReportRow[] } {
+  const totals = emptyTotals();
+  const byCompany = new Map<string, StatusTotals>(companies.map((c) => [c.id, emptyTotals()]));
+  const individual = emptyTotals();
+  for (const g of guests) {
+    addStatus(totals, g.status);
+    addStatus((g.companyQuotaId && byCompany.get(g.companyQuotaId)) || individual, g.status);
+  }
+  const attendance = (t: StatusTotals) => (t.active ? t.CHECKED_IN / t.active : null);
+  const rows: CompanyReportRow[] = companies.map((c) => {
+    const t = byCompany.get(c.id) ?? emptyTotals();
+    return {
+      ...t,
+      id: c.id,
+      name: c.name,
+      quota: c.quota,
+      returnedToPool: c.returnedToPool,
+      usage: c.quota > 0 ? t.active / c.quota : 0,
+      attendance: attendance(t),
+    };
+  });
+  if (individual.active || individual.CANCELED)
+    rows.push({
+      ...individual,
+      id: null,
+      name: "Convites individuais",
+      quota: null,
+      returnedToPool: 0,
+      usage: null,
+      attendance: attendance(individual),
+    });
+  return { totals, companies: rows };
+}
