@@ -16,7 +16,8 @@
     "studio": "prisma studio",
     "validate": "prisma validate",
     "typecheck": "tsc --noEmit",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "seed:demo": "tsx prisma/seed-demo.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3"
