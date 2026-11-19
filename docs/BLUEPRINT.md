@@ -286,7 +286,10 @@ A plataforma é um **produto comercial**, não só a ferramenta interna da Mais.
 | **Experiência** | Interface de nível premiado (ver `docs/DESIGN.md`), mobile-first e responsiva em toda tela. |
 | **Escala** | Workers horizontais (fila com SKIP LOCKED), arquivos em S3 compatível, banco dedicado como opção Enterprise. |
 
-Pendente: **nome comercial do produto** e domínio próprio do SaaS.
+**Nome comercial: Comitiva** (assinatura opcional "por Mais Corporativo") — escolhido em
+18/11/2026. Cobre grupos em viagem e públicos de eventos, é curto e brasileiro. Antes de
+investir em marca: consultar o INPI (classes 9, 35, 39 e 42) e registrar os domínios.
+Pendente: domínio próprio do SaaS.
 
 ---
 
