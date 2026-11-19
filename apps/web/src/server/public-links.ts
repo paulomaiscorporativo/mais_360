@@ -25,6 +25,9 @@ export async function publicFormUrl(tenant: { id: string; slug: string }, public
  * Credencial digital da inscrição: <base>/c/<registration.token>.
  * É o conteúdo do QR do crachá/convite (lido no balcão, no totem e no acesso).
  */
-export async function credentialUrl(tenant: { id: string; slug: string }, registrationToken: string) {
+export async function credentialUrl(
+  tenant: { id: string; slug: string },
+  registrationToken: string,
+) {
   return `${await tenantPublicBase(tenant)}/c/${registrationToken}`;
 }

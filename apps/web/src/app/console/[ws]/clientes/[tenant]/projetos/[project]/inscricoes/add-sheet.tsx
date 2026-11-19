@@ -14,7 +14,15 @@ import type { Label } from "./registrations";
 
 type Found = { id: string; name: string; detail: string; alreadyIn: boolean };
 
-const EMPTY = { firstName: "", lastName: "", email: "", phone: "", cpf: "", organization: "", jobTitle: "" };
+const EMPTY = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  cpf: "",
+  organization: "",
+  jobTitle: "",
+};
 
 export function AddRegistrationSheet({
   open,
@@ -80,7 +88,9 @@ export function AddRegistrationSheet({
       if (!r.ok) {
         setError(r.error);
         setErrors(
-          Object.fromEntries(Object.entries(r.fieldErrors ?? {}).map(([k, v]) => [k.replace(/^person\./, ""), v])),
+          Object.fromEntries(
+            Object.entries(r.fieldErrors ?? {}).map(([k, v]) => [k.replace(/^person\./, ""), v]),
+          ),
         );
         return;
       }
@@ -93,7 +103,8 @@ export function AddRegistrationSheet({
 
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setPerson({ ...person, [k]: e.target.value });
-  const canSubmit = tab === "new" ? person.firstName.trim().length > 0 : !!picked && !picked.alreadyIn;
+  const canSubmit =
+    tab === "new" ? person.firstName.trim().length > 0 : !!picked && !picked.alreadyIn;
 
   return (
     <Sheet
@@ -122,19 +133,52 @@ export function AddRegistrationSheet({
         </TabsList>
         <TabsContent value="new" className="grid gap-4 sm:grid-cols-2">
           <Field label="Nome" error={errors.firstName}>
-            {(f) => <Input id={f.id} value={person.firstName} onChange={set("firstName")} autoFocus aria-invalid={f.invalid} />}
+            {(f) => (
+              <Input
+                id={f.id}
+                value={person.firstName}
+                onChange={set("firstName")}
+                autoFocus
+                aria-invalid={f.invalid}
+              />
+            )}
           </Field>
           <Field label="Sobrenome" optional>
             {(f) => <Input id={f.id} value={person.lastName} onChange={set("lastName")} />}
           </Field>
           <Field label="E-mail" optional className="sm:col-span-2">
-            {(f) => <Input id={f.id} type="email" inputMode="email" value={person.email} onChange={set("email")} />}
+            {(f) => (
+              <Input
+                id={f.id}
+                type="email"
+                inputMode="email"
+                value={person.email}
+                onChange={set("email")}
+              />
+            )}
           </Field>
           <Field label="WhatsApp" optional>
-            {(f) => <Input id={f.id} type="tel" inputMode="tel" value={person.phone} onChange={set("phone")} placeholder="(11) 99999-8888" />}
+            {(f) => (
+              <Input
+                id={f.id}
+                type="tel"
+                inputMode="tel"
+                value={person.phone}
+                onChange={set("phone")}
+                placeholder="(11) 99999-8888"
+              />
+            )}
           </Field>
           <Field label="CPF" optional>
-            {(f) => <Input id={f.id} inputMode="numeric" value={person.cpf} onChange={set("cpf")} placeholder="000.000.000-00" />}
+            {(f) => (
+              <Input
+                id={f.id}
+                inputMode="numeric"
+                value={person.cpf}
+                onChange={set("cpf")}
+                placeholder="000.000.000-00"
+              />
+            )}
           </Field>
           <Field label="Empresa" optional>
             {(f) => <Input id={f.id} value={person.organization} onChange={set("organization")} />}
@@ -157,7 +201,9 @@ export function AddRegistrationSheet({
           />
           <ul className="mt-3 flex flex-col gap-1" role="listbox" aria-label="Pessoas encontradas">
             {q.trim().length >= 2 && found.length === 0 && (
-              <li className="text-fg-subtle px-1 py-3 text-sm">Ninguém encontrado. Cadastre em “Nova pessoa”.</li>
+              <li className="text-fg-subtle px-1 py-3 text-sm">
+                Ninguém encontrado. Cadastre em “Nova pessoa”.
+              </li>
             )}
             {found.map((f) => (
               <li key={f.id}>
@@ -194,7 +240,10 @@ export function AddRegistrationSheet({
               id={f.id}
               value={categoryId}
               onValueChange={setCategoryId}
-              options={[{ value: "none", label: "Sem categoria" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+              options={[
+                { value: "none", label: "Sem categoria" },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
             />
           )}
         </Field>
@@ -204,7 +253,10 @@ export function AddRegistrationSheet({
               id={f.id}
               value={groupId}
               onValueChange={setGroupId}
-              options={[{ value: "none", label: "Sem grupo" }, ...groups.map((g) => ({ value: g.id, label: g.name }))]}
+              options={[
+                { value: "none", label: "Sem grupo" },
+                ...groups.map((g) => ({ value: g.id, label: g.name })),
+              ]}
             />
           )}
         </Field>

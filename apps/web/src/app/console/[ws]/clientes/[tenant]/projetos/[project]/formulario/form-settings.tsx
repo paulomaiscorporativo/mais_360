@@ -30,7 +30,11 @@ export function FormSettings(props: {
 
   function save() {
     start(async () => {
-      const r = await updateFormSettings({ tenant: props.tenant, projectId: props.projectId, form });
+      const r = await updateFormSettings({
+        tenant: props.tenant,
+        projectId: props.projectId,
+        form,
+      });
       if (r.ok) {
         toast.success("Formulário atualizado.");
         router.refresh();
@@ -38,7 +42,11 @@ export function FormSettings(props: {
     });
   }
 
-  const toggle = (k: "askCpf" | "requireCpf" | "askCompany" | "askJobTitle" | "askCity" | "askContactSharing", label: string, hint?: string) => (
+  const toggle = (
+    k: "askCpf" | "requireCpf" | "askCompany" | "askJobTitle" | "askCity" | "askContactSharing",
+    label: string,
+    hint?: string,
+  ) => (
     <label className="flex items-center justify-between gap-4 py-3">
       <span>
         <span className="block text-base font-medium">{label}</span>
@@ -51,10 +59,19 @@ export function FormSettings(props: {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0">
-        <FormSection title="Disponibilidade" description="Fechado, o link mostra um aviso em vez do formulário.">
+        <FormSection
+          title="Disponibilidade"
+          description="Fechado, o link mostra um aviso em vez do formulário."
+        >
           <label className="flex items-center justify-between gap-4">
-            <span className="text-base font-medium">{form.open ? "Inscrições abertas" : "Inscrições fechadas"}</span>
-            <Switch checked={form.open} onCheckedChange={(v) => set("open", v)} disabled={!props.canEdit} />
+            <span className="text-base font-medium">
+              {form.open ? "Inscrições abertas" : "Inscrições fechadas"}
+            </span>
+            <Switch
+              checked={form.open}
+              onCheckedChange={(v) => set("open", v)}
+              disabled={!props.canEdit}
+            />
           </label>
         </FormSection>
 
@@ -66,19 +83,39 @@ export function FormSettings(props: {
             {toggle("askJobTitle", "Cargo")}
             {toggle("askCity", "Cidade e UF")}
             {props.networking &&
-              toggle("askContactSharing", "Autorização de networking", "Pergunta se a pessoa autoriza compartilhar o contato ao ler o crachá (LGPD).")}
+              toggle(
+                "askContactSharing",
+                "Autorização de networking",
+                "Pergunta se a pessoa autoriza compartilhar o contato ao ler o crachá (LGPD).",
+              )}
           </div>
         </FormSection>
 
         <FormSection title="Textos e categoria">
           <Field label="Boas-vindas" hint="Aparece no topo do formulário." optional>
             {(f) => (
-              <Textarea id={f.id} rows={3} value={form.welcome} onChange={(e) => set("welcome", e.target.value)} disabled={!props.canEdit} />
+              <Textarea
+                id={f.id}
+                rows={3}
+                value={form.welcome}
+                onChange={(e) => set("welcome", e.target.value)}
+                disabled={!props.canEdit}
+              />
             )}
           </Field>
-          <Field label="Mensagem de confirmação" hint="Mostrada junto com o QR depois da inscrição." optional>
+          <Field
+            label="Mensagem de confirmação"
+            hint="Mostrada junto com o QR depois da inscrição."
+            optional
+          >
             {(f) => (
-              <Textarea id={f.id} rows={2} value={form.successMessage} onChange={(e) => set("successMessage", e.target.value)} disabled={!props.canEdit} />
+              <Textarea
+                id={f.id}
+                rows={2}
+                value={form.successMessage}
+                onChange={(e) => set("successMessage", e.target.value)}
+                disabled={!props.canEdit}
+              />
             )}
           </Field>
           <Field label="Categoria de quem se inscreve pelo link">
@@ -95,7 +132,7 @@ export function FormSettings(props: {
         </FormSection>
 
         {props.canEdit && (
-          <div className="border-border sticky bottom-0 -mx-1 flex justify-end border-t bg-canvas/90 px-1 py-4 backdrop-blur">
+          <div className="border-border bg-canvas/90 sticky bottom-0 -mx-1 flex justify-end border-t px-1 py-4 backdrop-blur">
             <Button onClick={save} loading={pending} disabled={!dirty}>
               Salvar formulário
             </Button>
@@ -105,7 +142,9 @@ export function FormSettings(props: {
 
       <Panel className="h-fit p-5 lg:sticky lg:top-6">
         <p className="text-sm font-semibold">Divulgação</p>
-        <p className="text-fg-subtle mt-1 text-sm">Use o link em e-mails e o QR em cartazes e telas do evento.</p>
+        <p className="text-fg-subtle mt-1 text-sm">
+          Use o link em e-mails e o QR em cartazes e telas do evento.
+        </p>
         <div
           className="mx-auto mt-5 w-44 rounded-md bg-white p-3 [&_svg]:h-auto [&_svg]:w-full"
           aria-label="QR code do formulário"

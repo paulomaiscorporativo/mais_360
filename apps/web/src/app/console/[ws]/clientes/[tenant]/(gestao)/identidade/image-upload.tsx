@@ -60,7 +60,11 @@ export function ImageUpload({
         onClick={() => input.current?.click()}
         className={cn(
           "border-border-strong hover:border-brand-ring grid shrink-0 place-items-center overflow-hidden rounded-md border border-dashed transition-colors disabled:cursor-not-allowed",
-          aspect === "banner" ? "h-24 w-full sm:w-64" : aspect === "square" ? "size-20" : "h-20 w-full sm:w-48",
+          aspect === "banner"
+            ? "h-24 w-full sm:w-64"
+            : aspect === "square"
+              ? "size-20"
+              : "h-20 w-full sm:w-48",
           dark ? "bg-brand" : "bg-surface-muted",
           pending && "animate-pulse",
         )}
@@ -68,7 +72,11 @@ export function ImageUpload({
       >
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="" className={cn("size-full", aspect === "banner" ? "object-cover" : "object-contain p-3")} />
+          <img
+            src={url}
+            alt=""
+            className={cn("size-full", aspect === "banner" ? "object-cover" : "object-contain p-3")}
+          />
         ) : (
           <ImagePlus className="text-fg-subtle size-5" />
         )}
@@ -78,11 +86,21 @@ export function ImageUpload({
         <p className="text-fg-subtle text-sm">{hint}</p>
         {!disabled && (
           <div className="mt-2 flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => input.current?.click()} loading={pending}>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => input.current?.click()}
+              loading={pending}
+            >
               {url ? "Trocar" : "Enviar"}
             </Button>
             {url && (
-              <Button size="sm" variant="danger-ghost" onClick={() => send(null)} disabled={pending}>
+              <Button
+                size="sm"
+                variant="danger-ghost"
+                onClick={() => send(null)}
+                disabled={pending}
+              >
                 <Trash2 /> Remover
               </Button>
             )}

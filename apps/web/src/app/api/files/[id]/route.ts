@@ -41,7 +41,10 @@ async function canReadTenantFile(
   if (viewer.isPlatformStaff) return true;
   if (!tenantId) return false;
   if (viewer.user.memberships.some((m) => m.tenantId === tenantId)) return true;
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { workspaceId: true } });
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { workspaceId: true },
+  });
   return viewer.user.workspaces.some(
     (w) => w.workspaceId === tenant?.workspaceId && (w.role === "OWNER" || w.role === "ADMIN"),
   );

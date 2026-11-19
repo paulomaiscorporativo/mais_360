@@ -47,7 +47,14 @@ export function PublicRegistrationForm(props: {
   token: string;
   welcome: string;
   successMessage: string;
-  fields: { cpf: boolean; cpfRequired: boolean; company: boolean; jobTitle: boolean; city: boolean; contactSharing: boolean };
+  fields: {
+    cpf: boolean;
+    cpfRequired: boolean;
+    company: boolean;
+    jobTitle: boolean;
+    city: boolean;
+    contactSharing: boolean;
+  };
   credentialBase: string;
   tenantName: string;
 }) {
@@ -62,12 +69,18 @@ export function PublicRegistrationForm(props: {
 
   useEffect(() => {
     if (done && !done.already && !done.delivered) {
-      QRCode.toDataURL(props.credentialBase + done.token, { width: 640, margin: 1, errorCorrectionLevel: "M" }).then(setQr);
+      QRCode.toDataURL(props.credentialBase + done.token, {
+        width: 640,
+        margin: 1,
+        errorCorrectionLevel: "M",
+      }).then(setQr);
     }
   }, [done, props.credentialBase]);
 
-  const set = (k: keyof typeof EMPTY, mask?: (v: string) => string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setF({ ...f, [k]: mask ? mask(e.target.value) : e.target.value });
+  const set =
+    (k: keyof typeof EMPTY, mask?: (v: string) => string) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setF({ ...f, [k]: mask ? mask(e.target.value) : e.target.value });
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -98,7 +111,8 @@ export function PublicRegistrationForm(props: {
         <CheckCircle2 className="text-success size-10" />
         <p className="text-lg font-semibold">Inscrição confirmada, {done.firstName}!</p>
         <p className="text-fg-muted max-w-sm text-base">
-          Encontramos seu cadastro. Por segurança, a credencial vai para o e-mail e o WhatsApp já registrados.
+          Encontramos seu cadastro. Por segurança, a credencial vai para o e-mail e o WhatsApp já
+          registrados.
         </p>
       </div>
     );
@@ -110,7 +124,8 @@ export function PublicRegistrationForm(props: {
         <Info className="text-info size-10" />
         <p className="text-lg font-semibold">{done.firstName}, você já está inscrito</p>
         <p className="text-fg-muted max-w-sm text-base">
-          Sua credencial foi enviada para o e-mail e o WhatsApp cadastrados. Não encontrou? Fale com a organização.
+          Sua credencial foi enviada para o e-mail e o WhatsApp cadastrados. Não encontrou? Fale com
+          a organização.
         </p>
       </div>
     ) : (
@@ -129,7 +144,9 @@ export function PublicRegistrationForm(props: {
           ) : (
             <div className="bg-surface-sunken aspect-square w-full animate-pulse rounded-sm" />
           )}
-          <p className="tabular mt-3 font-mono text-2xl tracking-[0.2em] text-black">{done.shortCode}</p>
+          <p className="tabular mt-3 font-mono text-2xl tracking-[0.2em] text-black">
+            {done.shortCode}
+          </p>
           <p className="text-xs text-black/60">código para digitar na recepção</p>
         </div>
         {qr && (
@@ -147,74 +164,179 @@ export function PublicRegistrationForm(props: {
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-5">
-      {props.welcome && <p className="text-fg-muted text-base whitespace-pre-line">{props.welcome}</p>}
+      {props.welcome && (
+        <p className="text-fg-muted text-base whitespace-pre-line">{props.welcome}</p>
+      )}
 
       <Field label="Nome completo" error={err("fullName")}>
         {(i) => (
-          <Input id={i.id} className={big} autoComplete="name" value={f.fullName} onChange={set("fullName")} aria-invalid={i.invalid} aria-describedby={i.describedBy} required />
+          <Input
+            id={i.id}
+            className={big}
+            autoComplete="name"
+            value={f.fullName}
+            onChange={set("fullName")}
+            aria-invalid={i.invalid}
+            aria-describedby={i.describedBy}
+            required
+          />
         )}
       </Field>
       <Field label="Como quer aparecer no crachá" hint="Ex.: Maria Souza" optional>
-        {(i) => <Input id={i.id} className={big} value={f.badgeName} onChange={set("badgeName")} maxLength={40} />}
+        {(i) => (
+          <Input
+            id={i.id}
+            className={big}
+            value={f.badgeName}
+            onChange={set("badgeName")}
+            maxLength={40}
+          />
+        )}
       </Field>
       <Field label="E-mail" error={err("email")}>
         {(i) => (
-          <Input id={i.id} className={big} type="email" inputMode="email" autoComplete="email" value={f.email} onChange={set("email")} aria-invalid={i.invalid} aria-describedby={i.describedBy} required />
+          <Input
+            id={i.id}
+            className={big}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={f.email}
+            onChange={set("email")}
+            aria-invalid={i.invalid}
+            aria-describedby={i.describedBy}
+            required
+          />
         )}
       </Field>
-      <Field label="WhatsApp" hint="Com DDD. Você recebe a credencial e os avisos por aqui." error={err("phone")}>
+      <Field
+        label="WhatsApp"
+        hint="Com DDD. Você recebe a credencial e os avisos por aqui."
+        error={err("phone")}
+      >
         {(i) => (
-          <Input id={i.id} className={big} type="tel" inputMode="tel" autoComplete="tel-national" placeholder="(11) 99999-8888" value={f.phone} onChange={set("phone", maskPhone)} aria-invalid={i.invalid} aria-describedby={i.describedBy} required />
+          <Input
+            id={i.id}
+            className={big}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder="(11) 99999-8888"
+            value={f.phone}
+            onChange={set("phone", maskPhone)}
+            aria-invalid={i.invalid}
+            aria-describedby={i.describedBy}
+            required
+          />
         )}
       </Field>
       {props.fields.cpf && (
         <Field label="CPF" optional={!props.fields.cpfRequired} error={err("cpf")}>
           {(i) => (
-            <Input id={i.id} className={big} inputMode="numeric" placeholder="000.000.000-00" value={f.cpf} onChange={set("cpf", maskCpf)} aria-invalid={i.invalid} aria-describedby={i.describedBy} />
+            <Input
+              id={i.id}
+              className={big}
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+              value={f.cpf}
+              onChange={set("cpf", maskCpf)}
+              aria-invalid={i.invalid}
+              aria-describedby={i.describedBy}
+            />
           )}
         </Field>
       )}
       {props.fields.company && (
         <Field label="Empresa" optional>
-          {(i) => <Input id={i.id} className={big} autoComplete="organization" value={f.organization} onChange={set("organization")} />}
+          {(i) => (
+            <Input
+              id={i.id}
+              className={big}
+              autoComplete="organization"
+              value={f.organization}
+              onChange={set("organization")}
+            />
+          )}
         </Field>
       )}
       {props.fields.jobTitle && (
         <Field label="Cargo" optional>
-          {(i) => <Input id={i.id} className={big} autoComplete="organization-title" value={f.jobTitle} onChange={set("jobTitle")} />}
+          {(i) => (
+            <Input
+              id={i.id}
+              className={big}
+              autoComplete="organization-title"
+              value={f.jobTitle}
+              onChange={set("jobTitle")}
+            />
+          )}
         </Field>
       )}
       {props.fields.city && (
         <div className="grid grid-cols-[1fr_88px] gap-3">
           <Field label="Cidade" optional>
-            {(i) => <Input id={i.id} className={big} autoComplete="address-level2" value={f.city} onChange={set("city")} />}
+            {(i) => (
+              <Input
+                id={i.id}
+                className={big}
+                autoComplete="address-level2"
+                value={f.city}
+                onChange={set("city")}
+              />
+            )}
           </Field>
           <Field label="UF" optional>
             {(i) => (
-              <Input id={i.id} className={big} maxLength={2} value={f.state} onChange={set("state", (v) => v.toUpperCase().replace(/[^A-Z]/g, ""))} />
+              <Input
+                id={i.id}
+                className={big}
+                maxLength={2}
+                value={f.state}
+                onChange={set("state", (v) => v.toUpperCase().replace(/[^A-Z]/g, ""))}
+              />
             )}
           </Field>
         </div>
       )}
 
       {/* Isca para robôs: invisível para pessoas */}
-      <input id="website" name="website" tabIndex={-1} autoComplete="off" className="sr-only" aria-hidden />
+      <input
+        id="website"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        className="sr-only"
+        aria-hidden
+      />
 
       <div className="border-border flex flex-col gap-4 border-t pt-5">
         {props.fields.contactSharing && (
           <label className="flex items-start gap-3 text-base">
-            <Checkbox checked={sharing} onCheckedChange={(v) => setSharing(v === true)} className="mt-0.5" />
+            <Checkbox
+              checked={sharing}
+              onCheckedChange={(v) => setSharing(v === true)}
+              className="mt-0.5"
+            />
             <span>
-              Autorizo que meu e-mail e WhatsApp sejam compartilhados com quem ler meu crachá no evento.
+              Autorizo que meu e-mail e WhatsApp sejam compartilhados com quem ler meu crachá no
+              evento.
               <span className="text-fg-subtle block text-sm">Você pode mudar isso depois.</span>
             </span>
           </label>
         )}
         <label className="flex items-start gap-3 text-base">
-          <Checkbox checked={accept} onCheckedChange={(v) => setAccept(v === true)} className="mt-0.5" aria-invalid={!!err("acceptTerms")} />
+          <Checkbox
+            checked={accept}
+            onCheckedChange={(v) => setAccept(v === true)}
+            className="mt-0.5"
+            aria-invalid={!!err("acceptTerms")}
+          />
           <span>
-            Concordo com o uso dos meus dados por {props.tenantName} para esta inscrição, conforme a LGPD.
-            {err("acceptTerms") && <span className="text-danger block text-sm">{err("acceptTerms")}</span>}
+            Concordo com o uso dos meus dados por {props.tenantName} para esta inscrição, conforme a
+            LGPD.
+            {err("acceptTerms") && (
+              <span className="text-danger block text-sm">{err("acceptTerms")}</span>
+            )}
           </span>
         </label>
       </div>

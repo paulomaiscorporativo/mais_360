@@ -30,7 +30,10 @@ type Data = {
   emergencyPhone: string;
 };
 
-const SECTIONS: { title: string; fields: { key: keyof Data; label: string; type?: string; wide?: boolean; area?: boolean }[] }[] = [
+const SECTIONS: {
+  title: string;
+  fields: { key: keyof Data; label: string; type?: string; wide?: boolean; area?: boolean }[];
+}[] = [
   {
     title: "Identificação",
     fields: [
@@ -67,7 +70,15 @@ const SECTIONS: { title: string; fields: { key: keyof Data; label: string; type?
   },
 ];
 
-export function EditPerson({ tenant, personId, initial }: { tenant: string; personId: string; initial: Data }) {
+export function EditPerson({
+  tenant,
+  personId,
+  initial,
+}: {
+  tenant: string;
+  personId: string;
+  initial: Data;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(initial);
@@ -125,7 +136,12 @@ export function EditPerson({ tenant, personId, initial }: { tenant: string; pers
               <h3 className="mb-3 text-sm font-semibold">{s.title}</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 {s.fields.map((f) => (
-                  <Field key={f.key} label={f.label} error={errors[`data.${f.key}`]} className={f.wide ? "sm:col-span-2" : undefined}>
+                  <Field
+                    key={f.key}
+                    label={f.label}
+                    error={errors[`data.${f.key}`]}
+                    className={f.wide ? "sm:col-span-2" : undefined}
+                  >
                     {(ids) =>
                       f.area ? (
                         <Textarea

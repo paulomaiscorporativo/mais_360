@@ -49,7 +49,9 @@ export const travelRequestServiceSchemas = {
 } as const satisfies Partial<Record<ServiceType, z.ZodType>>;
 
 export type RequestableService = keyof typeof travelRequestServiceSchemas;
-export const REQUESTABLE_SERVICES = Object.keys(travelRequestServiceSchemas) as RequestableService[];
+export const REQUESTABLE_SERVICES = Object.keys(
+  travelRequestServiceSchemas,
+) as RequestableService[];
 
 export type TravelRequestServices = {
   [K in RequestableService]?: z.infer<(typeof travelRequestServiceSchemas)[K]>;
@@ -77,7 +79,10 @@ export function parseTravelRequestServices(
   for (const key of unique) {
     const parsed = travelRequestServiceSchemas[key].safeParse(details[key] ?? {});
     if (!parsed.success) {
-      return { ok: false, error: `Revise o bloco ${key}: ${parsed.error.issues[0]?.message ?? "dados inválidos"}.` };
+      return {
+        ok: false,
+        error: `Revise o bloco ${key}: ${parsed.error.issues[0]?.message ?? "dados inválidos"}.`,
+      };
     }
     (out as Record<string, unknown>)[key] = parsed.data;
   }

@@ -55,7 +55,9 @@ export const updatePerson = defineAction(
     if (data.cpf && !isValidCpf(cpf)) errors["data.cpf"] = "CPF inválido.";
     const phone = data.phone ? normalizePhone(data.phone)?.e164 : "";
     if (data.phone && !phone) errors["data.phone"] = "Telefone inválido. Use DDD + número.";
-    const emergencyPhone = data.emergencyPhone ? (normalizePhone(data.emergencyPhone)?.e164 ?? data.emergencyPhone) : "";
+    const emergencyPhone = data.emergencyPhone
+      ? (normalizePhone(data.emergencyPhone)?.e164 ?? data.emergencyPhone)
+      : "";
     if (Object.keys(errors).length) throw invalidFields(errors);
 
     // Não deixa duas pessoas com o mesmo CPF ou e-mail no cliente

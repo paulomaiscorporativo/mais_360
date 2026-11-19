@@ -14,18 +14,17 @@ import { storage } from "./storage";
 export const FILE_KINDS = {
   image: ["image/png", "image/jpeg", "image/webp"],
   pdf: ["application/pdf"],
-  document: [
-    "application/pdf",
-    "image/png",
-    "image/jpeg",
-    "image/webp",
-  ],
+  document: ["application/pdf", "image/png", "image/jpeg", "image/webp"],
 } as const;
 
 export type FileKind = keyof typeof FILE_KINDS;
 
 const MB = 1024 * 1024;
-export const MAX_BYTES: Record<FileKind, number> = { image: 5 * MB, pdf: 20 * MB, document: 20 * MB };
+export const MAX_BYTES: Record<FileKind, number> = {
+  image: 5 * MB,
+  pdf: 20 * MB,
+  document: 20 * MB,
+};
 
 /** Tipo real pelo conteúdo ("magic bytes"). */
 export function sniffMime(buf: Uint8Array): string | null {
@@ -34,8 +33,14 @@ export function sniffMime(buf: Uint8Array): string | null {
   if (b(0) === 0xff && b(1) === 0xd8 && b(2) === 0xff) return "image/jpeg";
   if (b(0) === 0x25 && b(1) === 0x50 && b(2) === 0x44 && b(3) === 0x46) return "application/pdf";
   if (
-    b(0) === 0x52 && b(1) === 0x49 && b(2) === 0x46 && b(3) === 0x46 &&
-    b(8) === 0x57 && b(9) === 0x45 && b(10) === 0x42 && b(11) === 0x50
+    b(0) === 0x52 &&
+    b(1) === 0x49 &&
+    b(2) === 0x46 &&
+    b(3) === 0x46 &&
+    b(8) === 0x57 &&
+    b(9) === 0x45 &&
+    b(10) === 0x42 &&
+    b(11) === 0x50
   )
     return "image/webp";
   return null;
@@ -69,7 +74,9 @@ export async function saveUpload(input: {
   const { file, kind } = input;
   if (!file || file.size === 0) throw new AppError("Escolha um arquivo.");
   if (file.size > MAX_BYTES[kind]) {
-    throw new AppError(`O arquivo passa de ${Math.round(MAX_BYTES[kind] / MB)} MB. Envie um menor.`);
+    throw new AppError(
+      `O arquivo passa de ${Math.round(MAX_BYTES[kind] / MB)} MB. Envie um menor.`,
+    );
   }
   const buf = new Uint8Array(await file.arrayBuffer());
   const mime = sniffMime(buf);

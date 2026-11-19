@@ -62,7 +62,8 @@ export const submitPublicRegistration = defineAction(schema, async (input) => {
   if (!project) throw new AppError("Inscrição indisponível.");
   const features = enabledProjectFeatures(project.features, await modulesForTenant(tenant));
   const form = readProjectSettings(project.settings).form;
-  if (!features.has("REGISTRATION_FORM") || !form.open) throw new AppError("As inscrições estão encerradas.");
+  if (!features.has("REGISTRATION_FORM") || !form.open)
+    throw new AppError("As inscrições estão encerradas.");
 
   const fieldErrors: Record<string, string> = {};
   const email = normalizeEmail(input.email);
@@ -130,7 +131,13 @@ export const submitPublicRegistration = defineAction(schema, async (input) => {
   // Cadastro reaproveitado (mesmo e-mail/CPF/telefone de alguém que já existia):
   // não exibimos a credencial na tela — ela segue pelos canais do cadastro.
   if (!created) return { already: false as const, firstName, delivered: true as const };
-  return { already: false as const, firstName, delivered: false as const, token: reg.token, shortCode: reg.shortCode };
+  return {
+    already: false as const,
+    firstName,
+    delivered: false as const,
+    token: reg.token,
+    shortCode: reg.shortCode,
+  };
 });
 
 /** Modelo padrão quando o cliente não cadastrou o seu (finalidade REGISTRATION_CONFIRMED). */
@@ -159,7 +166,13 @@ const DEFAULT_CONFIRMATION = {
  */
 async function sendCredential(tenantId: string, projectId: string, registrationId: string) {
   try {
-    const base = { tenantId, projectId, registrationId, channels: ["EMAIL", "WHATSAPP"] as ("EMAIL" | "WHATSAPP")[], reason: "registration.confirmed" };
+    const base = {
+      tenantId,
+      projectId,
+      registrationId,
+      channels: ["EMAIL", "WHATSAPP"] as ("EMAIL" | "WHATSAPP")[],
+      reason: "registration.confirmed",
+    };
     const r = await sendTransactional(prisma, { ...base, purpose: "REGISTRATION_CONFIRMED" });
     if (!r.ok) await sendTransactional(prisma, { ...base, template: DEFAULT_CONFIRMATION });
   } catch (err) {

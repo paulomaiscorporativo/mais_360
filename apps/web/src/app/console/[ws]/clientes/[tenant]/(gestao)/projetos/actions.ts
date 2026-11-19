@@ -253,7 +253,8 @@ export const archiveProject = defineAction(
   z.object({ tenant: z.string(), projectId: z.string() }),
   async (input) => {
     const p = await requireProjectWriter(input.tenant, input.projectId);
-    if (p.role !== "ADMIN" && p.role !== "MANAGER") throw new AppError("Só gestores arquivam projetos.");
+    if (p.role !== "ADMIN" && p.role !== "MANAGER")
+      throw new AppError("Só gestores arquivam projetos.");
     await p.db.project.update({
       where: { id: p.projectId },
       data: { archivedAt: new Date(), status: "ARCHIVED" },

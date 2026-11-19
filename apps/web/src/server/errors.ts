@@ -20,5 +20,7 @@ export const notFound = (msg = "Não encontramos o que você procura.") =>
   new AppError(msg, "NOT_FOUND");
 
 /** Erro de validação com mensagens por campo. */
-export const invalidFields = (fieldErrors: Record<string, string>, msg = "Revise os campos destacados.") =>
-  new AppError(msg, "INVALID", fieldErrors);
+export const invalidFields = (
+  fieldErrors: Record<string, string>,
+  msg = "Revise os campos destacados.",
+) => new AppError(msg, "INVALID", fieldErrors);

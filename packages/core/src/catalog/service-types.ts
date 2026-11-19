@@ -60,7 +60,13 @@ export const ROOM_TYPE_LABELS: Record<(typeof ROOM_TYPES)[number], string> = {
   OTHER: "Outro",
 };
 
-export const MEAL_PLANS = ["ROOM_ONLY", "BREAKFAST", "HALF_BOARD", "FULL_BOARD", "ALL_INCLUSIVE"] as const;
+export const MEAL_PLANS = [
+  "ROOM_ONLY",
+  "BREAKFAST",
+  "HALF_BOARD",
+  "FULL_BOARD",
+  "ALL_INCLUSIVE",
+] as const;
 export const MEAL_PLAN_LABELS: Record<(typeof MEAL_PLANS)[number], string> = {
   ROOM_ONLY: "Sem refeição",
   BREAKFAST: "Café da manhã",
@@ -277,7 +283,12 @@ export const SERVICE_TYPES = {
   SCENOGRAPHY: def("Cenografia", "EVENT_PRODUCTION", "servico", eventProductionDetails),
   STAND_BUILD: def("Montagem de stand", "EVENT_PRODUCTION", "servico", eventProductionDetails),
   MERCHANDISE: def("Brindes", "EVENT_PRODUCTION", "unidade", eventProductionDetails),
-  ACCREDITATION_SERVICE: def("Credenciamento", "EVENT_PRODUCTION", "servico", eventProductionDetails),
+  ACCREDITATION_SERVICE: def(
+    "Credenciamento",
+    "EVENT_PRODUCTION",
+    "servico",
+    eventProductionDetails,
+  ),
   EVENT_STAFF: def("Staff / recepção", "EVENT_PRODUCTION", "diaria", eventProductionDetails),
   INTERPRETATION: def("Tradução / intérprete", "EVENT_PRODUCTION", "diaria", interpretationDetails),
   BRAND_ACTIVATION: def("Ativação de marca", "EVENT_PRODUCTION", "servico", eventProductionDetails),

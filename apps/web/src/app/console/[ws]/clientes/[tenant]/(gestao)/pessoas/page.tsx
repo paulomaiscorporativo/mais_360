@@ -29,7 +29,9 @@ export default async function PeoplePage({
     const digits = (sp.q ?? "").replace(/\D/g, "");
     where.OR = [
       { searchText: { contains: q } },
-      ...(digits.length >= 6 ? [{ cpf: { contains: digits } }, { phone: { contains: digits } }] : []),
+      ...(digits.length >= 6
+        ? [{ cpf: { contains: digits } }, { phone: { contains: digits } }]
+        : []),
     ];
   }
   if (sp.tipo === "membros") where.isMember = true;
@@ -82,7 +84,9 @@ export default async function PeoplePage({
                   <span className="block truncate font-medium">
                     {p.firstName} {p.lastName}
                   </span>
-                  <span className="text-fg-subtle block truncate text-sm">{p.email || "Sem e-mail"}</span>
+                  <span className="text-fg-subtle block truncate text-sm">
+                    {p.email || "Sem e-mail"}
+                  </span>
                 </span>
               ),
             },
@@ -121,7 +125,10 @@ export default async function PeoplePage({
         />
       )}
       {people.length === 0 && (
-        <EmptyState title="Ninguém com esses filtros" description="Tente outro nome, e-mail, empresa ou CPF." />
+        <EmptyState
+          title="Ninguém com esses filtros"
+          description="Tente outro nome, e-mail, empresa ou CPF."
+        />
       )}
     </>
   );

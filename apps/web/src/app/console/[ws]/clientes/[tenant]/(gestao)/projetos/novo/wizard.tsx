@@ -27,7 +27,12 @@ import { Button, Notice } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { createProject } from "../actions";
-import { emptyProjectForm, FeatureList, ProjectFields, type ProjectFormValue } from "../_components/project-form";
+import {
+  emptyProjectForm,
+  FeatureList,
+  ProjectFields,
+  type ProjectFormValue,
+} from "../_components/project-form";
 
 const ICONS: Record<ProjectType, LucideIcon> = {
   INCENTIVE_TRIP: Plane,
@@ -78,7 +83,8 @@ export function ProjectWizard({
     setStep(1);
   }
 
-  const dataValid = data.name.trim().length > 1 && (!data.startsAt || !data.endsAt || data.endsAt >= data.startsAt);
+  const dataValid =
+    data.name.trim().length > 1 && (!data.startsAt || !data.endsAt || data.endsAt >= data.startsAt);
 
   function submit() {
     if (!type) return;
@@ -88,7 +94,8 @@ export function ProjectWizard({
       if (!r.ok) {
         setError(r.error);
         setErrors(r.fieldErrors ?? {});
-        if (r.fieldErrors && Object.keys(r.fieldErrors).some((k) => k.startsWith("data."))) setStep(1);
+        if (r.fieldErrors && Object.keys(r.fieldErrors).some((k) => k.startsWith("data.")))
+          setStep(1);
         return;
       }
       toast.success("Projeto criado.");
@@ -134,7 +141,9 @@ export function ProjectWizard({
               </span>
               <span className="truncate">{label}</span>
             </button>
-            {i < STEPS.length - 1 && <span aria-hidden className="bg-border-strong h-px w-5 shrink-0" />}
+            {i < STEPS.length - 1 && (
+              <span aria-hidden className="bg-border-strong h-px w-5 shrink-0" />
+            )}
           </li>
         ))}
       </ol>
@@ -182,8 +191,15 @@ export function ProjectWizard({
       {step === 1 && type && (
         <section>
           <h2 className="text-lg font-semibold tracking-tight">{projectTemplate(type).name}</h2>
-          <p className="text-fg-muted mt-1 mb-6 text-base">O essencial para começar. Datas podem ficar para depois.</p>
-          <ProjectFields value={data} onChange={setData} errors={errors} travel={TRAVEL_TYPES.has(type)} />
+          <p className="text-fg-muted mt-1 mb-6 text-base">
+            O essencial para começar. Datas podem ficar para depois.
+          </p>
+          <ProjectFields
+            value={data}
+            onChange={setData}
+            errors={errors}
+            travel={TRAVEL_TYPES.has(type)}
+          />
         </section>
       )}
 

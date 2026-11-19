@@ -20,7 +20,10 @@ function safeEqual(a: string, b: string) {
   return ba.length === bb.length && timingSafeEqual(ba, bb);
 }
 
-export async function GET(req: NextRequest, ctx: RouteContext<"/api/webhooks/whatsapp/[provider]">) {
+export async function GET(
+  req: NextRequest,
+  ctx: RouteContext<"/api/webhooks/whatsapp/[provider]">,
+) {
   const { provider } = await ctx.params;
   if (provider !== "meta") return new Response(null, { status: 404 });
   const expected = process.env.META_VERIFY_TOKEN ?? "";
@@ -32,7 +35,10 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/webhooks/wha
   return new Response(null, { status: 403 });
 }
 
-export async function POST(req: NextRequest, ctx: RouteContext<"/api/webhooks/whatsapp/[provider]">) {
+export async function POST(
+  req: NextRequest,
+  ctx: RouteContext<"/api/webhooks/whatsapp/[provider]">,
+) {
   const { provider } = await ctx.params;
   const raw = await req.text();
   if (raw.length > 1_000_000) return new Response(null, { status: 413 });

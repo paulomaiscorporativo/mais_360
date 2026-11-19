@@ -78,13 +78,26 @@ export async function findExistingPerson(db: TenantDb, input: PersonInput) {
   return findDuplicate(input, await candidates(db, input));
 }
 
-async function linkOrganization(db: TenantDb, tenantId: string, personId: string, name: string, role: string) {
+async function linkOrganization(
+  db: TenantDb,
+  tenantId: string,
+  personId: string,
+  name: string,
+  role: string,
+) {
   const clean = cleanText(name);
   if (!clean) return;
   const folded = foldText(clean);
-  const orgs = await db.organization.findMany({ where: { archivedAt: null }, select: { id: true, name: true } });
+  const orgs = await db.organization.findMany({
+    where: { archivedAt: null },
+    select: { id: true, name: true },
+  });
   let org = orgs.find((o) => foldText(o.name) === folded);
-  if (!org) org = await db.organization.create({ data: { tenantId, name: clean }, select: { id: true, name: true } });
+  if (!org)
+    org = await db.organization.create({
+      data: { tenantId, name: clean },
+      select: { id: true, name: true },
+    });
   await db.personOrganization.upsert({
     where: { personId_organizationId: { personId, organizationId: org.id } },
     create: { personId, organizationId: org.id, role, primary: true },
@@ -108,7 +121,16 @@ export async function upsertPerson(
   if (match) {
     const p = match.person;
     const fill: Prisma.PersonUpdateInput = {};
-    for (const key of ["lastName", "email", "emailNorm", "phone", "cpf", "jobTitle", "city", "state"] as const) {
+    for (const key of [
+      "lastName",
+      "email",
+      "emailNorm",
+      "phone",
+      "cpf",
+      "jobTitle",
+      "city",
+      "state",
+    ] as const) {
       if (!p[key] && data[key]) fill[key] = data[key];
     }
     if (input.isMember && !p.isMember) fill.isMember = true;
@@ -116,7 +138,8 @@ export async function upsertPerson(
     const person = Object.keys(fill).length
       ? await db.person.update({ where: { id: p.id }, data: fill })
       : p;
-    if (input.organization) await linkOrganization(db, tenantId, person.id, input.organization, data.jobTitle);
+    if (input.organization)
+      await linkOrganization(db, tenantId, person.id, input.organization, data.jobTitle);
     await refreshSearch(db, person.id);
     return { person, created: false };
   }
@@ -128,10 +151,14 @@ export async function upsertPerson(
       isMember: input.isMember ?? false,
       memberType: input.memberType ?? "",
       externalIds: input.externalIds ?? {},
-      searchText: personSearchText({ ...data, organizations: input.organization ? [input.organization] : [] }),
+      searchText: personSearchText({
+        ...data,
+        organizations: input.organization ? [input.organization] : [],
+      }),
     },
   });
-  if (input.organization) await linkOrganization(db, tenantId, person.id, input.organization, data.jobTitle);
+  if (input.organization)
+    await linkOrganization(db, tenantId, person.id, input.organization, data.jobTitle);
   return { person, created: true };
 }
 

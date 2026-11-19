@@ -1,19 +1,19 @@
 "use client";
 
-import {
-  FileSpreadsheet,
-  MoreHorizontal,
-  Search,
-  UserPlus,
-  Users,
-  X,
-} from "lucide-react";
+import { FileSpreadsheet, MoreHorizontal, Search, UserPlus, Users, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Badge, Button, EmptyState, Input, Notice } from "@/components/ui";
 import { Checkbox, Select } from "@/components/ui/controls";
 import { DataTable } from "@/components/ui/data-table";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/overlay";
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuTrigger,
+} from "@/components/ui/overlay";
 import { toast } from "@/components/ui/toast";
 import { updateRegistration } from "./actions";
 import { AddRegistrationSheet } from "./add-sheet";
@@ -90,7 +90,11 @@ export function RegistrationsManager(props: {
   const visibleIds = rows.map((r) => r.id);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
 
-  function patch(ids: string[], data: { status?: Status; categoryId?: string | null; groupId?: string | null }, done: string) {
+  function patch(
+    ids: string[],
+    data: { status?: Status; categoryId?: string | null; groupId?: string | null },
+    done: string,
+  ) {
     start(async () => {
       const r = await updateRegistration({ tenant, projectId, ids, patch: data });
       if (r.ok) {
@@ -172,7 +176,11 @@ export function RegistrationsManager(props: {
             </div>
             {canEdit && (
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setImporting(true)} className="flex-1 md:flex-none">
+                <Button
+                  variant="secondary"
+                  onClick={() => setImporting(true)}
+                  className="flex-1 md:flex-none"
+                >
                   <FileSpreadsheet /> Importar
                 </Button>
                 <Button onClick={() => setAdding(true)} className="flex-1 md:flex-none">
@@ -200,7 +208,9 @@ export function RegistrationsManager(props: {
                         key: "sel",
                         header: (
                           <Checkbox
-                            checked={allSelected ? true : selected.size > 0 ? "indeterminate" : false}
+                            checked={
+                              allSelected ? true : selected.size > 0 ? "indeterminate" : false
+                            }
                             onCheckedChange={() =>
                               setSelected(allSelected ? new Set() : new Set(visibleIds))
                             }
@@ -234,7 +244,9 @@ export function RegistrationsManager(props: {
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{r.name}</span>
                       <span className="text-fg-subtle block truncate text-sm">
-                        {r.companionOf ? `Acompanhante de ${r.companionOf}` : [r.company, r.jobTitle].filter(Boolean).join(" · ") || r.email || "—"}
+                        {r.companionOf
+                          ? `Acompanhante de ${r.companionOf}`
+                          : [r.company, r.jobTitle].filter(Boolean).join(" · ") || r.email || "—"}
                       </span>
                     </span>
                   ),
@@ -245,7 +257,11 @@ export function RegistrationsManager(props: {
                   mobile: "secondary",
                   cell: (r) => (
                     <span className="flex flex-wrap gap-1">
-                      {r.category ? <LabelDot label={r.category} /> : <span className="text-fg-faint text-sm">—</span>}
+                      {r.category ? (
+                        <LabelDot label={r.category} />
+                      ) : (
+                        <span className="text-fg-faint text-sm">—</span>
+                      )}
                       {r.group && <LabelDot label={r.group} />}
                     </span>
                   ),
@@ -254,7 +270,9 @@ export function RegistrationsManager(props: {
                   key: "code",
                   header: "Código",
                   mobile: "desktopOnly",
-                  cell: (r) => <span className="tabular text-fg-muted font-mono text-sm">{r.shortCode}</span>,
+                  cell: (r) => (
+                    <span className="tabular text-fg-muted font-mono text-sm">{r.shortCode}</span>
+                  ),
                 },
                 {
                   key: "status",
@@ -301,7 +319,12 @@ export function RegistrationsManager(props: {
         <div className="fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 md:bottom-6">
           <div className="border-border bg-surface flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 shadow-lg">
             <span className="tabular px-1 text-sm font-medium">{selected.size} selecionadas</span>
-            <Button size="sm" variant="secondary" disabled={pending} onClick={() => patch([...selected], { status: "CONFIRMED" }, "{n} confirmadas.")}>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={pending}
+              onClick={() => patch([...selected], { status: "CONFIRMED" }, "{n} confirmadas.")}
+            >
               Confirmar
             </Button>
             {categories.length > 0 && (
@@ -313,8 +336,14 @@ export function RegistrationsManager(props: {
                 </MenuTrigger>
                 <MenuContent>
                   {categories.map((c) => (
-                    <MenuItem key={c.id} onSelect={() => patch([...selected], { categoryId: c.id }, `{n} movidas para ${c.name}.`)}>
-                      <span className="size-2 rounded-full" style={{ background: c.color }} /> {c.name}
+                    <MenuItem
+                      key={c.id}
+                      onSelect={() =>
+                        patch([...selected], { categoryId: c.id }, `{n} movidas para ${c.name}.`)
+                      }
+                    >
+                      <span className="size-2 rounded-full" style={{ background: c.color }} />{" "}
+                      {c.name}
                     </MenuItem>
                   ))}
                 </MenuContent>
@@ -329,17 +358,33 @@ export function RegistrationsManager(props: {
                 </MenuTrigger>
                 <MenuContent>
                   {groups.map((g) => (
-                    <MenuItem key={g.id} onSelect={() => patch([...selected], { groupId: g.id }, `{n} no grupo ${g.name}.`)}>
-                      <span className="size-2 rounded-full" style={{ background: g.color }} /> {g.name}
+                    <MenuItem
+                      key={g.id}
+                      onSelect={() =>
+                        patch([...selected], { groupId: g.id }, `{n} no grupo ${g.name}.`)
+                      }
+                    >
+                      <span className="size-2 rounded-full" style={{ background: g.color }} />{" "}
+                      {g.name}
                     </MenuItem>
                   ))}
                 </MenuContent>
               </Menu>
             )}
-            <Button size="sm" variant="danger-ghost" disabled={pending} onClick={() => patch([...selected], { status: "CANCELED" }, "{n} canceladas.")}>
+            <Button
+              size="sm"
+              variant="danger-ghost"
+              disabled={pending}
+              onClick={() => patch([...selected], { status: "CANCELED" }, "{n} canceladas.")}
+            >
               Cancelar
             </Button>
-            <Button size="icon-sm" variant="ghost" onClick={() => setSelected(new Set())} aria-label="Limpar seleção">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+              aria-label="Limpar seleção"
+            >
               <X />
             </Button>
           </div>
@@ -392,7 +437,12 @@ function RowMenu({
         {(["CONFIRMED", "PENDING", "WAITLIST", "DECLINED"] as const)
           .filter((s) => s !== row.status)
           .map((s) => (
-            <MenuItem key={s} onSelect={() => onPatch({ status: s }, `${row.name}: ${STATUS[s].label.toLowerCase()}.`)}>
+            <MenuItem
+              key={s}
+              onSelect={() =>
+                onPatch({ status: s }, `${row.name}: ${STATUS[s].label.toLowerCase()}.`)
+              }
+            >
               {STATUS[s].label}
             </MenuItem>
           ))}
@@ -403,7 +453,10 @@ function RowMenu({
             {categories
               .filter((c) => c.id !== row.category?.id)
               .map((c) => (
-                <MenuItem key={c.id} onSelect={() => onPatch({ categoryId: c.id }, `${row.name} agora é ${c.name}.`)}>
+                <MenuItem
+                  key={c.id}
+                  onSelect={() => onPatch({ categoryId: c.id }, `${row.name} agora é ${c.name}.`)}
+                >
                   <span className="size-2 rounded-full" style={{ background: c.color }} /> {c.name}
                 </MenuItem>
               ))}
@@ -412,7 +465,12 @@ function RowMenu({
         {row.status !== "CANCELED" && (
           <>
             <MenuSeparator />
-            <MenuItem tone="danger" onSelect={() => onPatch({ status: "CANCELED" }, `Inscrição de ${row.name} cancelada.`)}>
+            <MenuItem
+              tone="danger"
+              onSelect={() =>
+                onPatch({ status: "CANCELED" }, `Inscrição de ${row.name} cancelada.`)
+              }
+            >
               Cancelar inscrição
             </MenuItem>
           </>

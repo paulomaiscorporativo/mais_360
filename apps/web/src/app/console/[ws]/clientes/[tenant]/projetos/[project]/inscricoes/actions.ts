@@ -9,7 +9,16 @@ import { AppError } from "@/server/errors";
 import { upsertPerson } from "@/server/people";
 import { newRegistrationToken, requireProjectWriter, shortCodeAllocator } from "@/server/projects";
 
-const ROLES = ["TRAVELER", "COMPANION", "GUEST", "ATTENDEE", "EXHIBITOR", "SPEAKER", "STAFF", "PRESS"] as const;
+const ROLES = [
+  "TRAVELER",
+  "COMPANION",
+  "GUEST",
+  "ATTENDEE",
+  "EXHIBITOR",
+  "SPEAKER",
+  "STAFF",
+  "PRESS",
+] as const;
 const STATUSES = ["PENDING", "INVITED", "CONFIRMED", "DECLINED", "WAITLIST", "CANCELED"] as const;
 
 const personFields = z.object({
@@ -38,7 +47,9 @@ export const searchPeople = defineAction(
         archivedAt: null,
         OR: [
           { searchText: { contains: term } },
-          ...(digits.length >= 6 ? [{ cpf: { contains: digits } }, { phone: { contains: digits } }] : []),
+          ...(digits.length >= 6
+            ? [{ cpf: { contains: digits } }, { phone: { contains: digits } }]
+            : []),
         ],
       },
       take: 8,
@@ -134,11 +145,22 @@ async function assertRefs(
   groupId: string | null,
   companionOfId: string | null,
 ) {
-  if (categoryId && !(await p.db.registrationCategory.findFirst({ where: { id: categoryId, projectId: p.projectId } })))
+  if (
+    categoryId &&
+    !(await p.db.registrationCategory.findFirst({
+      where: { id: categoryId, projectId: p.projectId },
+    }))
+  )
     throw new AppError("Categoria inválida.");
-  if (groupId && !(await p.db.projectGroup.findFirst({ where: { id: groupId, projectId: p.projectId } })))
+  if (
+    groupId &&
+    !(await p.db.projectGroup.findFirst({ where: { id: groupId, projectId: p.projectId } }))
+  )
     throw new AppError("Grupo inválido.");
-  if (companionOfId && !(await p.db.registration.findFirst({ where: { id: companionOfId, projectId: p.projectId } })))
+  if (
+    companionOfId &&
+    !(await p.db.registration.findFirst({ where: { id: companionOfId, projectId: p.projectId } }))
+  )
     throw new AppError("Titular inválido.");
 }
 
@@ -166,7 +188,10 @@ export const updateRegistration = defineAction(
       ...(patch.status === "CONFIRMED" ? { confirmedAt: now } : {}),
       ...(patch.status === "CANCELED" ? { canceledAt: now, canceledBy: p.viewer.user.name } : {}),
     };
-    const r = await p.db.registration.updateMany({ where: { projectId: p.projectId, id: { in: ids } }, data });
+    const r = await p.db.registration.updateMany({
+      where: { projectId: p.projectId, id: { in: ids } },
+      data,
+    });
     await audit({
       action: "registration.update",
       userId: p.viewer.user.id,
@@ -223,11 +248,18 @@ export const importRegistrations = defineAction(
       throw new AppError("Categoria padrão inválida.");
 
     const nextCode = await shortCodeAllocator(p.db, p.projectId);
-    const stats = { created: 0, existingPeople: 0, alreadyRegistered: 0, skipped: 0, errors: [] as string[] };
+    const stats = {
+      created: 0,
+      existingPeople: 0,
+      alreadyRegistered: 0,
+      skipped: 0,
+      errors: [] as string[],
+    };
 
     for (const [i, row] of input.rows.entries()) {
       const names = row.fullName && !row.firstName ? splitFullName(row.fullName) : null;
-      const firstName = (names?.firstName ?? row.firstName ?? "").trim() || (row.lastName ?? "").trim();
+      const firstName =
+        (names?.firstName ?? row.firstName ?? "").trim() || (row.lastName ?? "").trim();
       if (!firstName) {
         stats.skipped++;
         continue;
@@ -254,7 +286,12 @@ export const importRegistrations = defineAction(
           let id = catByName.get(key);
           if (!id && input.createMissingCategories) {
             const c = await p.db.registrationCategory.create({
-              data: { tenantId: p.tenantId, projectId: p.projectId, name: row.category.trim().slice(0, 60), sortOrder: catByName.size },
+              data: {
+                tenantId: p.tenantId,
+                projectId: p.projectId,
+                name: row.category.trim().slice(0, 60),
+                sortOrder: catByName.size,
+              },
             });
             id = c.id;
             catByName.set(key, id);
@@ -267,7 +304,11 @@ export const importRegistrations = defineAction(
           let id = groupByName.get(key);
           if (!id) {
             const g = await p.db.projectGroup.create({
-              data: { tenantId: p.tenantId, projectId: p.projectId, name: row.group.trim().slice(0, 60) },
+              data: {
+                tenantId: p.tenantId,
+                projectId: p.projectId,
+                name: row.group.trim().slice(0, 60),
+              },
             });
             id = g.id;
             groupByName.set(key, id);
@@ -315,7 +356,9 @@ export const importRegistrations = defineAction(
         }
         stats.created++;
       } catch (err) {
-        stats.errors.push(`Linha ${i + 2}: ${err instanceof Error ? err.message : "erro desconhecido"}`);
+        stats.errors.push(
+          `Linha ${i + 2}: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+        );
         if (stats.errors.length > 50) break;
       }
     }

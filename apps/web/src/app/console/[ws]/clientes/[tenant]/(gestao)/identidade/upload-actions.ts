@@ -18,7 +18,9 @@ const TARGETS = new Set<Target>(["logo", "logoDark", "favicon", "projectBanner"]
  *   tenant, target, file, [projectId]   — ou remove=1 para tirar a imagem.
  * Imagens de marca são PUBLIC (aparecem em e-mails e páginas públicas).
  */
-export async function uploadBrandAsset(form: FormData): Promise<ActionResult<{ fileId: string | null }>> {
+export async function uploadBrandAsset(
+  form: FormData,
+): Promise<ActionResult<{ fileId: string | null }>> {
   try {
     const tenant = String(form.get("tenant") ?? "");
     const target = String(form.get("target") ?? "") as Target;
@@ -44,7 +46,8 @@ export async function uploadBrandAsset(form: FormData): Promise<ActionResult<{ f
 
     const ctx = await requireTenant(tenant, "ADMIN");
     const fileId = remove ? null : (await store(form, ctx.tenantId, ctx.viewer.user.name)).id;
-    const field = target === "logo" ? "logoFileId" : target === "logoDark" ? "logoDarkFileId" : "faviconFileId";
+    const field =
+      target === "logo" ? "logoFileId" : target === "logoDark" ? "logoDarkFileId" : "faviconFileId";
     await prisma.tenantBranding.upsert({
       where: { tenantId: ctx.tenantId },
       create: { tenantId: ctx.tenantId, [field]: fileId },

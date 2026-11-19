@@ -20,12 +20,25 @@ import {
   setProjectFeature,
   updateProject,
 } from "../../../(gestao)/projetos/actions";
-import { FeatureList, ProjectFields, type ProjectFormValue } from "../../../(gestao)/projetos/_components/project-form";
+import {
+  FeatureList,
+  ProjectFields,
+  type ProjectFormValue,
+} from "../../../(gestao)/projetos/_components/project-form";
 import { ImageUpload } from "../../../(gestao)/identidade/image-upload";
 
 type Item = { id?: string; name: string; color: string };
 
-const SWATCHES = ["#0f766e", "#1d4ed8", "#0369a1", "#65a30d", "#b45309", "#b91c1c", "#7c3aed", "#334155"];
+const SWATCHES = [
+  "#0f766e",
+  "#1d4ed8",
+  "#0369a1",
+  "#65a30d",
+  "#b45309",
+  "#b91c1c",
+  "#7c3aed",
+  "#334155",
+];
 
 export function ProjectSettingsForm(props: {
   ws: string;
@@ -91,7 +104,10 @@ export function ProjectSettingsForm(props: {
 
   return (
     <div className="max-w-4xl">
-      <FormSection title="Dados do projeto" description="Nome, datas, fuso e local. O fuso vale para mensagens e crachás.">
+      <FormSection
+        title="Dados do projeto"
+        description="Nome, datas, fuso e local. O fuso vale para mensagens e crachás."
+      >
         <ProjectFields value={data} onChange={setData} errors={errors} travel={props.travel} />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
@@ -116,7 +132,10 @@ export function ProjectSettingsForm(props: {
         )}
       </FormSection>
 
-      <FormSection title="Arte do projeto" description="Banner exibido no formulário de inscrição e na área do participante.">
+      <FormSection
+        title="Arte do projeto"
+        description="Banner exibido no formulário de inscrição e na área do participante."
+      >
         <ImageUpload
           tenant={tenant}
           target="projectBanner"
@@ -147,15 +166,33 @@ export function ProjectSettingsForm(props: {
         title="Categorias de inscrição"
         description="Visitante, expositor, palestrante… A cor aparece no crachá e nos relatórios."
       >
-        <LabelEditor tenant={tenant} projectId={projectId} kind="category" initial={props.categories} canEdit={canEdit} />
+        <LabelEditor
+          tenant={tenant}
+          projectId={projectId}
+          kind="category"
+          initial={props.categories}
+          canEdit={canEdit}
+        />
       </FormSection>
 
-      <FormSection title="Grupos" description="Segmentação operacional: ônibus, turmas, cores de pulseira.">
-        <LabelEditor tenant={tenant} projectId={projectId} kind="group" initial={props.groups} canEdit={canEdit} />
+      <FormSection
+        title="Grupos"
+        description="Segmentação operacional: ônibus, turmas, cores de pulseira."
+      >
+        <LabelEditor
+          tenant={tenant}
+          projectId={projectId}
+          kind="group"
+          initial={props.groups}
+          canEdit={canEdit}
+        />
       </FormSection>
 
       {props.canArchive && (
-        <FormSection title="Arquivar projeto" description="Some das listas e do menu. Os dados ficam guardados.">
+        <FormSection
+          title="Arquivar projeto"
+          description="Some das listas e do menu. Os dados ficam guardados."
+        >
           <div>
             <Button variant="danger-ghost" onClick={() => setArchiving(true)}>
               <Archive /> Arquivar projeto
@@ -234,7 +271,11 @@ function LabelEditor({
       <ul className="flex flex-col gap-2">
         {items.map((it, i) => (
           <li key={it.id ?? `new-${i}`} className="flex items-center gap-2">
-            <ColorPicker value={it.color} onChange={(c) => update(i, { color: c })} disabled={!canEdit} />
+            <ColorPicker
+              value={it.color}
+              onChange={(c) => update(i, { color: c })}
+              disabled={!canEdit}
+            />
             <Input
               value={it.name}
               onChange={(e) => update(i, { name: e.target.value })}
@@ -262,7 +303,9 @@ function LabelEditor({
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setItems((l) => [...l, { name: "", color: SWATCHES[l.length % SWATCHES.length]! }])}
+            onClick={() =>
+              setItems((l) => [...l, { name: "", color: SWATCHES[l.length % SWATCHES.length]! }])
+            }
           >
             <Plus /> Adicionar
           </Button>

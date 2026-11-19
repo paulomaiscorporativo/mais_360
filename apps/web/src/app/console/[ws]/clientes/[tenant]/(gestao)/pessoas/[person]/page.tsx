@@ -19,7 +19,14 @@ const CONSENT: Record<string, string> = {
 };
 
 const dateFmt = (d: Date | null, tz: string) =>
-  d ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: tz }).format(d) : "—";
+  d
+    ? new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: tz,
+      }).format(d)
+    : "—";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -65,7 +72,9 @@ export default async function PersonPage({
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold tracking-tight">{name}</h2>
             <p className="text-fg-subtle truncate text-sm">
-              {[p.jobTitle, p.organizations[0]?.organization.name].filter(Boolean).join(" · ") || p.email || "—"}
+              {[p.jobTitle, p.organizations[0]?.organization.name].filter(Boolean).join(" · ") ||
+                p.email ||
+                "—"}
             </p>
             {p.isMember && (
               <Badge tone="brand" size="sm" className="mt-2">
@@ -128,7 +137,10 @@ export default async function PersonPage({
         </Panel>
 
         <Panel>
-          <PanelHeader title="Saúde e emergência" description="Visível só para a equipe do cliente." />
+          <PanelHeader
+            title="Saúde e emergência"
+            description="Visível só para a equipe do cliente."
+          />
           <dl className="pb-3">
             <Row label="Alimentação" value={p.dietary} />
             <Row label="Observações" value={p.medicalNotes} />
@@ -138,18 +150,26 @@ export default async function PersonPage({
         </Panel>
 
         <Panel>
-          <PanelHeader title="Consentimentos (LGPD)" description="Último registro de cada finalidade." />
+          <PanelHeader
+            title="Consentimentos (LGPD)"
+            description="Último registro de cada finalidade."
+          />
           {latestConsent.size === 0 ? (
             <p className="text-fg-subtle px-5 pb-5 text-sm">Nenhum consentimento registrado.</p>
           ) : (
             <ul className="divide-border divide-y">
               {[...latestConsent.values()].map((c) => (
                 <li key={c.id} className="flex items-center gap-3 px-5 py-3 text-base">
-                  {c.granted ? <ShieldCheck className="text-success size-4" /> : <ShieldX className="text-fg-subtle size-4" />}
+                  {c.granted ? (
+                    <ShieldCheck className="text-success size-4" />
+                  ) : (
+                    <ShieldX className="text-fg-subtle size-4" />
+                  )}
                   <span className="min-w-0 flex-1">
                     {CONSENT[c.purpose] ?? c.purpose}
                     <span className="text-fg-subtle block text-xs">
-                      {c.granted ? "Autorizado" : "Não autorizado"} em {dateFmt(c.createdAt, tz)} · {c.source || "—"}
+                      {c.granted ? "Autorizado" : "Não autorizado"} em {dateFmt(c.createdAt, tz)} ·{" "}
+                      {c.source || "—"}
                     </span>
                   </span>
                 </li>
@@ -160,9 +180,14 @@ export default async function PersonPage({
       </div>
 
       <Panel>
-        <PanelHeader title="Participações" description={`${p.registrations.length} ${p.registrations.length === 1 ? "projeto" : "projetos"}`} />
+        <PanelHeader
+          title="Participações"
+          description={`${p.registrations.length} ${p.registrations.length === 1 ? "projeto" : "projetos"}`}
+        />
         {p.registrations.length === 0 ? (
-          <p className="text-fg-subtle px-5 pb-5 text-sm">Ainda não participou de nenhum projeto.</p>
+          <p className="text-fg-subtle px-5 pb-5 text-sm">
+            Ainda não participou de nenhum projeto.
+          </p>
         ) : (
           <ul className="divide-border divide-y">
             {p.registrations.map((r) => (

@@ -21,7 +21,9 @@ export default async function ProjectOverview({
     p.db.registrationCategory.findMany({
       where: { projectId: p.projectId },
       orderBy: { sortOrder: "asc" },
-      include: { _count: { select: { registrations: { where: { status: { not: "CANCELED" } } } } } },
+      include: {
+        _count: { select: { registrations: { where: { status: { not: "CANCELED" } } } } },
+      },
     }),
     p.db.registration.findMany({
       where: { projectId: p.projectId },
@@ -43,7 +45,11 @@ export default async function ProjectOverview({
         <div className="border-border bg-border grid grid-cols-2 gap-px overflow-hidden rounded-md border sm:grid-cols-4">
           <Stat className="bg-surface px-5 py-4" label="Inscrições" value={active} />
           <Stat className="bg-surface px-5 py-4" label="Confirmadas" value={count("CONFIRMED")} />
-          <Stat className="bg-surface px-5 py-4" label="Pendentes" value={count("PENDING") + count("INVITED")} />
+          <Stat
+            className="bg-surface px-5 py-4"
+            label="Pendentes"
+            value={count("PENDING") + count("INVITED")}
+          />
           <Stat className="bg-surface px-5 py-4" label="Credenciadas" value={checkedIn} />
         </div>
 
@@ -89,7 +95,10 @@ export default async function ProjectOverview({
                   </span>
                   {r.category && (
                     <Badge size="sm">
-                      <span className="size-2 rounded-full" style={{ background: r.category.color }} />
+                      <span
+                        className="size-2 rounded-full"
+                        style={{ background: r.category.color }}
+                      />
                       {r.category.name}
                     </Badge>
                   )}
@@ -104,15 +113,23 @@ export default async function ProjectOverview({
             <PanelHeader title="Por categoria" />
             <ul className="flex flex-col gap-3 px-5 py-4">
               {categories.map((c) => (
-                <li key={c.id} className="grid grid-cols-[minmax(0,140px)_1fr_auto] items-center gap-3 text-sm">
+                <li
+                  key={c.id}
+                  className="grid grid-cols-[minmax(0,140px)_1fr_auto] items-center gap-3 text-sm"
+                >
                   <span className="truncate">{c.name}</span>
                   <span className="bg-surface-sunken h-2 overflow-hidden rounded-full">
                     <span
                       className="block h-full rounded-full"
-                      style={{ width: `${(c._count.registrations / maxCat) * 100}%`, background: c.color }}
+                      style={{
+                        width: `${(c._count.registrations / maxCat) * 100}%`,
+                        background: c.color,
+                      }}
                     />
                   </span>
-                  <span className="tabular text-fg-muted w-10 text-right">{c._count.registrations}</span>
+                  <span className="tabular text-fg-muted w-10 text-right">
+                    {c._count.registrations}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -125,7 +142,11 @@ export default async function ProjectOverview({
           <Panel>
             <PanelHeader
               title="Link de inscrição"
-              description={settings.form.open ? "Aberto ao público." : "Fechado — ninguém consegue se inscrever."}
+              description={
+                settings.form.open
+                  ? "Aberto ao público."
+                  : "Fechado — ninguém consegue se inscrever."
+              }
               actions={
                 <Badge tone={settings.form.open ? "success" : "neutral"} dot>
                   {settings.form.open ? "Aberto" : "Fechado"}
@@ -160,7 +181,9 @@ export default async function ProjectOverview({
             }
           />
           {p.features.size === 0 ? (
-            <p className="text-fg-subtle px-5 pb-5 text-sm">Nenhum recurso ligado. Ligue em Configurações.</p>
+            <p className="text-fg-subtle px-5 pb-5 text-sm">
+              Nenhum recurso ligado. Ligue em Configurações.
+            </p>
           ) : (
             <ul className="flex flex-wrap gap-2 px-5 pb-5">
               {[...p.features].map((f) => (

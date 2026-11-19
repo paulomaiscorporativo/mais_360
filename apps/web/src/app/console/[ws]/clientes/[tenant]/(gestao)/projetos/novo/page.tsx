@@ -1,4 +1,9 @@
-import { MODULES, PROJECT_FEATURES, availableProjectFeatures, type ProjectFeature } from "@mais/core";
+import {
+  MODULES,
+  PROJECT_FEATURES,
+  availableProjectFeatures,
+  type ProjectFeature,
+} from "@mais/core";
 import { guard, requireTenant } from "@/server/auth";
 import { modulesForTenant } from "@/server/modules";
 import { ProjectWizard } from "./wizard";

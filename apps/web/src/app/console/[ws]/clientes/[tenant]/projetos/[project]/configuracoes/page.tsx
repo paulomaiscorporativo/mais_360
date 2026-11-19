@@ -13,7 +13,10 @@ export default async function ProjectSettingsPage({
   const p = await guard(requireProject(ws, tenant, slug));
   const tz = p.project.timezone ?? p.tenant.timezone;
   const [categories, groups] = await Promise.all([
-    p.db.registrationCategory.findMany({ where: { projectId: p.projectId }, orderBy: { sortOrder: "asc" } }),
+    p.db.registrationCategory.findMany({
+      where: { projectId: p.projectId },
+      orderBy: { sortOrder: "asc" },
+    }),
     p.db.projectGroup.findMany({ where: { projectId: p.projectId }, orderBy: { name: "asc" } }),
   ]);
   const requires: Partial<Record<ProjectFeature, string>> = {};
@@ -31,7 +34,12 @@ export default async function ProjectSettingsPage({
       projectId={p.projectId}
       canEdit={p.canEdit}
       canArchive={p.role === "ADMIN" || p.role === "MANAGER"}
-      travel={["INCENTIVE_TRIP", "TECHNICAL_IMMERSION", "SPORTS_EXPERIENCE", "CORPORATE_TRAVEL"].includes(p.project.type)}
+      travel={[
+        "INCENTIVE_TRIP",
+        "TECHNICAL_IMMERSION",
+        "SPORTS_EXPERIENCE",
+        "CORPORATE_TRAVEL",
+      ].includes(p.project.type)}
       status={p.project.status}
       bannerUrl={p.project.bannerFileId ? `/api/files/${p.project.bannerFileId}` : null}
       data={{

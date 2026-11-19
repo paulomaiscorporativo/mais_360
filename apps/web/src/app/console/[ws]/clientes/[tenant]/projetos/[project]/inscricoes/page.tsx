@@ -27,7 +27,8 @@ export default async function RegistrationsPage({
     ];
   }
   if (sp.status === "ACTIVE" || !sp.status) where.status = { not: "CANCELED" };
-  else if (sp.status !== "ALL") where.status = sp.status as Prisma.EnumRegistrationStatusFilter["equals"];
+  else if (sp.status !== "ALL")
+    where.status = sp.status as Prisma.EnumRegistrationStatusFilter["equals"];
   if (sp.cat) where.categoryId = sp.cat === "none" ? null : sp.cat;
 
   const [rows, total, categories, groups] = await Promise.all([
@@ -35,10 +36,18 @@ export default async function RegistrationsPage({
       where,
       orderBy: [{ createdAt: "desc" }],
       take: PAGE,
-      include: { person: true, category: true, group: true, companionOf: { include: { person: true } } },
+      include: {
+        person: true,
+        category: true,
+        group: true,
+        companionOf: { include: { person: true } },
+      },
     }),
     p.db.registration.count({ where }),
-    p.db.registrationCategory.findMany({ where: { projectId: p.projectId }, orderBy: { sortOrder: "asc" } }),
+    p.db.registrationCategory.findMany({
+      where: { projectId: p.projectId },
+      orderBy: { sortOrder: "asc" },
+    }),
     p.db.projectGroup.findMany({ where: { projectId: p.projectId }, orderBy: { name: "asc" } }),
   ]);
 
@@ -54,9 +63,13 @@ export default async function RegistrationsPage({
     role: r.role,
     source: r.source,
     shortCode: r.shortCode,
-    category: r.category ? { id: r.category.id, name: r.category.name, color: r.category.color } : null,
+    category: r.category
+      ? { id: r.category.id, name: r.category.name, color: r.category.color }
+      : null,
     group: r.group ? { id: r.group.id, name: r.group.name, color: r.group.color } : null,
-    companionOf: r.companionOf ? `${r.companionOf.person.firstName} ${r.companionOf.person.lastName}`.trim() : null,
+    companionOf: r.companionOf
+      ? `${r.companionOf.person.firstName} ${r.companionOf.person.lastName}`.trim()
+      : null,
     checkedIn: !!r.checkedInAt,
   }));
 

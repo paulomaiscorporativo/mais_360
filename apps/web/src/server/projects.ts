@@ -132,7 +132,14 @@ export function newRegistrationToken() {
 
 /** Gera shortCodes únicos no projeto (consulta os existentes uma vez por lote). */
 export async function shortCodeAllocator(
-  db: { registration: { findMany: (a: { where: { projectId: string }; select: { shortCode: true } }) => Promise<{ shortCode: string }[]> } },
+  db: {
+    registration: {
+      findMany: (a: {
+        where: { projectId: string };
+        select: { shortCode: true };
+      }) => Promise<{ shortCode: string }[]>;
+    };
+  },
   projectId: string,
 ) {
   const taken = new Set(

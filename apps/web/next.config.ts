@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@mais/core", "@mais/db", "@mais/messaging"],
   serverExternalPackages: ["@prisma/client", "bcryptjs", "nodemailer"],
   poweredByHeader: false,
+  experimental: {
+    // Uploads de imagem (até 5 MB) e importação de planilhas (até 5 mil linhas)
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   async headers() {
     return [
       {

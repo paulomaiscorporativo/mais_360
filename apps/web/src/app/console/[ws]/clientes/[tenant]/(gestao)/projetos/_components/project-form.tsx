@@ -67,7 +67,13 @@ export function ProjectFields({
       </Field>
       <Field label="Início" error={err("startsAt")} optional>
         {(f) => (
-          <Input id={f.id} type="date" value={value.startsAt} onChange={set("startsAt")} aria-invalid={f.invalid} />
+          <Input
+            id={f.id}
+            type="date"
+            value={value.startsAt}
+            onChange={set("startsAt")}
+            aria-invalid={f.invalid}
+          />
         )}
       </Field>
       <Field label="Fim" error={err("endsAt")} optional>
@@ -100,20 +106,45 @@ export function ProjectFields({
       {travel && (
         <Field label="Destino" optional className="sm:col-span-2">
           {(f) => (
-            <Input id={f.id} value={value.destination} onChange={set("destination")} placeholder="Lisboa, Portugal" />
+            <Input
+              id={f.id}
+              value={value.destination}
+              onChange={set("destination")}
+              placeholder="Lisboa, Portugal"
+            />
           )}
         </Field>
       )}
       <Field label="Local" optional>
-        {(f) => <Input id={f.id} value={value.venueName} onChange={set("venueName")} placeholder="Casa Bizutt" />}
+        {(f) => (
+          <Input
+            id={f.id}
+            value={value.venueName}
+            onChange={set("venueName")}
+            placeholder="Casa Bizutt"
+          />
+        )}
       </Field>
       <Field label="Endereço" optional>
         {(f) => (
-          <Input id={f.id} value={value.venueAddress} onChange={set("venueAddress")} placeholder="Rua do Ator, 577 · São Paulo" />
+          <Input
+            id={f.id}
+            value={value.venueAddress}
+            onChange={set("venueAddress")}
+            placeholder="Rua do Ator, 577 · São Paulo"
+          />
         )}
       </Field>
       <Field label="Código interno" hint="Ordem de serviço, centro de custo…" optional>
-        {(f) => <Input id={f.id} value={value.code} onChange={set("code")} className="font-mono" maxLength={40} />}
+        {(f) => (
+          <Input
+            id={f.id}
+            value={value.code}
+            onChange={set("code")}
+            className="font-mono"
+            maxLength={40}
+          />
+        )}
       </Field>
       <Field label="Descrição" optional className="sm:col-span-2">
         {(f) => (
@@ -146,8 +177,14 @@ export function FeatureList({
         const ok = available.has(f);
         const id = `feat-${f}`;
         return (
-          <li key={f} className={cn("flex items-center gap-4 px-4 py-3", !ok && "bg-surface-muted")}>
-            <label htmlFor={id} className={cn("min-w-0 flex-1", ok ? "cursor-pointer" : "cursor-default")}>
+          <li
+            key={f}
+            className={cn("flex items-center gap-4 px-4 py-3", !ok && "bg-surface-muted")}
+          >
+            <label
+              htmlFor={id}
+              className={cn("min-w-0 flex-1", ok ? "cursor-pointer" : "cursor-default")}
+            >
               <span className={cn("block text-base font-medium", !ok && "text-fg-subtle")}>
                 {PROJECT_FEATURE_LABELS[f].label}
               </span>

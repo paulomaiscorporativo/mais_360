@@ -43,7 +43,9 @@ export default async function ProjectLayout({
             <span className="text-fg-subtle text-sm">{projectTemplate(p.project.type).name}</span>
             <span className="text-fg-subtle inline-flex items-center gap-1.5 text-sm">
               <CalendarDays className="size-3.5" />
-              <span className="tabular">{formatPeriod(p.project.startsAt, p.project.endsAt, tz)}</span>
+              <span className="tabular">
+                {formatPeriod(p.project.startsAt, p.project.endsAt, tz)}
+              </span>
             </span>
             {(p.project.destination || p.project.venueName) && (
               <span className="text-fg-subtle inline-flex items-center gap-1.5 text-sm">

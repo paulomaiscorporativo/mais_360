@@ -21,11 +21,15 @@ function prismaEnum(file: string, name: string): string[] {
 
 describe("catálogo de tipos de serviço", () => {
   it("espelha o enum ServiceType do banco", () => {
-    expect([...SERVICE_TYPE_KEYS].sort()).toEqual(prismaEnum("catalog.prisma", "ServiceType").sort());
+    expect([...SERVICE_TYPE_KEYS].sort()).toEqual(
+      prismaEnum("catalog.prisma", "ServiceType").sort(),
+    );
   });
 
   it("espelha o enum ServiceCategory do banco", () => {
-    expect([...SERVICE_CATEGORIES].sort()).toEqual(prismaEnum("catalog.prisma", "ServiceCategory").sort());
+    expect([...SERVICE_CATEGORIES].sort()).toEqual(
+      prismaEnum("catalog.prisma", "ServiceCategory").sort(),
+    );
   });
 
   it("todo tipo tem rótulo e pertence a uma categoria", () => {
@@ -56,7 +60,9 @@ describe("parseServiceDetails", () => {
 
   it("exige datas de hospedagem", () => {
     expect(parseServiceDetails("HOTEL", { city: "Madri" }).ok).toBe(false);
-    expect(parseServiceDetails("HOTEL", { checkIn: "2026-12-01", checkOut: "2026-12-04" }).ok).toBe(true);
+    expect(parseServiceDetails("HOTEL", { checkIn: "2026-12-01", checkOut: "2026-12-04" }).ok).toBe(
+      true,
+    );
   });
 
   it("item livre aceita qualquer objeto", () => {
@@ -66,7 +72,10 @@ describe("parseServiceDetails", () => {
 
 describe("serviços da solicitação de viagem", () => {
   it("guarda só os blocos ativados", () => {
-    const r = parseTravelRequestServices(["AIR"], { AIR: { cabin: "BUSINESS" }, HOTEL: { rooms: 3 } });
+    const r = parseTravelRequestServices(["AIR"], {
+      AIR: { cabin: "BUSINESS" },
+      HOTEL: { rooms: 3 },
+    });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.details.AIR?.cabin).toBe("BUSINESS");

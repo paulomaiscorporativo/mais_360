@@ -19,7 +19,13 @@ import { importRegistrations } from "./actions";
 import type { Label } from "./registrations";
 
 type Parsed = { fileName: string; headers: string[]; rows: unknown[][] };
-type Result = { created: number; existingPeople: number; alreadyRegistered: number; skipped: number; errors: string[] };
+type Result = {
+  created: number;
+  existingPeople: number;
+  alreadyRegistered: number;
+  skipped: number;
+  errors: string[];
+};
 
 const MAX_ROWS = 5000;
 
@@ -69,16 +75,24 @@ export function ImportSheet({
       const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
       const sheet = wb.Sheets[wb.SheetNames[0] ?? ""];
       if (!sheet) throw new Error("A planilha está vazia.");
-      const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: "" });
+      const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        raw: false,
+        defval: "",
+      });
       const [head, ...body] = matrix;
       const headers = (head ?? []).map((h) => String(h ?? "").trim());
       const rows = body.filter((r) => r.some((c) => String(c ?? "").trim() !== ""));
-      if (!headers.length || !rows.length) throw new Error("Não encontramos linhas com dados na primeira aba.");
-      if (rows.length > MAX_ROWS) throw new Error(`A planilha tem ${rows.length} linhas; importe até ${MAX_ROWS} por vez.`);
+      if (!headers.length || !rows.length)
+        throw new Error("Não encontramos linhas com dados na primeira aba.");
+      if (rows.length > MAX_ROWS)
+        throw new Error(`A planilha tem ${rows.length} linhas; importe até ${MAX_ROWS} por vez.`);
       setParsed({ fileName: file.name, headers, rows });
       setMapping(guessColumnMapping(headers));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível ler o arquivo. Use .xlsx, .xls ou .csv.");
+      setError(
+        e instanceof Error ? e.message : "Não foi possível ler o arquivo. Use .xlsx, .xls ou .csv.",
+      );
     } finally {
       setReading(false);
     }
@@ -94,7 +108,8 @@ export function ImportSheet({
     setMapping((m) => {
       const next = { ...m };
       // uma coluna só alimenta um campo
-      for (const k of Object.keys(next) as ImportFieldKey[]) if (String(next[k]) === value) delete next[k];
+      for (const k of Object.keys(next) as ImportFieldKey[])
+        if (String(next[k]) === value) delete next[k];
       if (value === "none") delete next[key];
       else next[key] = Number(value);
       return next;
@@ -162,10 +177,18 @@ export function ImportSheet({
           className="border-border-strong hover:border-brand-ring hover:bg-surface-muted flex w-full flex-col items-center gap-3 rounded-md border border-dashed px-6 py-14 text-center transition-colors"
         >
           <span className="bg-brand-subtle text-brand-subtle-fg grid size-11 place-items-center rounded-full">
-            {reading ? <FileSpreadsheet className="size-5 animate-pulse" /> : <Upload className="size-5" />}
+            {reading ? (
+              <FileSpreadsheet className="size-5 animate-pulse" />
+            ) : (
+              <Upload className="size-5" />
+            )}
           </span>
-          <span className="text-base font-medium">{reading ? "Lendo planilha…" : "Escolha ou arraste a planilha"}</span>
-          <span className="text-fg-subtle text-sm">.xlsx, .xls ou .csv · até {MAX_ROWS.toLocaleString("pt-BR")} linhas</span>
+          <span className="text-base font-medium">
+            {reading ? "Lendo planilha…" : "Escolha ou arraste a planilha"}
+          </span>
+          <span className="text-fg-subtle text-sm">
+            .xlsx, .xls ou .csv · até {MAX_ROWS.toLocaleString("pt-BR")} linhas
+          </span>
           <input
             ref={input}
             type="file"
@@ -183,11 +206,13 @@ export function ImportSheet({
       {parsed && !result && (
         <div className="flex flex-col gap-6">
           <p className="text-fg-muted text-sm">
-            <span className="text-fg font-medium">{parsed.fileName}</span> · {parsed.rows.length} linhas. Confira o que cada
-            coluna representa — já reconhecemos as mais comuns.
+            <span className="text-fg font-medium">{parsed.fileName}</span> · {parsed.rows.length}{" "}
+            linhas. Confira o que cada coluna representa — já reconhecemos as mais comuns.
           </p>
           {!hasName && (
-            <Notice tone="warning">Indique a coluna do nome (ou nome completo) para continuar.</Notice>
+            <Notice tone="warning">
+              Indique a coluna do nome (ou nome completo) para continuar.
+            </Notice>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             {IMPORT_FIELDS.map((f) => (
@@ -220,7 +245,9 @@ export function ImportSheet({
                   <tbody>
                     {mapped.slice(0, 5).map((r, i) => (
                       <tr key={i} className="border-border border-t">
-                        <td className="px-3 py-2">{r.fullName ?? [r.firstName, r.lastName].filter(Boolean).join(" ")}</td>
+                        <td className="px-3 py-2">
+                          {r.fullName ?? [r.firstName, r.lastName].filter(Boolean).join(" ")}
+                        </td>
                         <td className="text-fg-muted px-3 py-2">{r.email ?? "—"}</td>
                         <td className="text-fg-muted px-3 py-2">{r.organization ?? "—"}</td>
                         <td className="text-fg-muted px-3 py-2">{r.category ?? "—"}</td>
@@ -239,7 +266,10 @@ export function ImportSheet({
                   id={ids.id}
                   value={categoryId}
                   onValueChange={setCategoryId}
-                  options={[{ value: "none", label: "Sem categoria" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+                  options={[
+                    { value: "none", label: "Sem categoria" },
+                    ...categories.map((c) => ({ value: c.id, label: c.name })),
+                  ]}
                 />
               )}
             </Field>
@@ -272,13 +302,18 @@ export function ImportSheet({
           <div>
             <p className="text-lg font-semibold">{result.created} inscrições criadas</p>
             <p className="text-fg-muted mt-1 text-sm">
-              {result.existingPeople > 0 && `${result.existingPeople} já estavam no cadastro e foram reaproveitadas. `}
+              {result.existingPeople > 0 &&
+                `${result.existingPeople} já estavam no cadastro e foram reaproveitadas. `}
               {result.alreadyRegistered > 0 && `${result.alreadyRegistered} já estavam inscritas. `}
               {result.skipped > 0 && `${result.skipped} linhas sem nome foram ignoradas.`}
             </p>
           </div>
           {result.errors.length > 0 && (
-            <Notice tone="warning" title={`${result.errors.length} linhas com problema`} className="w-full text-left">
+            <Notice
+              tone="warning"
+              title={`${result.errors.length} linhas com problema`}
+              className="w-full text-left"
+            >
               <ul className="mt-1 list-disc pl-4">
                 {result.errors.slice(0, 8).map((e) => (
                   <li key={e}>{e}</li>

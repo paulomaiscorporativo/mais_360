@@ -63,9 +63,18 @@ export default async function PublicRegistrationPage({
         <div className="relative flex items-center gap-3">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt={tenant.name} className="h-9 w-auto max-w-[160px] rounded-sm bg-white/95 object-contain p-1" />
+            <img
+              src={logo}
+              alt={tenant.name}
+              className="h-9 w-auto max-w-[160px] rounded-sm bg-white/95 object-contain p-1"
+            />
           ) : (
-            <Avatar name={tenant.name} size="md" square className="bg-white/15 text-current ring-0" />
+            <Avatar
+              name={tenant.name}
+              size="md"
+              square
+              className="bg-white/15 text-current ring-0"
+            />
           )}
           <span className="text-sm font-medium opacity-80">{tenant.name}</span>
         </div>
@@ -84,7 +93,9 @@ export default async function PublicRegistrationPage({
               <MapPin className="mt-1 size-4 shrink-0" />
               <span>
                 {project.venueName || project.destination}
-                {project.venueAddress && <span className="block text-sm opacity-80">{project.venueAddress}</span>}
+                {project.venueAddress && (
+                  <span className="block text-sm opacity-80">{project.venueAddress}</span>
+                )}
               </span>
             </li>
           )}

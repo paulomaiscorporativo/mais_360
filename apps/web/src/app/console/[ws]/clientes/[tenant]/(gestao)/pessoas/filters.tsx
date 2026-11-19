@@ -6,7 +6,15 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui";
 import { Select } from "@/components/ui/controls";
 
-export function PeopleFilters({ q: initial, tipo, memberLabel }: { q: string; tipo: string; memberLabel: string }) {
+export function PeopleFilters({
+  q: initial,
+  tipo,
+  memberLabel,
+}: {
+  q: string;
+  tipo: string;
+  memberLabel: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -36,7 +44,12 @@ export function PeopleFilters({ q: initial, tipo, memberLabel }: { q: string; ti
           leading={<Search />}
           trailing={
             q && (
-              <button type="button" onClick={() => setQ("")} className="hover:text-fg rounded p-1" aria-label="Limpar busca">
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="hover:text-fg rounded p-1"
+                aria-label="Limpar busca"
+              >
                 <X className="size-3.5" />
               </button>
             )
