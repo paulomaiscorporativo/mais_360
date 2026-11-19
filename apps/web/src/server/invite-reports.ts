@@ -6,12 +6,15 @@ import {
   type InviteStatus,
 } from "@mais/core";
 import { toCsv, type CsvCell } from "@mais/core/csv";
+import { PLATFORM_DEFAULT_SORT, sortBy, type SortSpec } from "@mais/core/sorting";
+import { SORT_ROW_INCLUDE, toSortRow } from "./sorting";
 import type { TenantDb } from "./tenant-db";
 
 /**
  * RELATÓRIOS DE CONVITES — confirmações, presença e cotas por empresa.
  * A consolidação é pura (`buildInviteReport` em @mais/core/events); aqui só
- * se lê o banco com escopo do cliente e se monta o CSV.
+ * se lê o banco com escopo do cliente e se monta o CSV. A ordem dos convidados
+ * vem do spec de ordenação do projeto (`@mais/core/sorting`).
  */
 
 export type ReportGuestRow = {
@@ -32,7 +35,11 @@ export type ReportGuestRow = {
   checkedInAt: Date | null;
 };
 
-export async function loadInviteReport(db: TenantDb, projectId: string) {
+export async function loadInviteReport(
+  db: TenantDb,
+  projectId: string,
+  spec: SortSpec = PLATFORM_DEFAULT_SORT,
+) {
   const [invites, companies] = await Promise.all([
     db.eventInvite.findMany({
       where: { projectId },
@@ -41,9 +48,8 @@ export async function loadInviteReport(db: TenantDb, projectId: string) {
         companyQuota: { select: { companyName: true } },
         registration: {
           include: {
-            person: true,
-            category: { select: { name: true } },
-            seat: { include: { table: { select: { number: true } } } },
+            ...SORT_ROW_INCLUDE,
+            person: { include: { organizations: SORT_ROW_INCLUDE.person.select.organizations } },
           },
         },
       },
@@ -55,7 +61,8 @@ export async function loadInviteReport(db: TenantDb, projectId: string) {
     }),
   ]);
 
-  const guests: ReportGuestRow[] = invites.map((i) => {
+  const sortRows = new Map(invites.map((i) => [i.registrationId, toSortRow(i.registration)]));
+  const unsorted: ReportGuestRow[] = invites.map((i) => {
     const r = i.registration;
     return {
       id: r.id,
@@ -75,6 +82,11 @@ export async function loadInviteReport(db: TenantDb, projectId: string) {
       checkedInAt: r.checkedInAt,
     };
   });
+  const guests = sortBy(
+    unsorted,
+    (g) => sortRows.get(g.id) ?? { id: g.id, fullName: g.name },
+    spec,
+  );
 
   const report = buildInviteReport(
     guests,
@@ -111,38 +123,48 @@ function stamp(d: Date | null, timeZone: string): CsvCell {
 
 const pct = (v: number | null) => (v === null ? "" : `${Math.round(v * 100)}%`);
 
-export function guestsCsv(rows: readonly ReportGuestRow[], timeZone: string) {
+/** CSV dos convidados na ordem recebida. Sem mapa de mesas, a coluna de mesa some. */
+export function guestsCsv(
+  rows: readonly ReportGuestRow[],
+  timeZone: string,
+  opts: { tables: boolean } = { tables: true },
+) {
+  const header = [
+    "Nome",
+    "E-mail",
+    "WhatsApp",
+    "Cargo",
+    "Empresa",
+    "Tipo",
+    "Categoria",
+    "Status",
+    "Código",
+    "Mesa/cadeira",
+    "Convite enviado em",
+    "Confirmou em",
+    "Credenciado em",
+  ];
+  const tableCol = header.indexOf("Mesa/cadeira");
+  const drop = <T>(cells: T[]) => (opts.tables ? cells : cells.filter((_, i) => i !== tableCol));
   return toCsv(
-    [
-      "Nome",
-      "E-mail",
-      "WhatsApp",
-      "Cargo",
-      "Empresa",
-      "Tipo",
-      "Categoria",
-      "Status",
-      "Código",
-      "Mesa/cadeira",
-      "Convite enviado em",
-      "Confirmou em",
-      "Credenciado em",
-    ],
-    rows.map((g) => [
-      g.name,
-      g.email,
-      g.phone,
-      g.jobTitle,
-      g.company,
-      KIND_LABEL[g.kind],
-      g.category,
-      INVITE_STATUS_LABELS[g.status],
-      g.shortCode,
-      g.table,
-      stamp(g.sentAt, timeZone),
-      stamp(g.confirmedAt, timeZone),
-      stamp(g.checkedInAt, timeZone),
-    ]),
+    drop(header),
+    rows.map((g) =>
+      drop<CsvCell>([
+        g.name,
+        g.email,
+        g.phone,
+        g.jobTitle,
+        g.company,
+        KIND_LABEL[g.kind],
+        g.category,
+        INVITE_STATUS_LABELS[g.status],
+        g.shortCode,
+        g.table,
+        stamp(g.sentAt, timeZone),
+        stamp(g.confirmedAt, timeZone),
+        stamp(g.checkedInAt, timeZone),
+      ]),
+    ),
   );
 }
 
