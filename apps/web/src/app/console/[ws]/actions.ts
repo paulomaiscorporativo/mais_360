@@ -9,7 +9,7 @@ import { requireTenant, requireWorkspace } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { AppError } from "@/server/errors";
 import { modulesForWorkspace } from "@/server/modules";
-import { addTenantMember, setTenantModules, tenantSlugTaken } from "@/server/tenants";
+import { inviteTenantMember, setTenantModules, tenantSlugTaken } from "@/server/tenants";
 
 import { RESERVED_SLUGS, TENANT_FONT_NAMES, TERM_DEFS, TIMEZONES } from "@/config/terms";
 
@@ -96,11 +96,12 @@ export const createTenant = defineAction(createTenantSchema, async (input) => {
     });
     await setTenantModules(tx, tenant.id, modules);
     const admin = input.admin
-      ? await addTenantMember(tx, {
-          tenantId: tenant.id,
+      ? await inviteTenantMember(tx, {
+          tenant: { ...tenant, workspace, branding: { primaryColor: input.branding.primaryColor } },
           name: input.admin.name,
           email: input.admin.email,
           role: "ADMIN",
+          actor: { id: viewer.user.id, name: viewer.user.name },
         })
       : null;
     return { tenant, admin };
@@ -115,13 +116,22 @@ export const createTenant = defineAction(createTenantSchema, async (input) => {
     entityId: result.tenant.id,
     data: { modules, admin: input.admin?.email ?? null },
   });
+  if (result.admin?.invite) {
+    await audit({
+      action: "user.invite.send",
+      userId: viewer.user.id,
+      actorLabel: viewer.user.name,
+      tenantId: result.tenant.id,
+      entityType: "User",
+      entityId: result.admin.userId,
+      data: { email: result.admin.email, role: "ADMIN", scope: "tenant" },
+    });
+  }
   revalidatePath(`/console/${workspace.slug}`, "layout");
   return {
     slug: result.tenant.slug,
     href: `/console/${workspace.slug}/clientes/${result.tenant.slug}`,
-    admin: result.admin
-      ? { email: result.admin.user.email, tempPassword: result.admin.tempPassword }
-      : null,
+    admin: result.admin ? { email: result.admin.email, invite: result.admin.invite } : null,
   };
 });
 
@@ -211,19 +221,25 @@ export const addMember = defineAction(
   async ({ tenant: slug, name, email, role }) => {
     const ctx = await requireTenant(slug, "ADMIN");
     const r = await prisma.$transaction((tx) =>
-      addTenantMember(tx, { tenantId: ctx.tenantId, name, email, role }),
+      inviteTenantMember(tx, {
+        tenant: ctx.tenant,
+        name,
+        email,
+        role,
+        actor: { id: ctx.viewer.user.id, name: ctx.viewer.user.name },
+      }),
     );
     await audit({
-      action: "tenant.member.add",
+      action: r.invite ? "user.invite.send" : "tenant.member.add",
       userId: ctx.viewer.user.id,
       actorLabel: ctx.viewer.user.name,
       tenantId: ctx.tenantId,
       entityType: "User",
-      entityId: r.user.id,
-      data: { email, role },
+      entityId: r.userId,
+      data: { email, role, scope: "tenant" },
     });
     revalidatePath(`/console/${ctx.workspace.slug}/clientes/${slug}/equipe`);
-    return { email: r.user.email, tempPassword: r.tempPassword };
+    return { email: r.email, invite: r.invite };
   },
 );
 

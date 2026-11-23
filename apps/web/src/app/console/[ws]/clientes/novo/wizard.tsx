@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleCheck, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { MODULES, withDependencies, type ModuleKey } from "@mais/core";
 import { Badge, Button, Field, Input, Notice, Panel } from "@/components/ui";
 import { Select } from "@/components/ui/controls";
-import { toast } from "@/components/ui/toast";
+import { InviteLinkPanel } from "@/components/team/invite-link";
 import { MODULE_UI } from "@/config/modules-ui";
 import { RESERVED_SLUGS, TERM_DEFS, TIMEZONES } from "@/config/terms";
 import { cn } from "@/lib/cn";
@@ -38,7 +38,7 @@ const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 type Created = {
   href: string;
   slug: string;
-  admin: { email: string; tempPassword: string | null } | null;
+  admin: { email: string; invite: { link: string; expiresAt: string } | null } | null;
 };
 
 export function TenantWizard({
@@ -310,7 +310,7 @@ export function TenantWizard({
             <div className="flex flex-col gap-5">
               <StepTitle
                 title="Administrador do cliente"
-                description="Opcional. Esta pessoa administra o cliente e recebe uma senha provisória, trocada no primeiro acesso."
+                description="Opcional. Esta pessoa administra o cliente e recebe por e-mail um convite para criar a própria senha."
               />
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Nome" optional>
@@ -515,13 +515,6 @@ function Success({
   address: string;
   brand: BrandValue;
 }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    toast.success("Copiado.");
-    setTimeout(() => setCopied(false), 2000);
-  };
   return (
     <div className="animate-rise mx-auto max-w-xl py-6 text-center">
       <span className="bg-success-bg text-success mx-auto grid size-14 place-items-center rounded-full">
@@ -532,36 +525,25 @@ function Success({
         Endereço <span className="text-fg font-mono text-sm">{address}</span>
       </p>
 
-      {created.admin?.tempPassword && (
+      {created.admin?.invite && (
         <Panel className="mt-8 text-left">
           <div className="px-5 py-4">
-            <p className="text-sm font-medium">Acesso do administrador</p>
-            <p className="text-fg-subtle mt-0.5 text-sm">
-              Envie para {created.admin.email}. A senha é exibida só agora e será trocada no
-              primeiro acesso.
-            </p>
-            <div className="border-border bg-surface-muted mt-4 flex items-center gap-2 rounded-sm border p-1 pl-3">
-              <code className="text-md flex-1 font-mono tracking-wider">
-                {created.admin.tempPassword}
-              </code>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => copy(created.admin!.tempPassword!)}
-              >
-                {copied ? <Check /> : <Copy />} Copiar
-              </Button>
-            </div>
+            <p className="mb-3 text-sm font-medium">Acesso do administrador</p>
+            <InviteLinkPanel
+              email={created.admin.email}
+              link={created.admin.invite.link}
+              expiresAt={created.admin.invite.expiresAt}
+            />
           </div>
         </Panel>
       )}
-      {created.admin && !created.admin.tempPassword && (
+      {created.admin && !created.admin.invite && (
         <Notice
           tone="info"
           className="mt-8 text-left"
           title={`${created.admin.email} já tinha conta`}
         >
-          O acesso a este cliente foi adicionado à conta existente.
+          O acesso a este cliente foi adicionado à conta existente. Avisamos a pessoa por e-mail.
         </Notice>
       )}
 
