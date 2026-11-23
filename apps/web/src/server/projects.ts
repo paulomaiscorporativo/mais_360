@@ -6,6 +6,8 @@ import {
   enabledProjectFeatures,
   makeShortCode,
   makeToken,
+  resolveProjectRole,
+  tenantRoleAtLeast,
   type ModuleKey,
   type ProjectFeature,
 } from "@mais/core";
@@ -40,38 +42,77 @@ export type ProjectContext = TenantContext & {
 
 const EDIT_ROLES = new Set<TenantRole>(["ADMIN", "MANAGER", "OPERATOR"]);
 
+/**
+ * Papel efetivo no projeto (null = sem acesso). Vínculo com `allProjects =
+ * false` só alcança os projetos liberados em ProjectAccess, com o papel do
+ * projeto quando definido (regra pura em @mais/core/access).
+ */
+export async function projectRoleFor(
+  ctx: TenantContext,
+  projectId: string,
+): Promise<TenantRole | null> {
+  const membership = ctx.viewer.user.memberships.find((m) => m.tenantId === ctx.tenantId) ?? null;
+  const restricted = !!membership && !membership.allProjects && ctx.role !== "ADMIN";
+  const grant = restricted
+    ? await prisma.projectAccess.findUnique({
+        where: { membershipId_projectId: { membershipId: membership.id, projectId } },
+        select: { role: true },
+      })
+    : null;
+  return resolveProjectRole({ tenantRole: ctx.role, membership, grant });
+}
+
+/** Filtro de listagem: só os projetos que o usuário alcança neste cliente. */
+export async function visibleProjectsWhere(ctx: TenantContext): Promise<Prisma.ProjectWhereInput> {
+  const membership = ctx.viewer.user.memberships.find((m) => m.tenantId === ctx.tenantId) ?? null;
+  if (ctx.role === "ADMIN" || !membership || membership.allProjects) return {};
+  const grants = await prisma.projectAccess.findMany({
+    where: { membershipId: membership.id },
+    select: { projectId: true },
+  });
+  return { id: { in: grants.map((g) => g.projectId) } };
+}
+
+/**
+ * Exige papel mínimo NO PROJETO. Sem acesso ao projeto → "não encontrado"
+ * (não revela que existe); com acesso mas papel insuficiente → sem permissão.
+ */
+export async function requireProjectRole(
+  ctx: TenantContext,
+  projectId: string,
+  minRole: TenantRole,
+): Promise<TenantRole> {
+  const role = await projectRoleFor(ctx, projectId);
+  if (!role) throw notFound("Projeto não encontrado.");
+  if (!tenantRoleAtLeast(role, minRole)) throw forbidden();
+  return role;
+}
+
 async function loadProject(
   tenantSlug: string,
   projectSlug: string,
   minRole: TenantRole,
 ): Promise<ProjectContext> {
-  const ctx = await requireTenant(tenantSlug, minRole);
+  const ctx = await requireTenant(tenantSlug);
   const db = tenantDb(ctx);
   const project = await db.project.findFirst({
     where: { slug: projectSlug, archivedAt: null },
     include: { features: true },
   });
   if (!project) throw notFound("Projeto não encontrado.");
-
-  // Membro com allProjects = false só vê os projetos liberados para ele.
-  const membership = ctx.viewer.user.memberships.find((m) => m.tenantId === ctx.tenantId);
-  if (membership && !membership.allProjects && ctx.role !== "ADMIN") {
-    const access = await prisma.projectAccess.findUnique({
-      where: { membershipId_projectId: { membershipId: membership.id, projectId: project.id } },
-    });
-    if (!access) throw notFound("Projeto não encontrado.");
-  }
+  const role = await requireProjectRole(ctx, project.id, minRole);
 
   const modules = await modulesForTenant(ctx.tenant);
   return {
     ...ctx,
+    role,
     project,
     projectId: project.id,
     modules,
     available: availableProjectFeatures(modules),
     features: enabledProjectFeatures(project.features, modules),
     db,
-    canEdit: EDIT_ROLES.has(ctx.role),
+    canEdit: EDIT_ROLES.has(role),
   };
 }
 
@@ -96,17 +137,19 @@ export async function requireProjectFeature(
 
 /** Para Server Actions: projeto por id (dentro do cliente) com permissão de edição. */
 export async function requireProjectWriter(tenantSlug: string, projectId: string) {
-  const ctx = await requireTenant(tenantSlug, "OPERATOR");
+  const ctx = await requireTenant(tenantSlug);
   const db = tenantDb(ctx);
   const project = await db.project.findFirst({
     where: { id: projectId, archivedAt: null },
     include: { features: true },
   });
   if (!project) throw notFound("Projeto não encontrado.");
-  if (!EDIT_ROLES.has(ctx.role)) throw forbidden();
+  const role = await requireProjectRole(ctx, project.id, "VIEWER");
+  if (!EDIT_ROLES.has(role)) throw forbidden();
   const modules = await modulesForTenant(ctx.tenant);
   return {
     ...ctx,
+    role,
     project,
     projectId: project.id,
     db,

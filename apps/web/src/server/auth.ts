@@ -1,6 +1,7 @@
 import "server-only";
 import { notFound as nextNotFound, redirect } from "next/navigation";
 import { cache } from "react";
+import { tenantRoleAtLeast } from "@mais/core";
 import type { PlatformRole, TenantRole, WorkspaceRole } from "@mais/db";
 import { prisma } from "./db";
 import { AppError, forbidden, notFound } from "./errors";
@@ -78,17 +79,6 @@ export async function requireWorkspace(slug: string, minRole: WorkspaceRole = "O
 
 export type WorkspaceContext = Awaited<ReturnType<typeof requireWorkspace>>;
 
-const TENANT_RANK: Record<TenantRole, number> = {
-  ADMIN: 8,
-  MANAGER: 7,
-  APPROVER: 4,
-  OPERATOR: 4,
-  SALES: 3,
-  DESK: 3,
-  SCANNER: 2,
-  VIEWER: 1,
-};
-
 export async function requireTenant(slug: string, minRole: TenantRole = "VIEWER") {
   const viewer = await requireUser();
   const tenant = await prisma.tenant.findUnique({
@@ -105,7 +95,7 @@ export async function requireTenant(slug: string, minRole: TenantRole = "VIEWER"
     else role = viewer.user.memberships.find((m) => m.tenantId === tenant.id)?.role ?? null;
   }
   if (!role) throw notFound("Cliente não encontrado.");
-  if (TENANT_RANK[role] < TENANT_RANK[minRole]) throw forbidden();
+  if (!tenantRoleAtLeast(role, minRole)) throw forbidden();
   return { viewer, tenant, tenantId: tenant.id, workspace: tenant.workspace, role };
 }
 
