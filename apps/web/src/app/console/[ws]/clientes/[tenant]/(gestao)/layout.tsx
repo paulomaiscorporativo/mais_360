@@ -17,7 +17,10 @@ export default async function TenantLayout({
   const { ws, tenant: slug } = await params;
   const ctx = await guard(requireTenant(slug));
   const [domains, active, members, projects] = await Promise.all([
-    prisma.tenantDomain.findMany({ where: { tenantId: ctx.tenantId, primary: true }, take: 1 }),
+    prisma.tenantDomain.findMany({
+      where: { tenantId: ctx.tenantId, primary: true, status: "VERIFIED" },
+      take: 1,
+    }),
     modulesForTenant(ctx.tenant),
     prisma.membership.count({ where: { tenantId: ctx.tenantId } }),
     prisma.project.count({ where: { tenantId: ctx.tenantId, archivedAt: null } }),
@@ -69,6 +72,7 @@ export default async function TenantLayout({
           { href: `${base}/identidade`, label: "Identidade visual" },
           { href: `${base}/termos`, label: "Nomenclatura" },
           { href: `${base}/ordenacao`, label: "Ordenação" },
+          { href: `${base}/dominios`, label: "Domínios" },
           { href: `${base}/equipe`, label: "Equipe", count: members },
         ]}
       />

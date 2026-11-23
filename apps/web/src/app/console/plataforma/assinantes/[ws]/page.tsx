@@ -77,14 +77,9 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
   });
   if (!ws) notFound();
 
-  const since = new Date(Date.now() - 30 * 86_400_000);
   const [activeProjects, usage, history, plans] = await Promise.all([
     prisma.project.count({ where: { tenant: { workspaceId: ws.id }, archivedAt: null } }),
-    prisma.usageRecord.groupBy({
-      by: ["metric"],
-      where: { workspaceId: ws.id, day: { gte: since } },
-      _sum: { quantity: true },
-    }),
+    usageLast30Days(ws.id),
     prisma.auditLog.findMany({
       where: { entityType: "Workspace", entityId: ws.id },
       orderBy: { createdAt: "desc" },
@@ -377,6 +372,16 @@ function Item({ label, value, mono }: { label: string; value: string; mono?: boo
       </dd>
     </div>
   );
+}
+
+/** Consumo medido nos últimos 30 dias, por métrica. */
+function usageLast30Days(workspaceId: string) {
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  return prisma.usageRecord.groupBy({
+    by: ["metric"],
+    where: { workspaceId, day: { gte: since } },
+    _sum: { quantity: true },
+  });
 }
 
 function formatCnpj(d: string) {
