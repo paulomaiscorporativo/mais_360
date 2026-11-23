@@ -10,6 +10,7 @@ const { defaultDeps, messagingJobHandlers, recoverStaleDeliveries } =
   await import("@mais/messaging");
 const { JobRunner, newWorkerId } = await import("./runner");
 const { apifyFlightSource, flightJobHandlers, sweepLiveFlights } = await import("./flights");
+const { authEmailJobHandlers } = await import("./auth-email");
 
 // Status de voo ao vivo só funciona com o token da Apify
 const apifyToken = process.env.APIFY_TOKEN?.trim() ?? "";
@@ -21,6 +22,8 @@ const runner = new JobRunner({
   concurrency: Number(process.env.WORKER_CONCURRENCY || 4),
   handlers: {
     ...messagingJobHandlers(prisma, defaultDeps({ workerId })),
+    // E-mails de sistema da equipe: convite, redefinição de senha, novo acesso
+    ...authEmailJobHandlers(prisma),
     ...(apifyToken ? flightJobHandlers(prisma, apifyFlightSource(apifyToken)) : {}),
   },
 });
