@@ -1,0 +1,59 @@
+// ---------------------------------------------------------------------------
+// Operação da plataforma: sinal de vida dos workers, tarefas periódicas e
+// limite de tentativas compartilhado entre os nós. Tabelas técnicas, sem
+// tenantId (não guardam dado de negócio). Guia em docs/OPERACAO.md.
+// ---------------------------------------------------------------------------
+
+// Sinal de vida de cada processo do worker (atualizado a cada ~30 s).
+model WorkerHeartbeat {
+  workerId   String    @id // "<host>:<pid>:<aleatório>", o mesmo de Job.lockedBy
+  hostname   String
+  pid        Int
+  version    String    @default("")
+  // Filas que esta instância atende
+  queues     String[]
+  startedAt  DateTime
+  lastSeenAt DateTime
+  // Encerramento gracioso (SIGTERM); null = ainda rodando ou morreu sem avisar
+  stoppedAt  DateTime?
+
+  @@index([lastSeenAt])
+}
+
+enum ScheduledTaskStatus {
+  IDLE // ainda não rodou
+  RUNNING
+  OK
+  ERROR
+}
+
+// Uma linha por tarefa periódica. Quem reivindica a linha (horário vencido e
+// sem trava ativa) roda a janela; os outros workers pulam.
+model ScheduledTask {
+  name           String              @id // "ops.cleanup", "domains.sweep"…
+  everyMs        Int
+  nextRunAt      DateTime
+  // Trava da execução atual: vencida, outro worker pode assumir
+  lockedBy       String              @default("")
+  lockedUntil    DateTime?
+  status         ScheduledTaskStatus @default(IDLE)
+  lastStartedAt  DateTime?
+  lastFinishedAt DateTime?
+  lastDurationMs Int                 @default(0)
+  lastError      String              @default("")
+  // Resumo da última execução (contagens), sem dados pessoais
+  lastResult     Json                @default("{}")
+  lastWorkerId   String              @default("")
+  updatedAt      DateTime            @updatedAt
+}
+
+// Limite de tentativas (login, links de acesso, formulários públicos). A chave
+// é o SHA-256 da chave lógica ("login:<e-mail>:<ip>"): nada pessoal em claro.
+model RateLimitBucket {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+  resetAt     DateTime
+
+  @@index([resetAt])
+}
