@@ -22,6 +22,31 @@ O domínio `.test` é reservado e não recebe e-mail.
 | Admin de outro cliente   | `admin.abradilan@demo.test`            | Só a ABRADILAN — **não** pode ver a ABIEC                                |
 | Dono de outro assinante  | `dono.outraagencia@demo.test`          | Só a "Outra Agência" e seu cliente — **não** vê nada da Mais Corporativo |
 
+## Criar usuários de cada nível
+
+Ninguém recebe mais senha provisória na tela: a pessoa recebe um **convite por e-mail** e cria a
+própria senha em `/entrar/convite/<token>` (vale 7 dias, uso único). O link também aparece na tela
+de quem convidou, para copiar se o e-mail não chegar. Para os e-mails saírem, o worker precisa
+estar rodando (`npm run dev:worker`); em desenvolvimento eles caem no Mailpit
+(http://localhost:8025).
+
+| Nível                          | Onde convidar                                                        | Quem pode                        |
+| ------------------------------ | -------------------------------------------------------------------- | -------------------------------- |
+| Superadmin / Suporte           | **Plataforma › Equipe da plataforma** (`/console/plataforma/equipe`) | Superadmin                       |
+| Dono de um novo assinante      | **Plataforma › Assinantes › Novo assinante** (responsável)           | Superadmin                       |
+| Dono, admin, operador, financ. | **Assinante › Equipe** (`/console/<assinante>/equipe`)               | Dono e admin (só dono cria dono) |
+| Admin de um novo cliente       | **Novo cliente** (passo "Administrador")                             | Dono e admin do assinante        |
+| Papéis do cliente              | **Cliente › Equipe** (`…/clientes/<cliente>/equipe`)                 | Admin do cliente (e acima)       |
+
+- Quem **já tem conta** ganha só o novo acesso (sem convite de senha) e recebe um aviso por e-mail.
+- Em cada equipe, o menu da pessoa permite reenviar o convite, enviar link de redefinição de
+  senha (1 hora), desativar/reativar e remover. Desativar derruba as sessões na hora; só
+  desativa a conta inteira quem administra **todos** os acessos da pessoa — senão, remove apenas
+  o acesso daquele cliente/assinante.
+- **Acesso por projeto** (equipe do cliente › "Acesso por projeto"): todos os projetos ou só
+  alguns, com papel opcional por projeto (ex.: leitor de acesso só na Plenária).
+- Esqueceu a senha: link **Esqueci a senha** no login (`/entrar/esqueci`).
+
 Os papéis de balcão, leitor e vendas ganham telas próprias na Fase 2 (credenciamento, feiras).
 O aprovador já decide em **Viagens corporativas › Aprovações**. Perfis externos com área própria:
 associado (abaixo), empresa com cota de convites e viajante (projetos demo).
