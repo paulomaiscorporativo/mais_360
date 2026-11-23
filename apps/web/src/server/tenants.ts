@@ -1,18 +1,8 @@
 import "server-only";
-import { randomInt } from "node:crypto";
 import { TENANT_ROLE_INFO, withDependencies, type ModuleKey } from "@mais/core";
 import type { Prisma, TenantRole } from "@mais/db";
 import { prisma } from "./db";
 import { emailBrand, inviteTeamMember, type InviteOutcome } from "./team";
-
-/** Senha provisória legível (sem 0/O, 1/l), exibida uma única vez. */
-export function temporaryPassword(length = 12): string {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let out = "";
-  for (let i = 0; i < length; i++) out += chars[randomInt(chars.length)];
-  // garante letra e número (política de senha)
-  return out.slice(0, -2) + "a" + String(randomInt(2, 10));
-}
 
 export function slugify(text: string): string {
   return text
