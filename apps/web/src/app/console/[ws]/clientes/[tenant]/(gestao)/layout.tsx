@@ -4,6 +4,7 @@ import { LinkTabs } from "@/components/ui/tabs";
 import { guard, requireTenant } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { modulesForTenant } from "@/server/modules";
+import { visibleProjectsWhere } from "@/server/projects";
 import { tenantAddress } from "@/server/urls";
 import { env } from "@/server/env";
 
@@ -16,6 +17,7 @@ export default async function TenantLayout({
 }) {
   const { ws, tenant: slug } = await params;
   const ctx = await guard(requireTenant(slug));
+  const visible = await visibleProjectsWhere(ctx);
   const [domains, active, members, projects] = await Promise.all([
     prisma.tenantDomain.findMany({
       where: { tenantId: ctx.tenantId, primary: true, status: "VERIFIED" },
@@ -23,7 +25,7 @@ export default async function TenantLayout({
     }),
     modulesForTenant(ctx.tenant),
     prisma.membership.count({ where: { tenantId: ctx.tenantId } }),
-    prisma.project.count({ where: { tenantId: ctx.tenantId, archivedAt: null } }),
+    prisma.project.count({ where: { tenantId: ctx.tenantId, archivedAt: null, ...visible } }),
   ]);
   const base = `/console/${ws}/clientes/${slug}`;
   const address = tenantAddress({ slug, domains });

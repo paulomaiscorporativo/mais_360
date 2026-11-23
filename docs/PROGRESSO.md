@@ -137,9 +137,35 @@ inadimplência; aviso por e-mail ao assinante quando a situação muda e ao admi
 um domínio falha; esconder botões de edição no modo somente leitura (hoje o servidor recusa e a
 faixa avisa); limites do plano ainda não bloqueiam criação (só aparecem na página).
 
-**Próximo:** gestão de acessos (equipe do assinante e da plataforma, convite por e-mail com link
-de primeiro acesso, desativar/reativar, redefinir senha, acesso por projeto, editar/suspender
-assinante); depois worker (réguas) e infraestrutura de deploy (VPS).
+**Gestão de acessos (`f3-acessos`, 23/11/2026):**
+
+- Modelo `UserAccessToken` (migração `acessos_de_usuarios`): convite de primeiro acesso (7 dias)
+  e redefinição de senha (1 hora), só o hash SHA-256 no banco, uso único; emitir outro do mesmo
+  propósito revoga os abertos. Regras puras em `@mais/core/access` (validade, papéis, último
+  dono/superadmin, autoridade para desativar, papel efetivo por projeto, e-mails) com testes.
+- Fila `auth.email` no worker (SMTP global, nome da marca no remetente; confere se o token ainda
+  vale antes de enviar). O link do convite também aparece na tela para copiar.
+- Senha provisória exibida na tela foi substituída por convite em: criar assinante (dono), criar
+  cliente (admin) e adicionar membro. Quem já tem conta ativa recebe só o vínculo e um aviso.
+- Rotas públicas `/entrar/convite/[token]`, `/entrar/esqueci` (resposta neutra, limite por IP e
+  por e-mail) e `/entrar/redefinir/[token]` (revoga as outras sessões e entra).
+- Equipes: `/console/[ws]/equipe` (assinante), `/console/plataforma/equipe` (só superadmin) e a
+  do cliente reformulada (situação ativo/convite pendente/desativado, reenviar convite, link de
+  redefinição, desativar/reativar, acesso por projeto com papel por projeto).
+- Desativar a conta só quando o admin responde por todos os vínculos da pessoa; senão remove o
+  vínculo do contexto atual. Desativar derruba as sessões na hora.
+- Acesso por projeto aplicado no servidor (`projectRoleFor`, `requireProjectRole`,
+  `visibleProjectsWhere` em `server/projects.ts`): páginas, actions de escrita, balcão e listas.
+- Auditoria: `user.invite.send/resend`, `*.member.role/remove`, `user.deactivate/reactivate`,
+  `user.password.reset.send`, `auth.password.reset(.request)`, `auth.invite.accept`,
+  `tenant.member.projects`.
+
+**Pendências da gestão de acessos:** MFA;
+limite de tentativas em tabela para vários nós; limpeza periódica de tokens vencidos (hoje só
+ficam inertes); convites de membro de cliente por domínio do cliente (hoje o link usa `APP_URL`).
+
+**Próximo:** worker (réguas de comunicação, webhook de status do WhatsApp, `/api/files/<id>`,
+upload de marca) e infraestrutura de deploy (VPS, Caddy, backups, monitoramento de erros).
 
 Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
 

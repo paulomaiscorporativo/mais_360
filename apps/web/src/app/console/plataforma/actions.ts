@@ -7,8 +7,7 @@ import { audit } from "@/server/audit";
 import { requirePlatformRole } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { AppError } from "@/server/errors";
-import { hashPassword } from "@/server/password";
-import { temporaryPassword } from "@/server/tenants";
+import { inviteWorkspaceMember } from "@/server/workspace-team";
 import { RESERVED_SLUGS } from "@/config/terms";
 
 const createWorkspaceSchema = z.object({
@@ -54,22 +53,14 @@ export const createWorkspace = defineAction(createWorkspaceSchema, async (input)
         },
       },
     });
-    let owner = await tx.user.findUnique({ where: { email: input.owner.email } });
-    let tempPassword: string | null = null;
-    if (!owner) {
-      tempPassword = temporaryPassword();
-      owner = await tx.user.create({
-        data: {
-          email: input.owner.email,
-          name: input.owner.name,
-          passwordHash: await hashPassword(tempPassword),
-        },
-      });
-    }
-    await tx.workspaceMember.create({
-      data: { workspaceId: workspace.id, userId: owner.id, role: "OWNER" },
+    const owner = await inviteWorkspaceMember(tx, {
+      workspace,
+      name: input.owner.name,
+      email: input.owner.email,
+      role: "OWNER",
+      actor: { id: viewer.user.id, name: viewer.user.name },
     });
-    return { workspace, owner, tempPassword };
+    return { workspace, owner };
   });
 
   await audit({
@@ -80,10 +71,25 @@ export const createWorkspace = defineAction(createWorkspaceSchema, async (input)
     entityId: result.workspace.id,
     data: { plan: plan.code, owner: input.owner.email },
   });
+  if (result.owner.invite) {
+    await audit({
+      action: "user.invite.send",
+      userId: viewer.user.id,
+      actorLabel: viewer.user.name,
+      entityType: "User",
+      entityId: result.owner.userId,
+      data: {
+        email: result.owner.email,
+        role: "OWNER",
+        scope: "workspace",
+        workspaceId: result.workspace.id,
+      },
+    });
+  }
   revalidatePath("/console", "layout");
   return {
     slug: result.workspace.slug,
     ownerEmail: result.owner.email,
-    tempPassword: result.tempPassword,
+    invite: result.owner.invite,
   };
 });

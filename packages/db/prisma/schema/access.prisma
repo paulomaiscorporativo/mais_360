@@ -1,0 +1,32 @@
+// ============================================================================
+// GESTÃO DE ACESSOS — convite de primeiro acesso e redefinição de senha da
+// equipe (User). Pessoas da área do associado usam PersonAccessInvite.
+//
+//   • guarda só o hash SHA-256 do token aleatório (o link vai por e-mail);
+//   • uso único (`usedAt`); emitir outro do mesmo propósito revoga os abertos;
+//   • convite vale 7 dias e redefinição 1 hora (regras em @mais/core/access).
+// ============================================================================
+
+enum UserAccessTokenPurpose {
+  INVITE
+  PASSWORD_RESET
+}
+
+model UserAccessToken {
+  id          String                 @id @default(cuid())
+  userId      String
+  purpose     UserAccessTokenPurpose
+  tokenHash   String                 @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  // Substituído por um token mais novo ou cancelado (conta desativada)
+  revokedAt   DateTime?
+  // Quem emitiu (admin que convidou/pediu); null = a própria pessoa ("Esqueci a senha")
+  createdById String?
+  createdAt   DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}

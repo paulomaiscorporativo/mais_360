@@ -243,6 +243,7 @@ model User {
   memberships       Membership[]
   sessions          Session[]
   auditLogs         AuditLog[]
+  accessTokens      UserAccessToken[] // convites e redefinições (access.prisma)
   // ── back-relations dos módulos de domínio (Frente 4) ──
   standReservations StandReservation[]
 }

@@ -20,7 +20,7 @@ export type NavWorkspace = {
 };
 
 export type NavData = {
-  user: { name: string; email: string; isPlatformStaff: boolean };
+  user: { name: string; email: string; isPlatformStaff: boolean; isSuperadmin: boolean };
   workspaces: NavWorkspace[];
 };
 
@@ -51,7 +51,12 @@ export async function loadNav(viewer: Viewer): Promise<NavData> {
   });
 
   return {
-    user: { name: viewer.user.name, email: viewer.user.email, isPlatformStaff: staff },
+    user: {
+      name: viewer.user.name,
+      email: viewer.user.email,
+      isPlatformStaff: staff,
+      isSuperadmin: viewer.isSuperadmin,
+    },
     workspaces: workspaces.map((ws) => {
       const role = staff ? "OWNER" : (wsRoles.get(ws.id) ?? "MEMBER");
       const seesAll = staff || role === "OWNER" || role === "ADMIN";

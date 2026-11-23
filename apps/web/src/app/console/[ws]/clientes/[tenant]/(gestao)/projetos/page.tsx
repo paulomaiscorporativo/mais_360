@@ -4,6 +4,7 @@ import { PROJECT_STATUS_LABELS, projectTemplate } from "@mais/core";
 import { Badge, Button, EmptyState } from "@/components/ui";
 import { DataTable } from "@/components/ui/data-table";
 import { guard, requireTenant } from "@/server/auth";
+import { visibleProjectsWhere } from "@/server/projects";
 import { tenantDb } from "@/server/tenant-db";
 import { formatPeriod, statusTone } from "./format";
 
@@ -16,7 +17,8 @@ export default async function ProjectsPage({
   const ctx = await guard(requireTenant(slug));
   const db = tenantDb(ctx);
   const projects = await db.project.findMany({
-    where: { archivedAt: null },
+    // Vínculo restrito (acesso por projeto) só lista os projetos liberados
+    where: { archivedAt: null, ...(await visibleProjectsWhere(ctx)) },
     orderBy: [{ startsAt: { sort: "desc", nulls: "first" } }, { createdAt: "desc" }],
     include: { _count: { select: { registrations: true } } },
   });

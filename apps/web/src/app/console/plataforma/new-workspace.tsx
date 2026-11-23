@@ -1,12 +1,13 @@
 "use client";
 
-import { Copy, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button, Field, Input, Notice } from "@/components/ui";
 import { Select, Switch } from "@/components/ui/controls";
 import { Sheet } from "@/components/ui/overlay";
 import { toast } from "@/components/ui/toast";
+import { InviteLinkPanel } from "@/components/team/invite-link";
 import { createWorkspace } from "./actions";
 
 const brl = new Intl.NumberFormat("pt-BR", {
@@ -34,7 +35,7 @@ export function NewWorkspaceButton({ plans }: { plans: Plan[] }) {
   const [done, setDone] = useState<{
     slug: string;
     ownerEmail: string;
-    tempPassword: string | null;
+    invite: { link: string; expiresAt: string } | null;
   } | null>(null);
   const [f, setF] = useState({
     name: "",
@@ -109,29 +110,15 @@ export function NewWorkspaceButton({ plans }: { plans: Plan[] }) {
         }
       >
         {done ? (
-          done.tempPassword ? (
-            <div className="flex flex-col gap-4">
-              <p className="text-fg-muted text-base">
-                Senha provisória de <span className="text-fg font-medium">{done.ownerEmail}</span> —
-                exibida só agora.
-              </p>
-              <div className="border-border bg-surface-muted flex items-center gap-2 rounded-sm border p-1 pl-3">
-                <code className="text-md flex-1 font-mono tracking-wider">{done.tempPassword}</code>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(done.tempPassword!);
-                    toast.success("Senha copiada.");
-                  }}
-                >
-                  <Copy /> Copiar
-                </Button>
-              </div>
-            </div>
+          done.invite ? (
+            <InviteLinkPanel
+              email={done.ownerEmail}
+              link={done.invite.link}
+              expiresAt={done.invite.expiresAt}
+            />
           ) : (
             <Notice tone="success" title={`${done.ownerEmail} já tinha conta`}>
-              A pessoa foi definida como dona do novo assinante.
+              A pessoa foi definida como dona do novo assinante e recebeu um aviso por e-mail.
             </Notice>
           )
         ) : (

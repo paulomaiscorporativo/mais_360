@@ -1,18 +1,8 @@
 import "server-only";
-import { randomInt } from "node:crypto";
-import { withDependencies, type ModuleKey } from "@mais/core";
+import { TENANT_ROLE_INFO, withDependencies, type ModuleKey } from "@mais/core";
 import type { Prisma, TenantRole } from "@mais/db";
 import { prisma } from "./db";
-import { hashPassword } from "./password";
-
-/** Senha provisória legível (sem 0/O, 1/l), exibida uma única vez. */
-export function temporaryPassword(length = 12): string {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let out = "";
-  for (let i = 0; i < length; i++) out += chars[randomInt(chars.length)];
-  // garante letra e número (política de senha)
-  return out.slice(0, -2) + "a" + String(randomInt(2, 10));
-}
+import { emailBrand, inviteTeamMember, type InviteOutcome } from "./team";
 
 export function slugify(text: string): string {
   return text
@@ -51,32 +41,43 @@ export async function setTenantModules(
 }
 
 /**
- * Garante o usuário (cria com senha provisória se não existir) e o vínculo com o
- * cliente. Devolve a senha provisória só quando a conta foi criada agora.
+ * Dá acesso ao cliente: cria a conta se não existir (sem senha — a pessoa
+ * define a própria pelo convite), faz o vínculo e enfileira o e-mail. Quem já
+ * tem conta ativa recebe só o vínculo e um aviso.
  */
-export async function addTenantMember(
+export async function inviteTenantMember(
   tx: Prisma.TransactionClient,
-  input: { tenantId: string; name: string; email: string; role: TenantRole },
-) {
-  let user = await tx.user.findUnique({ where: { email: input.email } });
-  let tempPassword: string | null = null;
-  if (!user) {
-    tempPassword = temporaryPassword();
-    user = await tx.user.create({
-      data: {
-        email: input.email,
-        name: input.name,
-        passwordHash: await hashPassword(tempPassword),
-        mustChangePassword: true,
-      },
-    });
-  }
-  await tx.membership.upsert({
-    where: { tenantId_userId: { tenantId: input.tenantId, userId: user.id } },
-    create: { tenantId: input.tenantId, userId: user.id, role: input.role },
-    update: { role: input.role },
+  input: {
+    tenant: {
+      id: string;
+      name: string;
+      workspace: { name: string; whiteLabel: boolean };
+      branding?: { primaryColor: string } | null;
+    };
+    name: string;
+    email: string;
+    role: TenantRole;
+    actor: { id: string; name: string };
+  },
+): Promise<InviteOutcome> {
+  return inviteTeamMember(tx, {
+    name: input.name,
+    email: input.email,
+    actorId: input.actor.id,
+    scopeKey: `tenant:${input.tenant.id}`,
+    emailContext: {
+      brand: emailBrand(input.tenant.workspace, input.tenant.branding?.primaryColor),
+      contextName: input.tenant.name,
+      roleLabel: TENANT_ROLE_INFO[input.role].label,
+      actorName: input.actor.name,
+    },
+    link: (userId) =>
+      tx.membership.upsert({
+        where: { tenantId_userId: { tenantId: input.tenant.id, userId } },
+        create: { tenantId: input.tenant.id, userId, role: input.role },
+        update: { role: input.role },
+      }),
   });
-  return { user, tempPassword };
 }
 
 export async function tenantSlugTaken(slug: string) {

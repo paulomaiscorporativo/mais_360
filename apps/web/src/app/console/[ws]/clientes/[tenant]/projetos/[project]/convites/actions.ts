@@ -21,6 +21,7 @@ import {
 } from "@/server/events";
 import { requireTenant } from "@/server/auth";
 import { modulesForTenant } from "@/server/modules";
+import { requireProjectRole } from "@/server/projects";
 import { tenantDb } from "@/server/tenant-db";
 
 const ref = { tenant: z.string(), projectId: z.string() };
@@ -430,13 +431,15 @@ export const setGuestStatus = defineAction(
 
 /** Balcão: papel DESK ou acima, projeto ativo do cliente e convites ligados. */
 async function deskProject(tenant: string, projectId: string) {
-  const ctx = await requireTenant(tenant, "DESK");
+  const ctx = await requireTenant(tenant);
   const db = tenantDb(ctx);
   const project = await db.project.findFirst({
     where: { id: projectId, archivedAt: null },
     include: { features: true },
   });
   if (!project) throw new AppError("Projeto não encontrado.");
+  // Acesso por projeto: o papel que vale é o do projeto (ProjectAccess)
+  await requireProjectRole(ctx, project.id, "DESK");
   const features = enabledProjectFeatures(project.features, await modulesForTenant(ctx.tenant));
   if (!features.has("INVITES"))
     throw new AppError("Este recurso não está ligado no projeto.", "FORBIDDEN");

@@ -6,6 +6,7 @@ import { MODULE_UI, moduleHref } from "@/config/modules-ui";
 import { termsWithDefaults } from "@/config/terms";
 import { guard, requireTenant } from "@/server/auth";
 import { prisma } from "@/server/db";
+import { visibleProjectsWhere } from "@/server/projects";
 import { modulesForTenant } from "@/server/modules";
 
 const ACTIONS: Record<string, string> = {
@@ -37,7 +38,9 @@ export default async function TenantOverview({
     prisma.tenantTerm.findMany({ where: { tenantId: ctx.tenantId } }),
     Promise.all([
       prisma.person.count({ where: { tenantId: ctx.tenantId, isMember: true } }),
-      prisma.project.count({ where: { tenantId: ctx.tenantId, archivedAt: null } }),
+      visibleProjectsWhere(ctx).then((visible) =>
+        prisma.project.count({ where: { tenantId: ctx.tenantId, archivedAt: null, ...visible } }),
+      ),
       prisma.membership.count({ where: { tenantId: ctx.tenantId } }),
     ]),
     prisma.auditLog.findMany({

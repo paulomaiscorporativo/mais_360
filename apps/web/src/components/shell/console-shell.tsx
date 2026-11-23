@@ -318,10 +318,24 @@ function SidebarBody({
     ? [
         { href: "/console/plataforma", label: "Assinantes", icon: <Building2 />, exact: true },
         { href: "/console/plataforma/planos", label: "Planos", icon: <CreditCard /> },
+        ...(nav.user.isSuperadmin
+          ? [{ href: "/console/plataforma/equipe", label: "Equipe da plataforma", icon: <Users /> }]
+          : []),
       ]
     : [];
   const workspaceItems: NavItem[] = workspace
-    ? [{ href: `/console/${workspace.slug}`, label: "Clientes", icon: <LayoutGrid />, exact: true }]
+    ? [
+        {
+          href: `/console/${workspace.slug}`,
+          label: "Clientes",
+          icon: <LayoutGrid />,
+          exact: true,
+        },
+        // Equipe do assinante: quem tem papel no assinante (não só vínculo com um cliente)
+        ...(workspace.role !== "MEMBER"
+          ? [{ href: `/console/${workspace.slug}/equipe`, label: "Equipe", icon: <Users /> }]
+          : []),
+      ]
     : [];
   const tn = workspace && tenant ? tenantNav(workspace, tenant) : null;
 
@@ -445,6 +459,15 @@ function buildCommands(nav: NavData): CommandItem[] {
         icon: <CreditCard />,
       },
     );
+    if (nav.user.isSuperadmin)
+      items.push({
+        id: "p-team",
+        group: "Plataforma",
+        label: "Equipe da plataforma",
+        href: "/console/plataforma/equipe",
+        icon: <Users />,
+        keywords: ["usuários", "suporte", "superadmin", "convidar"],
+      });
   }
   for (const w of nav.workspaces) {
     items.push({
@@ -455,6 +478,15 @@ function buildCommands(nav: NavData): CommandItem[] {
       href: `/console/${w.slug}`,
       icon: <Building2 />,
     });
+    if (w.role !== "MEMBER")
+      items.push({
+        id: `w-team-${w.id}`,
+        group: "Assinantes",
+        label: `Equipe de ${w.name}`,
+        href: `/console/${w.slug}/equipe`,
+        icon: <Users />,
+        keywords: ["usuários", "convidar", "acessos"],
+      });
     items.push({
       id: `w-new-${w.id}`,
       group: "Ações",
