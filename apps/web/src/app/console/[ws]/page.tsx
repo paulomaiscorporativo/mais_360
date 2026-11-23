@@ -49,7 +49,7 @@ export default async function WorkspaceHome({ params }: { params: Promise<{ ws: 
       include: {
         branding: true,
         modules: true,
-        domains: { where: { primary: true }, take: 1 },
+        domains: { where: { primary: true, status: "VERIFIED" }, take: 1 },
         _count: { select: { memberships: true, projects: true } },
       },
     }),

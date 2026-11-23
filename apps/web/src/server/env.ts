@@ -9,6 +9,9 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL não definida"),
   APP_URL: z.string().url().default("http://localhost:3000"),
   ROOT_DOMAIN: z.string().default("localhost"),
+  // Host do console (nunca é cliente) e alvo do CNAME dos domínios próprios (docs/DOMINIOS.md)
+  CONSOLE_HOST: z.string().default(""),
+  CUSTOM_DOMAIN_TARGET: z.string().default(""),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET precisa ter pelo menos 32 caracteres"),
   DEFAULT_TIMEZONE: z.string().default("America/Sao_Paulo"),
 });

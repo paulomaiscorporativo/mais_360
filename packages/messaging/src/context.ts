@@ -10,7 +10,7 @@ import { appUrl, defaultTimeZone } from "./env";
 
 const tenantInclude = {
   branding: true,
-  domains: { where: { primary: true }, take: 1 },
+  domains: { where: { primary: true, status: "VERIFIED" }, take: 1 },
   workspace: { select: { whiteLabel: true } },
 } satisfies Prisma.TenantInclude;
 

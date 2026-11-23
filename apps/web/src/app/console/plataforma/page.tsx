@@ -134,7 +134,7 @@ export default async function PlatformHome() {
         rows={workspaces}
         columns={columns}
         rowKey={(w) => w.id}
-        rowHref={(w) => `/console/${w.slug}`}
+        rowHref={(w) => `/console/plataforma/assinantes/${w.slug}`}
       />
     </>
   );

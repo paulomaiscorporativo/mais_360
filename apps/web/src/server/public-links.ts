@@ -10,7 +10,8 @@ import { servesTenantDomains, tenantAddress } from "./urls";
 export async function tenantPublicBase(tenant: { id: string; slug: string }) {
   if (!servesTenantDomains()) return `${env.APP_URL.replace(/\/$/, "")}/t/${tenant.slug}`;
   const domains = await prisma.tenantDomain.findMany({
-    where: { tenantId: tenant.id, primary: true },
+    // Só domínio verificado: se o DNS sumir, os links voltam ao subdomínio padrão
+    where: { tenantId: tenant.id, primary: true, status: "VERIFIED" },
     take: 1,
   });
   return `https://${tenantAddress({ slug: tenant.slug, domains })}`;

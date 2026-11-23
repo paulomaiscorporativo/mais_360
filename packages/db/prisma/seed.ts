@@ -4,6 +4,7 @@
  *
  *   npm run db:seed
  */
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import bcrypt from "bcryptjs";
 import { config as loadEnv } from "dotenv";
@@ -222,7 +223,15 @@ async function main() {
     for (const [i, hostname] of t.domains.entries()) {
       await prisma.tenantDomain.upsert({
         where: { hostname },
-        create: { tenantId: tenant.id, hostname, primary: i === 0 },
+        // Endereços já em produção entram verificados (ver docs/DOMINIOS.md)
+        create: {
+          tenantId: tenant.id,
+          hostname,
+          primary: i === 0,
+          status: "VERIFIED",
+          verifiedAt: new Date(),
+          verificationToken: randomBytes(16).toString("hex"),
+        },
         update: { tenantId: tenant.id },
       });
     }

@@ -10,6 +10,7 @@ const { defaultDeps, messagingJobHandlers, recoverStaleDeliveries } =
   await import("@mais/messaging");
 const { JobRunner, newWorkerId } = await import("./runner");
 const { apifyFlightSource, flightJobHandlers, sweepLiveFlights } = await import("./flights");
+const { domainJobHandlers, sweepDomains } = await import("./domains");
 
 // Status de voo ao vivo só funciona com o token da Apify
 const apifyToken = process.env.APIFY_TOKEN?.trim() ?? "";
@@ -22,6 +23,7 @@ const runner = new JobRunner({
   handlers: {
     ...messagingJobHandlers(prisma, defaultDeps({ workerId })),
     ...(apifyToken ? flightJobHandlers(prisma, apifyFlightSource(apifyToken)) : {}),
+    ...domainJobHandlers(prisma),
   },
 });
 
@@ -51,6 +53,18 @@ const flightSweep = apifyToken
   : null;
 if (!apifyToken) console.info("[worker] APIFY_TOKEN ausente: status de voo ao vivo desligado.");
 
+// Domínios próprios dos clientes: pendentes a cada 5 min, verificados uma vez por dia
+async function runDomainSweep() {
+  try {
+    const n = await sweepDomains(prisma);
+    if (n) console.info(`[worker] ${n} domínio(s) enviado(s) para verificação de DNS`);
+  } catch (e) {
+    console.error("[worker] erro na varredura de domínios:", e);
+  }
+}
+const domainSweep = setInterval(runDomainSweep, 5 * 60_000);
+void runDomainSweep();
+
 runner.start();
 
 let stopping = false;
@@ -60,6 +74,7 @@ async function shutdown(signal: string) {
   console.info(`[worker] ${signal} recebido: terminando os jobs em andamento…`);
   clearInterval(housekeeping);
   if (flightSweep) clearInterval(flightSweep);
+  clearInterval(domainSweep);
   const force = setTimeout(() => {
     console.error("[worker] tempo esgotado; encerrando à força.");
     process.exit(1);

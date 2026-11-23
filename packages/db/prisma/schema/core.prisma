@@ -36,18 +36,21 @@ enum WorkspaceStatus {
 }
 
 model Workspace {
-  id           String          @id @default(cuid())
-  slug         String          @unique
-  name         String
-  legalName    String          @default("")
-  document     String          @default("") // CNPJ
-  status       WorkspaceStatus @default(TRIAL)
-  trialEndsAt  DateTime?
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  name            String
+  legalName       String          @default("")
+  document        String          @default("") // CNPJ
+  status          WorkspaceStatus @default(TRIAL)
+  trialEndsAt     DateTime?
+  // Motivo e data da última mudança de situação (histórico completo no AuditLog)
+  statusReason    String          @default("")
+  statusChangedAt DateTime?
   // Marca própria do assinante (white-label): esconde a marca da plataforma
-  whiteLabel   Boolean         @default(false)
-  billingEmail String          @default("")
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  whiteLabel      Boolean         @default(false)
+  billingEmail    String          @default("")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   tenants                 Tenant[]
   members                 WorkspaceMember[]
@@ -143,16 +146,31 @@ model TenantBranding {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
+// Domínio próprio: só vale (roteamento, links, certificado) depois de VERIFIED.
+// Regras de verificação em @mais/core/domains; guia em docs/DOMINIOS.md.
+enum DomainStatus {
+  PENDING // cadastrado, aguardando os registros no DNS
+  VERIFIED // TXT e CNAME conferidos; reconferido uma vez por dia
+  FAILED // não verificou em 7 dias ou o apontamento sumiu
+}
+
 model TenantDomain {
-  id        String   @id @default(cuid())
-  tenantId  String
-  hostname  String   @unique // abiec.mais.tur.br | eventos.abiec.com.br
-  primary   Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id                String       @id @default(cuid())
+  tenantId          String
+  hostname          String       @unique // abiec.mais.tur.br | eventos.abiec.com.br
+  primary           Boolean      @default(false)
+  status            DomainStatus @default(PENDING)
+  // Valor do TXT _mais360.<hostname> que prova a posse do domínio
+  verificationToken String       @default("")
+  verifiedAt        DateTime?
+  lastCheckedAt     DateTime?
+  lastError         String       @default("")
+  createdAt         DateTime     @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+  @@index([status, lastCheckedAt])
 }
 
 // Módulos liberados ao cliente — sempre um subconjunto do plano do assinante.
