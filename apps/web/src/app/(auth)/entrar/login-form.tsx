@@ -1,6 +1,7 @@
 "use client";
 
 import { Eye, EyeOff, Mail } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button, Field, Input, Notice } from "@/components/ui";
 import { Checkbox } from "@/components/ui/controls";
@@ -76,10 +77,18 @@ export function LoginForm({ next }: { next?: string }) {
           />
         )}
       </Field>
-      <label className="text-fg-muted flex cursor-pointer items-center gap-2.5 text-base">
-        <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
-        Manter conectado neste dispositivo
-      </label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="text-fg-muted flex cursor-pointer items-center gap-2.5 text-base">
+          <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
+          Manter conectado neste dispositivo
+        </label>
+        <Link
+          href="/entrar/esqueci"
+          className="text-brand-text rounded-sm text-sm font-medium underline-offset-4 hover:underline"
+        >
+          Esqueci a senha
+        </Link>
+      </div>
       <Button type="submit" size="lg" block loading={pending}>
         Entrar
       </Button>
