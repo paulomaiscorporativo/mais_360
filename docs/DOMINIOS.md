@@ -57,6 +57,10 @@ que resolva para os mesmos endereços do alvo. Na Cloudflare, o registro precisa
 | `CUSTOM_DOMAIN_TARGET` | `clientes.<ROOT_DOMAIN>` | alvo do CNAME dos domínios próprios                           |
 | `DNS_SERVERS`          | resolvedor do sistema    | (worker) servidores DNS da verificação, ex. `1.1.1.1,8.8.8.8` |
 
+Recomendado em produção: `DNS_SERVERS="1.1.1.1,8.8.8.8"`. O resolvedor local do servidor pode
+guardar respostas antigas em cache ou recusar consultas; nesses casos a verificação trata o erro
+como temporário (não derruba domínio verificado), mas o domínio novo demora a ficar ativo.
+
 ## Passo a passo para o operador (produção)
 
 1. **DNS da plataforma** (zona `mais.tur.br`):
