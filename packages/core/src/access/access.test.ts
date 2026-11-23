@@ -290,18 +290,29 @@ describe("e-mail de sistema", () => {
       contextName: "ABIEC",
       roleLabel: "Operador",
     });
-    expect(m.subject).toBe("Seu acesso ao Mais 360");
+    expect(m.subject).toBe("Convite de acesso — Mais 360");
     expect(m.text).toContain(base.link);
     expect(m.text).toContain("7 dias");
     expect(m.html).toContain("Olá, Ana.");
     expect(m.html).not.toContain("<Souza>");
-    expect(m.html).toContain("em ABIEC como Operador");
+    expect(m.html).toContain("para acessar ABIEC (Mais 360) como Operador.");
   });
 
   it("redefinição informa a validade de 1 hora", () => {
     const m = renderAuthEmail({ ...base, kind: "PASSWORD_RESET" });
     expect(m.text).toContain("1 hora");
     expect(m.subject).toMatch(/Redefinição de senha/);
+  });
+
+  it("white-label não repete a marca no contexto", () => {
+    const m = renderAuthEmail({
+      ...base,
+      kind: "INVITE",
+      brand: { name: "Outra Agência", color: "#123456" },
+      contextName: "Outra Agência",
+    });
+    expect(m.text).toContain("para acessar Outra Agência.");
+    expect(m.html).not.toContain("Mais 360");
   });
 
   it("cor inválida cai na cor padrão", () => {

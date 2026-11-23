@@ -33,16 +33,17 @@ function firstName(name: string) {
 type Copy = { subject: string; title: string; paragraphs: string[]; cta: string; note: string };
 
 function copyFor(i: AuthEmailInput): Copy {
-  const where = i.contextName ? ` em ${i.contextName}` : "";
+  const brand = i.brand.name;
+  // "ABIEC (Mais 360)"; sem repetir quando o contexto é a própria marca (white-label)
+  const target = i.contextName && i.contextName !== brand ? `${i.contextName} (${brand})` : brand;
   const role = i.roleLabel ? ` como ${i.roleLabel}` : "";
-  const by = i.actorName ? `${i.actorName} convidou você` : "Você foi convidado";
   switch (i.kind) {
     case "INVITE":
       return {
-        subject: `Seu acesso ao ${i.brand.name}`,
+        subject: `Convite de acesso — ${brand}`,
         title: "Defina sua senha para começar",
         paragraphs: [
-          `${by} para acessar o ${i.brand.name}${where}${role}.`,
+          `${i.actorName ? `${i.actorName} convidou você` : "Você recebeu um convite"} para acessar ${target}${role}.`,
           "Para ativar sua conta, crie uma senha pessoal no link abaixo.",
         ],
         cta: "Definir minha senha",
@@ -50,12 +51,12 @@ function copyFor(i: AuthEmailInput): Copy {
       };
     case "PASSWORD_RESET":
       return {
-        subject: `Redefinição de senha — ${i.brand.name}`,
+        subject: `Redefinição de senha — ${brand}`,
         title: "Redefina sua senha",
         paragraphs: [
           i.actorName
-            ? `${i.actorName} pediu a redefinição da sua senha no ${i.brand.name}.`
-            : `Recebemos um pedido para redefinir a sua senha no ${i.brand.name}.`,
+            ? `${i.actorName} pediu a redefinição da senha da sua conta (${brand}).`
+            : `Recebemos um pedido para redefinir a senha da sua conta (${brand}).`,
           "Use o link abaixo para criar uma nova senha. Ao concluir, os outros dispositivos conectados serão desconectados.",
         ],
         cta: "Criar nova senha",
@@ -63,10 +64,10 @@ function copyFor(i: AuthEmailInput): Copy {
       };
     case "ACCESS_GRANTED":
       return {
-        subject: `Novo acesso no ${i.brand.name}${where}`,
+        subject: `Novo acesso — ${i.contextName ?? brand}`,
         title: "Você recebeu um novo acesso",
         paragraphs: [
-          `${i.actorName ? `${i.actorName} liberou` : "Foi liberado"} para você o acesso${where}${role}.`,
+          `${i.actorName ? `${i.actorName} liberou para você` : "Você recebeu"} o acesso a ${target}${role}.`,
           "Entre com o mesmo e-mail e a senha que você já usa.",
         ],
         cta: "Entrar",
