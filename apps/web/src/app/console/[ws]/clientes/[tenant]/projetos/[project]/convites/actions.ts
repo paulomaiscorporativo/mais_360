@@ -247,6 +247,7 @@ export const revealCompanyPassword = defineAction(
     });
     return { login: c.login, password: openPassword(c.provisionalPasswordEnc) };
   },
+  { readOnly: true },
 );
 
 export const regenerateCompanyPassword = defineAction(
@@ -494,4 +495,5 @@ export const checkinStats = defineAction(
     ]);
     return { total, checked, confirmed };
   },
+  { readOnly: true },
 );

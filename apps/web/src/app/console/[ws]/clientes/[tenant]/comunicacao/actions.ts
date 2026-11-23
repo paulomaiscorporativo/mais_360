@@ -142,22 +142,26 @@ export const saveEmailChannel = defineAction(emailChannelSchema, async (input) =
   return { id: saved.id };
 });
 
-export const testEmailConnection = defineAction(emailChannelSchema, async (input) => {
-  const ctx = await requireCommunication(input.tenant, "ADMIN");
-  let stored = "";
-  if (input.id && !input.smtpPass) {
-    const c = await ctx.db.messagingChannel.findFirst({ where: { id: input.id } });
-    stored = c ? openSecret(c.smtpPassEnc) : "";
-  }
-  const smtp = input.mode === "own" ? smtpFrom(input, stored) : globalSmtp()?.smtp;
-  if (!smtp?.host) throw new AppError("Informe o servidor SMTP.");
-  try {
-    await verifySmtpConnection(smtp);
-  } catch (e) {
-    throw new AppError(`O servidor recusou a conexão: ${(e as Error).message}`);
-  }
-  return { host: smtp.host };
-});
+export const testEmailConnection = defineAction(
+  emailChannelSchema,
+  async (input) => {
+    const ctx = await requireCommunication(input.tenant, "ADMIN");
+    let stored = "";
+    if (input.id && !input.smtpPass) {
+      const c = await ctx.db.messagingChannel.findFirst({ where: { id: input.id } });
+      stored = c ? openSecret(c.smtpPassEnc) : "";
+    }
+    const smtp = input.mode === "own" ? smtpFrom(input, stored) : globalSmtp()?.smtp;
+    if (!smtp?.host) throw new AppError("Informe o servidor SMTP.");
+    try {
+      await verifySmtpConnection(smtp);
+    } catch (e) {
+      throw new AppError(`O servidor recusou a conexão: ${(e as Error).message}`);
+    }
+    return { host: smtp.host };
+  },
+  { readOnly: true },
+);
 
 const whatsappChannelSchema = z.object({
   ...ref,
@@ -315,6 +319,7 @@ export const whatsappStatus = defineAction(
     const ctx = await requireCommunication(tenant, "VIEWER");
     return liveState(ctx, id, false);
   },
+  { readOnly: true },
 );
 
 export const whatsappDisconnect = defineAction(
@@ -516,6 +521,7 @@ export const previewTemplateAction = defineAction(
       unknownFields: r.unknownFields,
     };
   },
+  { readOnly: true },
 );
 
 export const sendTestAction = defineAction(
@@ -580,6 +586,7 @@ export const previewAudienceAction = defineAction(
       }),
     );
   },
+  { readOnly: true },
 );
 
 export const createCampaignAction = defineAction(
@@ -755,6 +762,7 @@ export const campaignLive = defineAction(
       })),
     };
   },
+  { readOnly: true },
 );
 
 /** Inscrições de um projeto para a seleção manual de destinatários. */
@@ -793,6 +801,7 @@ export const searchRegistrations = defineAction(
       detail: r.person.email || r.person.phone || r.displayCompany,
     }));
   },
+  { readOnly: true },
 );
 
 /** Opções de filtro de público de um projeto (categorias e grupos). */
@@ -815,6 +824,7 @@ export const projectAudienceOptions = defineAction(
     ]);
     return { categories, groups };
   },
+  { readOnly: true },
 );
 
 // ===========================================================================

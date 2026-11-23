@@ -272,8 +272,12 @@ export const removeMember = defineAction(
   },
 );
 
-export const checkSlug = defineAction(z.object({ slug: z.string() }), async ({ slug }) => {
-  const s = slug.trim().toLowerCase();
-  if (RESERVED_SLUGS.has(s)) return { available: false };
-  return { available: !(await tenantSlugTaken(s)) };
-});
+export const checkSlug = defineAction(
+  z.object({ slug: z.string() }),
+  async ({ slug }) => {
+    const s = slug.trim().toLowerCase();
+    if (RESERVED_SLUGS.has(s)) return { available: false };
+    return { available: !(await tenantSlugTaken(s)) };
+  },
+  { readOnly: true },
+);

@@ -3,6 +3,7 @@ import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { Prisma } from "@mais/db";
 import { AppError } from "./errors";
+import { asWrite } from "./write-scope";
 
 /**
  * Contrato das Server Actions (CLAUDE.md): nunca lançam para a interface.
@@ -25,10 +26,15 @@ export function zodFieldErrors(error: z.ZodError): FieldErrors {
 /**
  * Envolve a action: valida a entrada com zod, converte erros conhecidos em
  * mensagens claras e deixa passar redirect/notFound do Next.
+ *
+ * Toda action conta como ESCRITA (server/write-scope.ts): com o assinante
+ * suspenso, `requireWorkspace`/`requireTenant` a recusam. Actions que só
+ * consultam (busca, prévia, contadores) declaram `{ readOnly: true }`.
  */
 export function defineAction<S extends z.ZodType, T>(
   schema: S,
   handler: (input: z.infer<S>) => Promise<T>,
+  options: { readOnly?: boolean } = {},
 ) {
   return async (raw: unknown): Promise<ActionResult<T>> => {
     const parsed = schema.safeParse(raw);
@@ -40,7 +46,8 @@ export function defineAction<S extends z.ZodType, T>(
       };
     }
     try {
-      return { ok: true, data: await handler(parsed.data) };
+      const run = () => handler(parsed.data);
+      return { ok: true, data: await (options.readOnly ? run() : asWrite(run)) };
     } catch (err) {
       unstable_rethrow(err);
       if (err instanceof AppError)

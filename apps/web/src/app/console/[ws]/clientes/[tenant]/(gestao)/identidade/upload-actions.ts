@@ -9,6 +9,7 @@ import { prisma } from "@/server/db";
 import { AppError } from "@/server/errors";
 import { saveUpload } from "@/server/files";
 import { requireProjectWriter } from "@/server/projects";
+import { asWrite } from "@/server/write-scope";
 
 type Target = "logo" | "logoDark" | "favicon" | "projectBanner";
 const TARGETS = new Set<Target>(["logo", "logoDark", "favicon", "projectBanner"]);
@@ -21,6 +22,10 @@ const TARGETS = new Set<Target>(["logo", "logoDark", "favicon", "projectBanner"]
 export async function uploadBrandAsset(
   form: FormData,
 ): Promise<ActionResult<{ fileId: string | null }>> {
+  return asWrite(() => upload(form));
+}
+
+async function upload(form: FormData): Promise<ActionResult<{ fileId: string | null }>> {
   try {
     const tenant = String(form.get("tenant") ?? "");
     const target = String(form.get("target") ?? "") as Target;

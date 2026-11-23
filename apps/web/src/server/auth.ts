@@ -1,10 +1,12 @@
 import "server-only";
 import { notFound as nextNotFound, redirect } from "next/navigation";
 import { cache } from "react";
-import type { PlatformRole, TenantRole, WorkspaceRole } from "@mais/db";
+import { CANCELED_ACCESS_ERROR, consoleAccess, SUSPENDED_WRITE_ERROR } from "@mais/core/workspaces";
+import type { PlatformRole, TenantRole, WorkspaceRole, WorkspaceStatus } from "@mais/db";
 import { prisma } from "./db";
 import { AppError, forbidden, notFound } from "./errors";
 import { getSession } from "./session";
+import { isWriteRequest } from "./write-scope";
 
 /**
  * Autorização em três níveis (ADR 0002):
@@ -56,6 +58,25 @@ export async function requirePlatformRole(roles: PlatformRole[]): Promise<Viewer
   return viewer;
 }
 
+/**
+ * Efeito da situação do assinante (ADR 0004), aplicado em TODO acesso ao
+ * console por requireWorkspace/requireTenant:
+ *   • cancelado → ninguém do assinante entra (a plataforma ainda consulta);
+ *   • suspenso  → escrita recusada (só leitura e exportação).
+ * O superadmin da plataforma pode corrigir dados de um assinante suspenso.
+ */
+export function enforceWorkspaceStatus(workspace: { status: WorkspaceStatus }, viewer: Viewer) {
+  const access = consoleAccess(workspace.status);
+  if (access === "full" || viewer.isSuperadmin) return;
+  if (access === "blocked" && !viewer.isPlatformStaff)
+    throw new AppError(CANCELED_ACCESS_ERROR, "FORBIDDEN");
+  if (isWriteRequest())
+    throw new AppError(
+      access === "blocked" ? CANCELED_ACCESS_ERROR : SUSPENDED_WRITE_ERROR,
+      "FORBIDDEN",
+    );
+}
+
 const WORKSPACE_RANK: Record<WorkspaceRole, number> = {
   OWNER: 4,
   ADMIN: 3,
@@ -73,6 +94,7 @@ export async function requireWorkspace(slug: string, minRole: WorkspaceRole = "O
   else role = viewer.user.workspaces.find((w) => w.workspaceId === workspace.id)?.role ?? null;
   if (!role) throw notFound("Assinante não encontrado.");
   if (WORKSPACE_RANK[role] < WORKSPACE_RANK[minRole]) throw forbidden();
+  enforceWorkspaceStatus(workspace, viewer);
   return { viewer, workspace, role };
 }
 
@@ -106,6 +128,7 @@ export async function requireTenant(slug: string, minRole: TenantRole = "VIEWER"
   }
   if (!role) throw notFound("Cliente não encontrado.");
   if (TENANT_RANK[role] < TENANT_RANK[minRole]) throw forbidden();
+  enforceWorkspaceStatus(tenant.workspace, viewer);
   return { viewer, tenant, tenantId: tenant.id, workspace: tenant.workspace, role };
 }
 
@@ -122,9 +145,12 @@ export async function visibleWorkspaces(viewer: Viewer) {
 /** Destino padrão depois do login. */
 export async function homePathFor(viewer: Viewer): Promise<string> {
   if (viewer.isPlatformStaff) return "/console/plataforma";
-  const ws = viewer.user.workspaces[0]?.workspace;
+  // Prefere um assinante em funcionamento; cancelado só se não houver outro
+  const pick = <T>(list: T[], status: (x: T) => WorkspaceStatus) =>
+    list.find((x) => status(x) !== "CANCELED") ?? list[0];
+  const ws = pick(viewer.user.workspaces, (w) => w.workspace.status)?.workspace;
   if (ws) return `/console/${ws.slug}`;
-  const m = viewer.user.memberships[0];
+  const m = pick(viewer.user.memberships, (x) => x.tenant.workspace.status);
   if (m) return `/console/${m.tenant.workspace.slug}/clientes/${m.tenant.slug}`;
   throw new AppError(
     "Sua conta ainda não tem acesso a nenhum cliente. Fale com o administrador.",

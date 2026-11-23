@@ -66,6 +66,7 @@ export const searchPeople = defineAction(
       alreadyIn: x.registrations.length > 0,
     }));
   },
+  { readOnly: true },
 );
 
 // ---------------------------------------------------------------------------

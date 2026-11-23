@@ -1,8 +1,13 @@
 import { audit } from "@/server/audit";
 import { apiError, requireDocumentsTenant, storeFile } from "@/server/documents";
+import { asWrite } from "@/server/write-scope";
 
 // Envio de arte de fundo (PDF) ou imagem (logo) para os modelos de documento.
-export async function POST(req: Request) {
+export function POST(req: Request) {
+  return asWrite(() => upload(req));
+}
+
+async function upload(req: Request) {
   try {
     const form = await req.formData();
     const slug = String(form.get("tenant") ?? "");
