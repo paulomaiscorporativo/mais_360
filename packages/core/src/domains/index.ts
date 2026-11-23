@@ -413,3 +413,15 @@ export function classifyTlsHost(
   }
   return { kind: "custom", hostname: host };
 }
+
+/** Fila do worker que consulta o DNS de um domínio (payload: { domainId }). */
+export const DOMAINS_VERIFY_QUEUE = "domains.verify";
+export const domainCheckKey = (domainId: string) => `domains.verify:${domainId}`;
+
+/** Domínios antigos da plataforma, além do ROOT_DOMAIN (endereços legados com QR impresso). */
+export const LEGACY_PLATFORM_DOMAINS = ["mais.tur.br"] as const;
+
+/** Domínios da plataforma: ROOT_DOMAIN + legados (sem repetição). */
+export const platformDomainsFor = (rootDomain: string) => [
+  ...new Set([normalizeHostname(rootDomain), ...LEGACY_PLATFORM_DOMAINS].filter(Boolean)),
+];
