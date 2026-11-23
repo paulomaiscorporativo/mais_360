@@ -114,6 +114,29 @@ valor na tela, despesas e relatórios de conformidade.
 do credenciamento; convites de associado pendentes não migram (reemitir); campos posicionados dos
 vouchers refazer no editor; migração real exige exportar os bancos do VPS (`docs/MIGRACAO.md`).
 
+**Frente `f3-assinantes` — assinantes e domínios (23/11/2026):**
+
+- Página do assinante no console da plataforma (`/console/plataforma/assinantes/<ws>`): dados,
+  plano, extensão do teste, situação com motivo e confirmação (ativar, pagamento pendente,
+  suspender, reativar, cancelar), clientes, uso de 30 dias e histórico (AuditLog). Só
+  SUPERADMIN altera; SUPPORT consulta. Regras em `@mais/core/workspaces`.
+- Efeito no servidor (ADR 0004): `defineAction` marca toda action como escrita e
+  `requireWorkspace`/`requireTenant` recusam escrita com o assinante suspenso (actions de
+  consulta com `{ readOnly: true }`; uploads com `asWrite`). Faixa de aviso no console do
+  assinante; cancelado sem acesso ao console e com as áreas públicas fora do ar.
+- Domínios próprios na ficha do cliente (aba Domínios): cadastro validado, instruções de DNS
+  (CNAME + TXT `_mais360`) com copiar, verificar agora, principal, remover. Worker: fila
+  `domains.verify` + varredura (pendentes a cada 5 min por 7 dias; verificados 1×/dia; perda de
+  apontamento → FAILED e links voltam ao subdomínio). Roteamento, links e e-mails só usam
+  domínio VERIFIED. `GET /api/tls/ask` para o on-demand TLS do Caddy. Guia em
+  `docs/DOMINIOS.md`. Migrações `situacao_do_assinante` e `dominios_do_cliente`; variáveis
+  `CUSTOM_DOMAIN_TARGET` e `DNS_SERVERS`.
+
+**Pendências de assinantes e domínios:** cobrança automática (provedor) e régua de
+inadimplência; aviso por e-mail ao assinante quando a situação muda e ao administrador quando
+um domínio falha; esconder botões de edição no modo somente leitura (hoje o servidor recusa e a
+faixa avisa); limites do plano ainda não bloqueiam criação (só aparecem na página).
+
 **Próximo:** gestão de acessos (equipe do assinante e da plataforma, convite por e-mail com link
 de primeiro acesso, desativar/reativar, redefinir senha, acesso por projeto, editar/suspender
 assinante); depois worker (réguas) e infraestrutura de deploy (VPS).
