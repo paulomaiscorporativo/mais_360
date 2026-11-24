@@ -19,7 +19,11 @@ export type SmtpSettings = {
   pass: string;
 };
 
-export function globalSmtp(): { smtp: SmtpSettings; from: string } | null {
+/**
+ * SMTP global. `replyTo` (SMTP_REPLY_TO) é o "responder para" padrão: vale quando
+ * o remetente não recebe respostas (ex.: nao-responda@) e o cliente não definiu o próprio.
+ */
+export function globalSmtp(): { smtp: SmtpSettings; from: string; replyTo: string } | null {
   const host = process.env.SMTP_HOST?.trim();
   if (!host) return null;
   const port = Number(process.env.SMTP_PORT || 587);
@@ -33,6 +37,7 @@ export function globalSmtp(): { smtp: SmtpSettings; from: string } | null {
     },
     from:
       process.env.SMTP_FROM?.trim() || process.env.SMTP_USER?.trim() || "nao-responda@localhost",
+    replyTo: process.env.SMTP_REPLY_TO?.trim() ?? "",
   };
 }
 

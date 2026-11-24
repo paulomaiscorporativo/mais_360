@@ -35,7 +35,11 @@ export function globalSmtpSender(): SendEmail {
     const provider = createSmtpProvider(cfg.smtp);
     const base = m.from || cfg.from;
     try {
-      await provider.send({ ...m, from: fromName ? withDisplayName(base, fromName) : base });
+      await provider.send({
+        ...m,
+        from: fromName ? withDisplayName(base, fromName) : base,
+        replyTo: m.replyTo || cfg.replyTo || undefined,
+      });
     } finally {
       provider.close?.();
     }

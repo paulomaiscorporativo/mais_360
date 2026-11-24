@@ -71,7 +71,9 @@ export function channelFromRecord(
         ? formatFrom(c.fromName, extractEmail(g.from))
         : (g?.from ?? "");
     if (!from) return null;
-    return { kind: "EMAIL", channelId: c.id, source, smtp, from, replyTo: c.replyTo.trim() };
+    // Sem Reply-To próprio, quem usa o servidor global herda o padrão da plataforma
+    const replyTo = c.replyTo.trim() || (host ? "" : (g?.replyTo ?? ""));
+    return { kind: "EMAIL", channelId: c.id, source, smtp, from, replyTo };
   }
 
   const cfg = parseJson(c.waConfigEnc);
@@ -127,7 +129,7 @@ export function globalChannel(kind: "EMAIL" | "WHATSAPP"): ResolvedChannel | nul
           source: "GLOBAL",
           smtp: g.smtp,
           from: g.from,
-          replyTo: "",
+          replyTo: g.replyTo,
         }
       : null;
   }
