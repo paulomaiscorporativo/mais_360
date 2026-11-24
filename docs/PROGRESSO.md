@@ -164,7 +164,30 @@ faixa avisa); limites do plano ainda não bloqueiam criação (só aparecem na p
 limite de tentativas em tabela para vários nós; limpeza periódica de tokens vencidos (hoje só
 ficam inertes); convites de membro de cliente por domínio do cliente (hoje o link usa `APP_URL`).
 
-**Próximo:** worker (réguas de comunicação, webhook de status do WhatsApp, `/api/files/<id>`,
+**Motor das réguas (`f4-reguas`, 23/11/2026):**
+
+- Regras puras em `@mais/core/automations` (instante no fuso do projeto com horário de verão,
+  janela de 6 h e anti-avalanche via `activatedAt`, filtro, pendências de documentos, bloqueio
+  por projeto arquivado/cliente inativo/assinante suspenso ou cancelado, chaves) com testes.
+- Motor em `@mais/messaging/automations.ts`: filas `automations.event` (inscrição criada,
+  confirmada, check-in — a web só enfileira) e `automations.run` (varredura a cada 5 min no
+  worker, uma vez por régua+ocorrência), público em lotes, dedupe por régua+inscrição+canal
+  [+ocorrência], puladas gravadas como SKIPPED. Opt-out de WhatsApp também nas transacionais.
+- Gatilhos de viagem: `FLIGHT_DEPARTURE_BEFORE` (horas antes de cada voo),
+  `PASSPORT_EXPIRING` e `DOCUMENTS_PENDING` (repetem até resolver, com teto). Campos
+  `{{voo_*}}`, `{{pendencias}}`, `{{validade_passaporte}}`, `{{link_portal}}`.
+- Tela: próximo envio, histórico, "Ver quem vai receber", "Enviar agora" (auditado), modelos
+  iniciais de voo/documentos. Guia do operador em `docs/REGUAS.md`.
+- Migração `reguas_de_viagem` (enum, `offsetHours`, `repeatEveryDays`, `maxSends`,
+  `activatedAt`, `MessageDelivery.automationId`, finalidades `FLIGHT_REMINDER` e
+  `TRAVEL_DOCUMENTS`).
+
+**Pendências das réguas:** checklist operacional não gera lembrete ao viajante (itens não são
+por inscrição); quem se inscreve depois de um disparo por data já feito não recebe aquele
+disparo; regra "sem check-in" no filtro do pós-evento; aviso ao organizador quando uma régua
+acumula falhas.
+
+**Próximo:** worker (webhook de status do WhatsApp, webhook de status do WhatsApp, `/api/files/<id>`,
 upload de marca) e infraestrutura de deploy (VPS, Caddy, backups, monitoramento de erros).
 
 Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
