@@ -207,8 +207,10 @@ por inscrição); quem se inscreve depois de um disparo por data já feito não 
 disparo; regra "sem check-in" no filtro do pós-evento; aviso ao organizador quando uma régua
 acumula falhas.
 
-**Próximo:** worker (webhook de status do WhatsApp, webhook de status do WhatsApp, `/api/files/<id>`,
-upload de marca) e infraestrutura de deploy (VPS, Caddy, backups, monitoramento de erros).
+**Próximo:** infraestrutura de deploy (VPS: Docker, Caddy com HTTPS sob demanda, backups,
+monitoramento de erros) e migração real da ABIEC/ABRADILAN; depois Fase 3 (credenciamento e
+biometria facial). O webhook de status do WhatsApp, `/api/files/<id>` e o upload de marca já
+existem.
 
 Após cada par: integrar, gerar migração se houver mudança de schema, `npm run check` + build.
 
