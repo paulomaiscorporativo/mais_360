@@ -12,6 +12,7 @@ import {
 } from "@mais/core";
 import { sendTransactional } from "@mais/messaging";
 import { defineAction } from "@/server/action";
+import { fireAutomationEvent } from "@/server/automation-events";
 import { prisma } from "@/server/db";
 import { AppError, invalidFields } from "@/server/errors";
 import { upsertPerson } from "@/server/people";
@@ -127,6 +128,9 @@ export const submitPublicRegistration = defineAction(schema, async (input) => {
     });
   }
   await sendCredential(tenant.id, project.id, reg.id);
+  const scope = { tenantId: tenant.id, projectId: project.id, registrationIds: [reg.id] };
+  await fireAutomationEvent(prisma, { ...scope, trigger: "REGISTRATION_CREATED" });
+  await fireAutomationEvent(prisma, { ...scope, trigger: "REGISTRATION_CONFIRMED" });
 
   // Cadastro reaproveitado (mesmo e-mail/CPF/telefone de alguém que já existia):
   // não exibimos a credencial na tela — ela segue pelos canais do cadastro.

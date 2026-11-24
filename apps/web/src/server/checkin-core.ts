@@ -1,5 +1,6 @@
 import { inviteStatus, parseScan, type InviteStatus } from "@mais/core";
 import type { Prisma, PrismaClient } from "@mais/db";
+import { fireAutomationEvent } from "./automation-events";
 
 /**
  * CHECK-IN — núcleo com banco, sem dependências do Next (testado em
@@ -97,6 +98,14 @@ export async function checkInRegistration(
       };
     return { ok: true, already: true, guest: toGuest(fresh) };
   }
+  // Réguas de check-in (boas-vindas): só enfileira, o balcão não espera envio
+  await fireAutomationEvent(db, {
+    tenantId: scope.tenantId,
+    projectId: scope.projectId,
+    trigger: "CHECKED_IN",
+    registrationIds: [r.id],
+    at: now,
+  });
   return { ok: true, already: false, guest: toGuest(fresh) };
 }
 

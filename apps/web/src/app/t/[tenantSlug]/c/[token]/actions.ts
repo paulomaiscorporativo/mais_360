@@ -6,6 +6,8 @@ import { z } from "zod";
 import { rsvpState } from "@mais/core";
 import { defineAction } from "@/server/action";
 import { audit } from "@/server/audit";
+import { fireAutomationEvent } from "@/server/automation-events";
+import { prisma } from "@/server/db";
 import { AppError } from "@/server/errors";
 import { loadCredential } from "@/server/invite-public";
 import { rateLimit } from "@/server/rate-limit";
@@ -33,7 +35,7 @@ export const respondInvite = defineAction(
     if (!state.open) throw new AppError(state.message);
     if (reg.status === i.answer) return { status: i.answer };
 
-    await c.db.registration.updateMany({
+    const changed = await c.db.registration.updateMany({
       // Condição repetida no update: não reabre convite cancelado nem credenciado
       where: { id: reg.id, status: { not: "CANCELED" }, checkedInAt: null },
       data: {
@@ -50,6 +52,13 @@ export const respondInvite = defineAction(
       entityType: "Registration",
       entityId: reg.id,
     });
+    if (changed.count && i.answer === "CONFIRMED")
+      await fireAutomationEvent(prisma, {
+        tenantId: c.tenant.id,
+        projectId: c.project.id,
+        trigger: "REGISTRATION_CONFIRMED",
+        registrationIds: [reg.id],
+      });
     revalidatePath(`/t/${i.tenantSlug}/c/${i.token}`);
     return { status: i.answer };
   },

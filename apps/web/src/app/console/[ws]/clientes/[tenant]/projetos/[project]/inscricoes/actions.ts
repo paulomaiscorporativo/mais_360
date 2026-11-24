@@ -5,6 +5,8 @@ import { z } from "zod";
 import { foldText, parseYes, splitFullName } from "@mais/core";
 import { defineAction, v } from "@/server/action";
 import { audit } from "@/server/audit";
+import { fireAutomationEvent } from "@/server/automation-events";
+import { prisma } from "@/server/db";
 import { AppError } from "@/server/errors";
 import { upsertPerson } from "@/server/people";
 import { newRegistrationToken, requireProjectWriter, shortCodeAllocator } from "@/server/projects";
@@ -135,10 +137,22 @@ export const addRegistration = defineAction(
       entityType: "Registration",
       entityId: reg.id,
     });
+    await notifyAutomations(p, [reg.id], input.status === "CONFIRMED");
     revalidatePath("/console", "layout");
     return { id: reg.id };
   },
 );
+
+/** Réguas de inscrição criada (e confirmada, quando já nasce confirmada). */
+async function notifyAutomations(
+  p: { tenantId: string; projectId: string },
+  ids: string[],
+  confirmed: boolean,
+) {
+  const scope = { tenantId: p.tenantId, projectId: p.projectId, registrationIds: ids };
+  await fireAutomationEvent(prisma, { ...scope, trigger: "REGISTRATION_CREATED" });
+  if (confirmed) await fireAutomationEvent(prisma, { ...scope, trigger: "REGISTRATION_CONFIRMED" });
+}
 
 async function assertRefs(
   p: Awaited<ReturnType<typeof requireProjectWriter>>,
@@ -184,6 +198,14 @@ export const updateRegistration = defineAction(
     const p = await requireProjectWriter(tenant, projectId);
     await assertRefs(p, patch.categoryId ?? null, patch.groupId ?? null, null);
     const now = new Date();
+    // Quem passa a confirmado agora (os que já estavam não disparam de novo)
+    const newlyConfirmed =
+      patch.status === "CONFIRMED"
+        ? await p.db.registration.findMany({
+            where: { projectId: p.projectId, id: { in: ids }, status: { not: "CONFIRMED" } },
+            select: { id: true },
+          })
+        : [];
     const data = {
       ...patch,
       ...(patch.status === "CONFIRMED" ? { confirmedAt: now } : {}),
@@ -202,6 +224,14 @@ export const updateRegistration = defineAction(
       entityType: "Registration",
       data: { count: r.count, patch },
     });
+    if (newlyConfirmed.length)
+      await fireAutomationEvent(prisma, {
+        tenantId: p.tenantId,
+        projectId: p.projectId,
+        trigger: "REGISTRATION_CONFIRMED",
+        registrationIds: newlyConfirmed.map((x) => x.id),
+        at: now,
+      });
     revalidatePath("/console", "layout");
     return { count: r.count };
   },
@@ -249,6 +279,7 @@ export const importRegistrations = defineAction(
       throw new AppError("Categoria padrão inválida.");
 
     const nextCode = await shortCodeAllocator(p.db, p.projectId);
+    const createdIds: string[] = [];
     const stats = {
       created: 0,
       existingPeople: 0,
@@ -325,7 +356,7 @@ export const importRegistrations = defineAction(
           stats.alreadyRegistered++;
           continue;
         }
-        await p.db.registration.create({
+        const newReg = await p.db.registration.create({
           data: {
             tenantId: p.tenantId,
             projectId: p.projectId,
@@ -343,6 +374,7 @@ export const importRegistrations = defineAction(
             confirmedAt: input.status === "CONFIRMED" ? new Date() : null,
           },
         });
+        createdIds.push(newReg.id);
         if (row.consent !== undefined) {
           await p.db.consent.create({
             data: {
@@ -374,6 +406,8 @@ export const importRegistrations = defineAction(
       entityId: p.projectId,
       data: { ...stats, errors: stats.errors.length },
     });
+    // Importação também é inscrição: as réguas valem (um lote, enfileirado de uma vez)
+    await notifyAutomations(p, createdIds, input.status === "CONFIRMED");
     revalidatePath("/console", "layout");
     return stats;
   },
