@@ -422,9 +422,11 @@ export async function enqueueAutomationEvents(
 
 export async function processAutomationEvent(
   db: PrismaClient,
-  payload: AutomationEventPayload,
+  raw: unknown,
   now: Date = new Date(),
 ): Promise<AutomationRunSummary> {
+  // O payload vem do Json do job (datas como texto)
+  const payload = automationEventPayloadSchema.parse(raw);
   const project = await db.project.findFirst({
     where: { id: payload.projectId, tenantId: payload.tenantId },
     select: scopeSelect,

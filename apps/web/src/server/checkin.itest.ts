@@ -13,7 +13,7 @@ if (!url) throw new Error("TEST_DATABASE_URL não definida.");
 const db = new PrismaClient({ datasourceUrl: url });
 afterAll(() => db.$disconnect());
 beforeEach(async () => {
-  await db.$executeRawUnsafe(`TRUNCATE TABLE "Workspace", "User" CASCADE`);
+  await db.$executeRawUnsafe(`TRUNCATE TABLE "Workspace", "User", "Job" CASCADE`);
 });
 
 const rid = () => randomBytes(4).toString("hex");
@@ -111,5 +111,22 @@ describe("check-in", () => {
     const { scope } = await seed();
     expect(await checkInRegistration(db, scope, "   ", "Recepção")).toMatchObject({ ok: false });
     expect(await checkInRegistration(db, scope, "abc", "Recepção")).toMatchObject({ ok: false });
+  });
+
+  it("com régua de check-in ativa, enfileira um acontecimento por credenciamento", async () => {
+    const { scope, regs } = await seed();
+    const qr = `https://abiec.mais.tur.br/c/${regs[0]!.token}`;
+    const tpl = await db.messageTemplate.create({
+      data: { tenantId: scope.tenantId, name: "Boas-vindas", emailSubject: "Oi", emailBody: "Oi" },
+    });
+    await db.messageAutomation.create({
+      data: { ...scope, templateId: tpl.id, trigger: "CHECKED_IN", channels: ["EMAIL"] },
+    });
+    await Promise.all(
+      Array.from({ length: 10 }, (_, k) => checkInRegistration(db, scope, qr, `Leitor ${k}`)),
+    );
+    const jobs = await db.job.findMany({ where: { queue: "automations.event" } });
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]!.uniqueKey).toBe(`automation-event:CHECKED_IN:${regs[0]!.id}`);
   });
 });
