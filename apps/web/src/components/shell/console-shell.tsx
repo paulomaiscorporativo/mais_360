@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   Contact,
   FolderKanban,
   Building2,
@@ -318,6 +319,7 @@ function SidebarBody({
     ? [
         { href: "/console/plataforma", label: "Assinantes", icon: <Building2 />, exact: true },
         { href: "/console/plataforma/planos", label: "Planos", icon: <CreditCard /> },
+        { href: "/console/plataforma/operacao", label: "Operação", icon: <Activity /> },
         ...(nav.user.isSuperadmin
           ? [{ href: "/console/plataforma/equipe", label: "Equipe da plataforma", icon: <Users /> }]
           : []),
@@ -457,6 +459,14 @@ function buildCommands(nav: NavData): CommandItem[] {
         label: "Planos",
         href: "/console/plataforma/planos",
         icon: <CreditCard />,
+      },
+      {
+        id: "p-ops",
+        group: "Plataforma",
+        label: "Operação",
+        href: "/console/plataforma/operacao",
+        icon: <Activity />,
+        keywords: ["worker", "fila", "jobs", "falhas", "saúde"],
       },
     );
     if (nav.user.isSuperadmin)

@@ -43,6 +43,8 @@ export function LinkTabs({
     icon?: React.ReactNode;
     exact?: boolean;
     count?: number;
+    /** Força a aba ativa (abas que mudam só a consulta, ?visao=…) */
+    active?: boolean;
   }[];
   className?: string;
 }) {
@@ -50,9 +52,11 @@ export function LinkTabs({
   return (
     <nav aria-label="Seções" className={cn(listClass, className)}>
       {items.map((it) => {
-        const active = it.exact
-          ? pathname === it.href
-          : pathname === it.href || pathname.startsWith(it.href + "/");
+        const active =
+          it.active ??
+          (it.exact
+            ? pathname === it.href
+            : pathname === it.href || pathname.startsWith(it.href + "/"));
         return (
           <Link
             key={it.href}
