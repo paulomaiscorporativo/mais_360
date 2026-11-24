@@ -1,0 +1,93 @@
+# Produção da Mais 360 (um droplet). Fica em /srv/mais360 no servidor, ao lado do
+# .env de produção (que NUNCA vai para o repositório). Guia: docs/DEPLOY.md.
+#
+#   docker compose up -d                 sobe/atualiza caddy, web e worker
+#   docker compose --profile tools run --rm migrate   aplica migrações (conexão direta)
+#
+# Banco gerenciado (DigitalOcean): web e worker passam pelo pool PgBouncer
+# (POOL_URL, porta 25061, modo transação); migração usa a conexão direta
+# (DIRECT_URL, porta 25060), que o PgBouncer não suporta.
+#
+# Imagem: "current" é a versão no ar; o deploy usa APP_TAG=<commit> para migrar
+# com a imagem nova antes de trocar.
+
+x-app: &app
+  image: "mais360-app:${APP_TAG:-current}"
+  env_file: .env
+  restart: unless-stopped
+  init: false # o tini da imagem já é o PID 1
+  volumes:
+    - ./storage:/data/storage
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+services:
+  web:
+    <<: *app
+    environment:
+      DATABASE_URL: "${POOL_URL}&pgbouncer=true&connection_limit=6&pool_timeout=15"
+    expose: ["3000"]
+    mem_limit: 1g
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  worker:
+    <<: *app
+    command: ["/app/node_modules/.bin/tsx", "/app/apps/worker/src/index.ts"]
+    environment:
+      DATABASE_URL: "${POOL_URL}&pgbouncer=true&connection_limit=4&pool_timeout=15"
+      DNS_SERVERS: "1.1.1.1,8.8.8.8"
+    mem_limit: 512m
+    # Tempo para terminar os jobs em andamento (WORKER_SHUTDOWN_TIMEOUT_MS = 45 s)
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "/app/node_modules/.bin/tsx", "/app/apps/worker/src/health.ts"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      CONSOLE_HOST: "${CONSOLE_HOST}"
+      ACME_EMAIL: "${ACME_EMAIL}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  # Ferramenta: não sobe com `up`. Migrações e seed pela conexão direta.
+  migrate:
+    <<: *app
+    profiles: ["tools"]
+    restart: "no"
+    working_dir: /app/packages/db
+    command: ["/app/node_modules/.bin/prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: "${DIRECT_URL}"
+
+volumes:
+  caddy_data:
+  caddy_config:

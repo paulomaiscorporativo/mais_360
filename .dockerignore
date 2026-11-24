@@ -1,0 +1,21 @@
+# Só o código entra na imagem. Segredos, dados e artefatos locais ficam de fora.
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/*.log
+.git
+.github
+.claude
+.vscode
+.env
+.env.*
+!.env.example
+storage
+tmp
+deploy
+# Arquivos soltos na raiz (prints, documentos de referência)
+/*.docx
+/*.jpg
+/*.png
