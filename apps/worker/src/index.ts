@@ -6,8 +6,13 @@ import { config as loadEnv } from "dotenv";
 loadEnv({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../.env") });
 
 const { prisma } = await import("@mais/db");
-const { defaultDeps, messagingJobHandlers, recoverStaleDeliveries } =
-  await import("@mais/messaging");
+const {
+  automationJobHandlers,
+  defaultDeps,
+  messagingJobHandlers,
+  recoverStaleDeliveries,
+  sweepAutomations,
+} = await import("@mais/messaging");
 const { JobRunner, newWorkerId } = await import("./runner");
 const { apifyFlightSource, flightJobHandlers, sweepLiveFlights } = await import("./flights");
 const { domainJobHandlers, sweepDomains } = await import("./domains");
@@ -23,6 +28,8 @@ const runner = new JobRunner({
   concurrency: Number(process.env.WORKER_CONCURRENCY || 4),
   handlers: {
     ...messagingJobHandlers(prisma, defaultDeps({ workerId })),
+    // Réguas automáticas: acontecimentos da inscrição e disparos por data
+    ...automationJobHandlers(prisma),
     // E-mails de sistema da equipe: convite, redefinição de senha, novo acesso
     ...authEmailJobHandlers(prisma),
     ...(apifyToken ? flightJobHandlers(prisma, apifyFlightSource(apifyToken)) : {}),
@@ -68,6 +75,18 @@ async function runDomainSweep() {
 const domainSweep = setInterval(runDomainSweep, 5 * 60_000);
 void runDomainSweep();
 
+// Réguas por data (D-1, pós-evento, voos, documentos): a cada 5 min
+async function runAutomationSweep() {
+  try {
+    const n = await sweepAutomations(prisma);
+    if (n) console.info(`[worker] ${n} disparo(s) de régua enfileirado(s)`);
+  } catch (e) {
+    console.error("[worker] erro na varredura das réguas:", e);
+  }
+}
+const automationSweep = setInterval(runAutomationSweep, 5 * 60_000);
+void runAutomationSweep();
+
 runner.start();
 
 let stopping = false;
@@ -78,6 +97,7 @@ async function shutdown(signal: string) {
   clearInterval(housekeeping);
   if (flightSweep) clearInterval(flightSweep);
   clearInterval(domainSweep);
+  clearInterval(automationSweep);
   const force = setTimeout(() => {
     console.error("[worker] tempo esgotado; encerrando à força.");
     process.exit(1);

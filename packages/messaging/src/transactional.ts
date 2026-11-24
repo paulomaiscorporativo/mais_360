@@ -5,6 +5,7 @@ import {
   type Channel,
 } from "@mais/core/messaging";
 import { Prisma, type PrismaClient, type TemplatePurpose } from "@mais/db";
+import { whatsappOptOuts } from "./campaigns";
 import { enqueueJob, QUEUES } from "./jobs";
 import type { DeliverySendPayload } from "./processor";
 import { fail, ok, type Result } from "./result";
@@ -96,6 +97,9 @@ export async function sendTransactional(
   const projectId = reg?.projectId ?? input.projectId ?? null;
   const entityId = reg?.id ?? person.id;
 
+  const optedOut = input.channels.includes("WHATSAPP")
+    ? (await whatsappOptOuts(db, input.tenantId, [person.id])).has(person.id)
+    : false;
   const outcomes: TransactionalOutcome[] = [];
   for (const channel of input.channels) {
     const [plan] = planRecipients(
@@ -107,6 +111,7 @@ export async function sendTransactional(
           name: `${person.firstName} ${person.lastName}`.trim(),
           email: person.email,
           phone: person.phone,
+          whatsappOptOut: optedOut,
         },
       ],
       channel,

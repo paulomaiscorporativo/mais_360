@@ -1,6 +1,8 @@
+import { formatPendencies, travelerPendingDocuments } from "@mais/core/automations";
 import type { EmailBranding, MessageContext } from "@mais/core/messaging";
 import type { Prisma, PrismaClient } from "@mais/db";
 import { appUrl, defaultTimeZone } from "./env";
+import { projectRequiredDocuments, reminderFlight, travelerDocumentStates } from "./group-travel";
 
 /**
  * Monta o contexto de renderização a partir do banco. É chamado NA HORA DO
@@ -110,9 +112,19 @@ function personContext(
   };
 }
 
+/**
+ * Dados de viagem em grupo só são lidos quando o modelo usa esses campos
+ * (`group`), para não pesar nas campanhas comuns.
+ */
+export type RegistrationContextOptions = {
+  group?: { flight?: boolean; documents?: boolean; flightId?: string };
+  now?: Date;
+};
+
 export async function loadRegistrationContext(
   db: PrismaClient,
   registrationId: string,
+  opts: RegistrationContextOptions = {},
 ): Promise<LoadedContext | null> {
   const r = await db.registration.findUnique({
     where: { id: registrationId },
@@ -122,6 +134,8 @@ export async function loadRegistrationContext(
       project: {
         select: {
           ...projectSelect,
+          id: true,
+          settings: true,
           tenant: { include: tenantInclude },
           inviteSettings: { select: { dressCode: true, inviteDeadline: true } },
         },
@@ -135,13 +149,40 @@ export async function loadRegistrationContext(
   const tenant = r.project.tenant;
   const base = publicBaseUrl(tenant);
   const badgeUrl = `${base}/c/${r.token}`;
+  const timeZone = r.project.timezone || tenant.timezone || defaultTimeZone();
+  const now = opts.now ?? new Date();
+  let group: MessageContext["group"] = { portalUrl: `${base}/v/${r.token}` };
+  if (opts.group?.flight || opts.group?.flightId)
+    group.flight = await reminderFlight(db, r.id, timeZone, {
+      flightId: opts.group.flightId,
+      now,
+    });
+  if (opts.group?.documents) {
+    const required = await projectRequiredDocuments(db, r.project);
+    const state = (
+      await travelerDocumentStates(db, r.tenantId, [r.personId], required, r.project.endsAt)
+    ).get(r.personId);
+    if (state) {
+      group = {
+        ...group,
+        pendencies: formatPendencies(travelerPendingDocuments(state, now)),
+        passportExpiry:
+          state.uploaded
+            .filter((d) => d.kind === "PASSPORT")
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]?.expiresAt ??
+          state.passportExpiry ??
+          null,
+      };
+    }
+  }
   return {
     tenantId: r.tenantId,
     projectId: r.projectId,
     branding: brandingFor(tenant, r.project),
     ctx: {
-      timeZone: r.project.timezone || tenant.timezone || defaultTimeZone(),
+      timeZone,
       tenant: { name: tenant.name },
+      group,
       person: personContext(r.person, { company: r.displayCompany, jobTitle: r.displayJobTitle }),
       registration: {
         status: r.status,

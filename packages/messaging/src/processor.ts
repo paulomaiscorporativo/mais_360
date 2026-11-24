@@ -1,4 +1,5 @@
 import {
+  extractFields,
   decideSend,
   nextSendAfter,
   pacingSchema,
@@ -107,12 +108,32 @@ async function claimDelivery(
   return rows[0] ?? null;
 }
 
+/** Campos de viagem em grupo usados no modelo (para ler só o necessário). */
+function groupNeeds(template: TemplateContent, flightId?: string) {
+  const fields = new Set(
+    extractFields(`${template.emailSubject}
+${template.emailBody}
+${template.whatsappBody}`),
+  );
+  return {
+    flight: [...fields].some((f) => f.startsWith("voo_")),
+    documents: fields.has("pendencias") || fields.has("validade_passaporte"),
+    flightId,
+  };
+}
+
 async function contextFor(
   db: PrismaClient,
   d: ClaimedDelivery,
   projectId: string | null,
+  template?: TemplateContent,
+  extra: { flightId?: string; now?: Date } = {},
 ): Promise<LoadedContext | null> {
-  if (d.registrationId) return loadRegistrationContext(db, d.registrationId);
+  if (d.registrationId)
+    return loadRegistrationContext(db, d.registrationId, {
+      group: template ? groupNeeds(template, extra.flightId) : undefined,
+      now: extra.now,
+    });
   if (d.personId) return loadPersonContext(db, d.personId, projectId);
   return null;
 }
@@ -295,7 +316,7 @@ async function tickWhatsapp(
   }
 
   const tpl = snapshotOf(c);
-  const loaded = await contextFor(db, d, c.projectId);
+  const loaded = await contextFor(db, d, c.projectId, tpl);
   let succeeded = false;
   if (!loaded) {
     await markFailed(db, d.id, "Cadastro da pessoa não encontrado.");
@@ -393,7 +414,7 @@ async function tickEmail(
       if (status?.status !== "RUNNING") return {};
       const d = await claimNextDelivery(db, c.id, deps.workerId);
       if (!d) break;
-      const loaded = await contextFor(db, d, c.projectId);
+      const loaded = await contextFor(db, d, c.projectId, tpl);
       if (!loaded) {
         await markFailed(db, d.id, "Cadastro da pessoa não encontrado.");
         await db.messageCampaign.update({
@@ -463,6 +484,8 @@ export type DeliverySendPayload = {
   deliveryId: string;
   template: TemplateContent;
   projectId: string | null;
+  /** Lembrete de voo: o voo que originou a mensagem ({{voo_*}}) */
+  flightId?: string;
 };
 
 /**
@@ -515,7 +538,10 @@ export async function processDeliverySend(
 
   const d = await claimDelivery(db, existing.id, deps.workerId);
   if (!d) return {};
-  const loaded = await contextFor(db, d, payload.projectId);
+  const loaded = await contextFor(db, d, payload.projectId, payload.template, {
+    flightId: payload.flightId,
+    now,
+  });
   if (!loaded) {
     await markFailed(db, d.id, "Cadastro da pessoa não encontrado.");
     return {};

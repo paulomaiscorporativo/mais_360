@@ -58,7 +58,7 @@ export type CampaignCreated = {
 };
 
 /** Pessoas que negaram explicitamente mensagens por WhatsApp (último consentimento registrado). */
-async function whatsappOptOuts(
+export async function whatsappOptOuts(
   db: PrismaClient,
   tenantId: string,
   personIds: string[],
