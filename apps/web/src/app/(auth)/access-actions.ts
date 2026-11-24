@@ -39,7 +39,7 @@ const completeSchema = z
 export const completeAccessLink = defineAction(
   completeSchema,
   async ({ token, purpose, password }) => {
-    const limit = rateLimit(`access-link:${await clientIp()}`, 20, 15 * 60_000);
+    const limit = await rateLimit(`access-link:${await clientIp()}`, 20, 15 * 60_000);
     if (!limit.allowed) throw new AppError("Muitas tentativas. Tente de novo em alguns minutos.");
 
     const found = await findAccessToken(token);
@@ -100,13 +100,13 @@ export const requestPasswordReset = defineAction(
   z.object({ email: v.email() }),
   async ({ email }) => {
     const ip = await clientIp();
-    const byIp = rateLimit(`forgot:ip:${ip}`, IP_LIMIT, 15 * 60_000);
+    const byIp = await rateLimit(`forgot:ip:${ip}`, IP_LIMIT, 15 * 60_000);
     if (!byIp.allowed) {
       const min = Math.ceil(byIp.retryAfterMs / 60_000);
       throw new AppError(`Muitos pedidos deste dispositivo. Tente de novo em ${min} min.`);
     }
     // Limite por e-mail: silencioso, para não revelar se a conta existe
-    const byEmail = rateLimit(`forgot:email:${email}`, EMAIL_LIMIT, 60 * 60_000);
+    const byEmail = await rateLimit(`forgot:email:${email}`, EMAIL_LIMIT, 60 * 60_000);
     if (!byEmail.allowed) return { sent: true };
 
     const user = await prisma.user.findUnique({

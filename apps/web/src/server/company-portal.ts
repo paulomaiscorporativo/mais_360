@@ -37,8 +37,8 @@ export async function signInCompany(tenantSlug: string, login: string, password:
   const m = await meta();
   const normalized = login.trim().toLowerCase();
   if (
-    !rateLimit(`company-login:${m.ip}`, 20, 15 * 60_000).allowed ||
-    !rateLimit(`company-login:${normalized}`, 8, 15 * 60_000).allowed
+    !(await rateLimit(`company-login:${m.ip}`, 20, 15 * 60_000)).allowed ||
+    !(await rateLimit(`company-login:${normalized}`, 8, 15 * 60_000)).allowed
   )
     throw new AppError("Muitas tentativas. Aguarde alguns minutos e tente de novo.");
 

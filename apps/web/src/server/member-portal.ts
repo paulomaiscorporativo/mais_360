@@ -42,8 +42,8 @@ export async function signInMember(
   const m = await meta();
   const normalized = normalizeEmail(email);
   if (
-    !rateLimit(`member-login:${m.ip}`, 20, 15 * 60_000).allowed ||
-    !rateLimit(`member-login:${tenantSlug}:${normalized}`, 8, 15 * 60_000).allowed
+    !(await rateLimit(`member-login:${m.ip}`, 20, 15 * 60_000)).allowed ||
+    !(await rateLimit(`member-login:${tenantSlug}:${normalized}`, 8, 15 * 60_000)).allowed
   )
     throw new AppError("Muitas tentativas. Aguarde alguns minutos e tente de novo.");
 

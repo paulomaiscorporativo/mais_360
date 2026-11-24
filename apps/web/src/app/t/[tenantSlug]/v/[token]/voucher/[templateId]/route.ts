@@ -26,7 +26,7 @@ export async function GET(
     select: { id: true, name: true },
   });
   if (!template) return new Response("Não encontrado", { status: 404 });
-  if (!rateLimit(`portal-voucher:${t.reg.id}`, 20, 10 * 60_000).allowed)
+  if (!(await rateLimit(`portal-voucher:${t.reg.id}`, 20, 10 * 60_000)).allowed)
     return new Response("Muitos downloads seguidos. Aguarde alguns minutos.", { status: 429 });
 
   const name = travelerName(t.person);

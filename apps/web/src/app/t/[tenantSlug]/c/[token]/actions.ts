@@ -23,7 +23,7 @@ export const respondInvite = defineAction(
   async (i) => {
     const h = await headers();
     const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
-    if (!rateLimit(`rsvp:${ip}`, 30, 10 * 60_000).allowed)
+    if (!(await rateLimit(`rsvp:${ip}`, 30, 10 * 60_000)).allowed)
       throw new AppError("Muitas tentativas seguidas. Aguarde alguns minutos.");
 
     const c = await loadCredential(i.tenantSlug, i.token);

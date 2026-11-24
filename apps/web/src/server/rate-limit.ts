@@ -1,25 +1,29 @@
 import "server-only";
+import { prisma } from "./db";
+import { clearRateLimit, hitRateLimit } from "./rate-limit-store";
 
 /**
- * Limite de tentativas em janela deslizante, em memória do processo.
- * Suficiente para um nó; com vários nós, trocar por uma tabela no Postgres
- * mantendo esta mesma interface.
+ * Limite de tentativas em janela fixa (começa na primeira tentativa), guardado
+ * no Postgres: vale para todos os nós e sobrevive a reinícios. Regras em
+ * `@mais/core/ops`; armazenamento em rate-limit-store.ts. Contadores vencidos
+ * são apagados pela limpeza diária do worker.
+ *
+ * Se o banco falhar, deixa passar (e registra): sem banco, o login e os
+ * formulários também não funcionam, e não queremos bloquear por engano.
  */
-const hits = new Map<string, number[]>();
-
-export function rateLimit(key: string, limit: number, windowMs: number) {
-  const now = Date.now();
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-  const allowed = recent.length < limit;
-  if (allowed) recent.push(now);
-  hits.set(key, recent);
-  if (hits.size > 10_000) {
-    for (const [k, v] of hits) if (!v.some((t) => now - t < windowMs)) hits.delete(k);
+export async function rateLimit(key: string, limit: number, windowMs: number) {
+  try {
+    return await hitRateLimit(prisma, key, limit, windowMs);
+  } catch (err) {
+    console.error("[rate-limit] falha ao consultar o contador; liberando:", err);
+    return { allowed: true, remaining: 0, retryAfterMs: 0 };
   }
-  const retryAfterMs = allowed ? 0 : windowMs - (now - (recent[0] ?? now));
-  return { allowed, remaining: Math.max(0, limit - recent.length), retryAfterMs };
 }
 
-export function resetRateLimit(key: string) {
-  hits.delete(key);
+export async function resetRateLimit(key: string) {
+  try {
+    await clearRateLimit(prisma, key);
+  } catch (err) {
+    console.error("[rate-limit] falha ao zerar o contador:", err);
+  }
 }
