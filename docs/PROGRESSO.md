@@ -161,8 +161,28 @@ faixa avisa); limites do plano ainda não bloqueiam criação (só aparecem na p
   `tenant.member.projects`.
 
 **Pendências da gestão de acessos:** MFA;
-limite de tentativas em tabela para vários nós; limpeza periódica de tokens vencidos (hoje só
-ficam inertes); convites de membro de cliente por domínio do cliente (hoje o link usa `APP_URL`).
+convites de membro de cliente por domínio do cliente (hoje o link usa `APP_URL`).
+
+**Operação do worker (`f4-operacao`, 23/11/2026):**
+
+- Migração `operacao_do_worker` (schema `ops.prisma`): `WorkerHeartbeat`, `ScheduledTask`,
+  `RateLimitBucket`. Regras puras em `@mais/core/ops` (saúde, recuperação, máscara de dados
+  pessoais, limite de tentativas, retenção, agendamento) com testes.
+- Worker: sinal de vida a cada 30 s (renova a trava dos jobs em andamento e toca o arquivo do
+  healthcheck), agendador de tarefas periódicas seguro com vários workers (`jobs.recover`,
+  `domains.sweep`, `flights.sweep`, `ops.cleanup` — as varreduras de voos e domínios saíram do
+  `setInterval`), limpeza diária em lotes, desligamento com prazo (`WORKER_SHUTDOWN_TIMEOUT_MS`)
+  e recuperação de jobs de workers mortos (vira `DEAD` se era a última tentativa).
+- Healthchecks: `apps/worker/src/health.ts` e `GET /api/health` (banco, 200/503).
+- Limite de tentativas no Postgres (atômico, chave em hash), mesma interface agora assíncrona.
+- Painel `/console/plataforma/operacao` (superadmin gerencia, suporte consulta): alertas,
+  workers, filas, tarefas, jobs com filtros e payload mascarado, tentar de novo/descartar com
+  auditoria (`ops.job.retry`, `ops.job.discard`), entregas com falha por canal. Guia em
+  `docs/OPERACAO.md`.
+
+**Pendências da operação:** alerta ativo (e-mail/Slack) quando o worker para; índice
+`Job(status, updatedAt)` para a limpeza em bases grandes (fica em `messaging.prisma`); métricas
+de vazão por fila; consumidor de `vouchers.issue` no worker.
 
 **Próximo:** worker (réguas de comunicação, webhook de status do WhatsApp, `/api/files/<id>`,
 upload de marca) e infraestrutura de deploy (VPS, Caddy, backups, monitoramento de erros).
