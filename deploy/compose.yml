@@ -25,6 +25,9 @@ x-app: &app
 services:
   web:
     <<: *app
+    # O next.config.ts é carregado a partir da pasta do app
+    working_dir: /app/apps/web
+    command: ["/app/node_modules/.bin/next", "start", "-p", "3000", "-H", "0.0.0.0"]
     environment:
       DATABASE_URL: "${POOL_URL}&pgbouncer=true&connection_limit=6&pool_timeout=15"
     expose: ["3000"]
@@ -44,6 +47,7 @@ services:
 
   worker:
     <<: *app
+    working_dir: /app/apps/worker
     command: ["/app/node_modules/.bin/tsx", "/app/apps/worker/src/index.ts"]
     environment:
       DATABASE_URL: "${POOL_URL}&pgbouncer=true&connection_limit=4&pool_timeout=15"

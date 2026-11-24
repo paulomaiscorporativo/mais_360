@@ -18,6 +18,10 @@
 	reverse_proxy web:3000 {
 		health_uri /api/health
 		health_interval 15s
+		# Sem isto o host seria "web:3000", que a plataforma trata como domínio de cliente (404)
+		health_headers {
+			Host {$CONSOLE_HOST}
+		}
 	}
 }
 

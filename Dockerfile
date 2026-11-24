@@ -50,4 +50,5 @@ USER node
 EXPOSE 3000
 ENTRYPOINT ["/usr/bin/tini", "--"]
 # Processos chamados direto (sem npm no meio) para o SIGTERM chegar a quem precisa
-CMD ["/app/node_modules/.bin/next", "start", "/app/apps/web", "-p", "3000", "-H", "0.0.0.0"]
+WORKDIR /app/apps/web
+CMD ["/app/node_modules/.bin/next", "start", "-p", "3000", "-H", "0.0.0.0"]
