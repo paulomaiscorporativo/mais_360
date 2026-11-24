@@ -86,4 +86,40 @@ export const STARTERS: Starter[] = [
       "Olá, {{primeiro_nome}}! Obrigado por participar do *{{projeto}}*. Pode nos contar como foi? Leva só dois minutos.",
     includeActions: false,
   },
+  {
+    id: "flight",
+    purpose: "FLIGHT_REMINDER",
+    name: "Lembrete de voo",
+    description: "Número, trecho, horário local e localizador.",
+    emailSubject: "Seu voo {{voo_numero}} — {{voo_trecho}}",
+    emailBody:
+      "Olá, {{primeiro_nome}}!\n\nLembrete do seu voo na **{{projeto}}**:\n\n**Voo:** {{voo_numero}} ({{voo_trecho}})\n**Partida:** {{voo_partida}} (horário local do aeroporto)\n**Localizador:** {{voo_localizador}}\n\nChegue ao aeroporto com antecedência e tenha o documento de viagem em mãos. Todos os detalhes estão no seu portal: {{link_portal}}",
+    whatsappBody:
+      "Olá, {{primeiro_nome}}! Lembrete do seu voo *{{voo_numero}}* ({{voo_trecho}}), partida {{voo_partida}} (horário local). Localizador: *{{voo_localizador}}*.\n\nSeu portal da viagem: {{link_portal}}",
+    includeActions: false,
+  },
+  {
+    id: "documents",
+    purpose: "TRAVEL_DOCUMENTS",
+    name: "Documentos pendentes",
+    description: "Lista o que falta enviar para a viagem.",
+    emailSubject: "{{primeiro_nome}}, faltam documentos para a {{projeto}}",
+    emailBody:
+      "Olá, {{primeiro_nome}}!\n\nPara a sua viagem **{{projeto}}** ({{data_inicio}}), ainda precisamos de:\n\n{{pendencias}}\n\nVocê pode enviar tudo pelo seu portal: {{link_portal}}",
+    whatsappBody:
+      "Olá, {{primeiro_nome}}! Para a viagem *{{projeto}}* ainda faltam:\n\n{{pendencias}}\n\nEnvie pelo seu portal: {{link_portal}}",
+    includeActions: false,
+  },
+  {
+    id: "passport",
+    purpose: "TRAVEL_DOCUMENTS",
+    name: "Passaporte",
+    description: "Passaporte ausente ou com validade curta.",
+    emailSubject: "Seu passaporte para a {{projeto}}",
+    emailBody:
+      "Olá, {{primeiro_nome}}!\n\nO passaporte precisa valer pelo menos 6 meses depois da volta da **{{projeto}}**. No seu cadastro:\n\n{{pendencias}}\n\nValidade registrada: {{validade_passaporte}}\n\nEnvie o passaporte atualizado pelo seu portal: {{link_portal}}",
+    whatsappBody:
+      "Olá, {{primeiro_nome}}! Precisamos do seu passaporte válido para a *{{projeto}}* (6 meses após a volta).\n\n{{pendencias}}\n\nEnvie pelo portal: {{link_portal}}",
+    includeActions: false,
+  },
 ];
