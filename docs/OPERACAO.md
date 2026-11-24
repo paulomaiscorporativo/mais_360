@@ -18,12 +18,13 @@ operação e o que fazer quando algo para. Regras puras em `packages/core/src/op
 
 ## Tarefas periódicas
 
-| Tarefa          | Intervalo | O que faz                                                                                            |
-| --------------- | --------- | ---------------------------------------------------------------------------------------------------- |
-| `jobs.recover`  | 1 min     | Devolve jobs de workers que morreram (ver Recuperação) e fecha entregas de mensagem presas em envio. |
-| `domains.sweep` | 5 min     | Domínios próprios pendentes (por 7 dias) e verificados (1×/dia) vão para `domains.verify`.           |
-| `flights.sweep` | 5 min     | Só com `APIFY_TOKEN`: voos perto da partida ou em andamento vão para `flights.refresh`.              |
-| `ops.cleanup`   | 24 h      | Limpeza em lotes (abaixo). Roda no primeiro worker que subir e depois a cada 24 h.                   |
+| Tarefa              | Intervalo | O que faz                                                                                                                  |
+| ------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `jobs.recover`      | 1 min     | Devolve jobs de workers que morreram (ver Recuperação) e fecha entregas de mensagem presas em envio.                       |
+| `automations.sweep` | 5 min     | Réguas por data (D-N, pós-evento, voos, passaporte, documentos) devidas vão para `automations.run` (ver `docs/REGUAS.md`). |
+| `domains.sweep`     | 5 min     | Domínios próprios pendentes (por 7 dias) e verificados (1×/dia) vão para `domains.verify`.                                 |
+| `flights.sweep`     | 5 min     | Só com `APIFY_TOKEN`: voos perto da partida ou em andamento vão para `flights.refresh`.                                    |
+| `ops.cleanup`       | 24 h      | Limpeza em lotes (abaixo). Roda no primeiro worker que subir e depois a cada 24 h.                                         |
 
 Os horários usam o relógio do banco. Se todos os workers ficarem parados, as tarefas vencidas
 rodam assim que um voltar (uma vez, não uma por janela perdida). Outras frentes registram

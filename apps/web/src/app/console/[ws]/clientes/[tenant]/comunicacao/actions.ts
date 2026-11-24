@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { enabledProjectFeatures } from "@mais/core";
+import { AUTOMATION_LIMITS, AUTOMATION_TRIGGERS, scheduleChanged } from "@mais/core/automations";
 import { audienceSchema } from "@mais/core/messaging";
 import {
+  previewAutomationAudience,
+  runAutomationNow,
   campaignSummary,
   cancelCampaign,
   createCampaign,
@@ -25,6 +29,8 @@ import { defineAction, v } from "@/server/action";
 import { audit } from "@/server/audit";
 import { prisma } from "@/server/db";
 import { AppError } from "@/server/errors";
+import { modulesForTenant } from "@/server/modules";
+import { STARTERS } from "@/components/communication/starters";
 import {
   defaultInstanceName,
   requireCommunication,
@@ -399,6 +405,8 @@ const purpose = z.enum([
   "APPROVAL_REQUEST",
   "PASSWORD_ACCESS",
   "SURVEY",
+  "FLIGHT_REMINDER",
+  "TRAVEL_DOCUMENTS",
 ]);
 
 const templateSchema = z.object({
@@ -836,19 +844,30 @@ const automationSchema = z.object({
   id: optionalId,
   projectId: z.string().min(1, "Escolha o evento ou viagem."),
   templateId: z.string().min(1, "Escolha o modelo da mensagem."),
-  trigger: z.enum([
-    "REGISTRATION_CREATED",
-    "REGISTRATION_CONFIRMED",
-    "CHECKED_IN",
-    "DAYS_BEFORE_START",
-    "DAYS_AFTER_END",
-    "INVITE_DEADLINE_BEFORE",
-  ]),
-  offsetDays: z.coerce.number().int().min(0).max(365).default(0),
+  trigger: z.enum(AUTOMATION_TRIGGERS),
+  offsetDays: z.coerce.number().int().min(0).max(AUTOMATION_LIMITS.offsetDays).default(0),
+  offsetHours: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(AUTOMATION_LIMITS.offsetHours, "No máximo 14 dias (336 horas) antes do voo.")
+    .default(0),
   sendAt: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use o formato HH:MM.")
     .default("09:00"),
+  repeatEveryDays: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(AUTOMATION_LIMITS.repeatEveryDays, "Repita no máximo a cada 30 dias.")
+    .default(0),
+  maxSends: z.coerce
+    .number()
+    .int()
+    .min(1, "Envie ao menos uma vez.")
+    .max(AUTOMATION_LIMITS.maxSends, "No máximo 10 envios por pessoa.")
+    .default(1),
   channels: z.array(z.enum(["EMAIL", "WHATSAPP"])).min(1, "Escolha ao menos um canal."),
   filter: z
     .object({
@@ -860,9 +879,35 @@ const automationSchema = z.object({
   active: z.boolean().default(true),
 });
 
+/** Recurso do projeto exigido por cada gatilho (checado no servidor, não só na tela). */
+const TRIGGER_FEATURE: Partial<
+  Record<string, { feature: "FLIGHTS" | "DOCUMENTS" | "INVITES"; label: string }>
+> = {
+  FLIGHT_DEPARTURE_BEFORE: { feature: "FLIGHTS", label: "voos" },
+  PASSPORT_EXPIRING: { feature: "DOCUMENTS", label: "documentos do viajante" },
+  DOCUMENTS_PENDING: { feature: "DOCUMENTS", label: "documentos do viajante" },
+  INVITE_DEADLINE_BEFORE: { feature: "INVITES", label: "convites com cota" },
+};
+
+async function assertTriggerFits(ctx: CommunicationContext, projectId: string, trigger: string) {
+  const need = TRIGGER_FEATURE[trigger];
+  if (!need) return;
+  const project = await ctx.db.project.findFirst({
+    where: { id: projectId },
+    select: { features: { select: { feature: true, enabled: true } } },
+  });
+  const features = enabledProjectFeatures(
+    project?.features ?? [],
+    await modulesForTenant(ctx.tenant),
+  );
+  if (!features.has(need.feature))
+    throw new AppError(`Este gatilho precisa do recurso de ${need.label} ligado no projeto.`);
+}
+
 export const saveAutomation = defineAction(automationSchema, async (input) => {
   const ctx = await requireCommunication(input.tenant, "MANAGER");
   await ensureProject(ctx, input.projectId);
+  await assertTriggerFits(ctx, input.projectId, input.trigger);
   const tpl = await ctx.db.messageTemplate.findFirst({
     where: { id: input.templateId, archivedAt: null },
     select: { id: true, emailSubject: true, emailBody: true, whatsappBody: true },
@@ -872,20 +917,33 @@ export const saveAutomation = defineAction(automationSchema, async (input) => {
     throw new AppError("O modelo escolhido não tem a versão de e-mail completa (assunto e texto).");
   if (input.channels.includes("WHATSAPP") && !tpl.whatsappBody.trim() && !tpl.emailBody.trim())
     throw new AppError("O modelo escolhido não tem texto para WhatsApp.");
-  const data = {
-    projectId: input.projectId,
-    templateId: input.templateId,
+  const flight = input.trigger === "FLIGHT_DEPARTURE_BEFORE";
+  if (flight && input.offsetHours < 1)
+    throw new AppError("Informe com quantas horas de antecedência o lembrete sai.");
+  const repeats = input.trigger === "PASSPORT_EXPIRING" || input.trigger === "DOCUMENTS_PENDING";
+  const schedule = {
     trigger: input.trigger,
-    offsetDays: input.offsetDays,
+    offsetDays: flight ? 0 : input.offsetDays,
+    offsetHours: flight ? input.offsetHours : 0,
     sendAt: input.sendAt,
-    channels: input.channels,
-    filter: input.filter,
-    active: input.active,
+    repeatEveryDays: repeats ? input.repeatEveryDays : 0,
+    maxSends: repeats && input.repeatEveryDays > 0 ? input.maxSends : 1,
   };
   const existing = input.id
     ? await ctx.db.messageAutomation.findFirst({ where: { id: input.id } })
     : null;
   if (input.id && !existing) throw new AppError("Régua não encontrada.");
+  // Ligada ou reagendada agora: vale daqui em diante (nada retroativo)
+  const renew = scheduleChanged(existing, { ...schedule, active: input.active });
+  const data = {
+    projectId: input.projectId,
+    templateId: input.templateId,
+    ...schedule,
+    channels: input.channels,
+    filter: input.filter,
+    active: input.active,
+    ...(renew ? { activatedAt: new Date() } : {}),
+  };
   const saved = existing
     ? await ctx.db.messageAutomation.update({ where: { id: existing.id }, data })
     : await ctx.db.messageAutomation.create({ data: { ...data, tenantId: ctx.tenantId } });
@@ -895,7 +953,7 @@ export const saveAutomation = defineAction(automationSchema, async (input) => {
     action: existing ? "messaging.automation.update" : "messaging.automation.create",
     entityType: "MessageAutomation",
     entityId: saved.id,
-    data: { trigger: input.trigger, offsetDays: input.offsetDays, channels: input.channels },
+    data: { ...schedule, channels: input.channels, active: input.active },
   });
   revalidate(ctx);
   return { id: saved.id };
@@ -905,10 +963,94 @@ export const setAutomationActive = defineAction(
   z.object({ ...ref, id: z.string().min(1), active: z.boolean() }),
   async ({ tenant, id, active }) => {
     const ctx = await requireCommunication(tenant, "MANAGER");
-    const r = await ctx.db.messageAutomation.updateMany({ where: { id }, data: { active } });
-    if (!r.count) throw new AppError("Régua não encontrada.");
+    const before = await ctx.db.messageAutomation.findFirst({
+      where: { id },
+      select: { active: true, projectId: true },
+    });
+    if (!before) throw new AppError("Régua não encontrada.");
+    // Religar vale daqui em diante: o que passou enquanto estava desligada não sai
+    await ctx.db.messageAutomation.updateMany({
+      where: { id },
+      data: { active, ...(active && !before.active ? { activatedAt: new Date() } : {}) },
+    });
+    await audit({
+      ...actor(ctx),
+      projectId: before.projectId,
+      action: active ? "messaging.automation.activate" : "messaging.automation.deactivate",
+      entityType: "MessageAutomation",
+      entityId: id,
+    });
     revalidate(ctx);
     return null;
+  },
+);
+
+/** Prévia: quem receberia o próximo disparo (nas réguas por evento, quem se encaixa hoje). */
+export const previewAutomation = defineAction(
+  z.object({ ...ref, id: z.string().min(1) }),
+  async ({ tenant, id }) => {
+    const ctx = await requireCommunication(tenant);
+    const p = await previewAutomationAudience(prisma, ctx.tenantId, id);
+    if (!p) throw new AppError("Régua não encontrada.");
+    return p;
+  },
+  { readOnly: true },
+);
+
+/** Antecipa o próximo disparo de uma régua por data (registrado na auditoria). */
+export const runAutomationNowAction = defineAction(
+  z.object({ ...ref, id: z.string().min(1) }),
+  async ({ tenant, id }) => {
+    const ctx = await requireCommunication(tenant, "MANAGER");
+    const a = await ctx.db.messageAutomation.findFirst({
+      where: { id },
+      select: { projectId: true },
+    });
+    if (!a) throw new AppError("Régua não encontrada.");
+    const r = await runAutomationNow(prisma, ctx.tenantId, id);
+    if (!r.ok) throw new AppError(r.error);
+    await audit({
+      ...actor(ctx),
+      projectId: a.projectId,
+      action: "messaging.automation.run_now",
+      entityType: "MessageAutomation",
+      entityId: id,
+      data: { occurrence: r.occurrenceKey },
+    });
+    revalidate(ctx);
+    return { occurrenceKey: r.occurrenceKey };
+  },
+);
+
+/** Cria um modelo a partir de um modelo inicial (cliente ainda sem modelo da finalidade). */
+export const createStarterTemplate = defineAction(
+  z.object({ ...ref, starterId: z.string().min(1), projectId: optionalId }),
+  async ({ tenant, starterId, projectId }) => {
+    const ctx = await requireCommunication(tenant, "MANAGER");
+    const starter = STARTERS.find((s) => s.id === starterId && s.id !== "blank");
+    if (!starter) throw new AppError("Modelo inicial não encontrado.");
+    const pid = await ensureProject(ctx, projectId);
+    const saved = await ctx.db.messageTemplate.create({
+      data: {
+        tenantId: ctx.tenantId,
+        projectId: pid,
+        purpose: purpose.parse(starter.purpose),
+        name: starter.name,
+        emailSubject: starter.emailSubject,
+        emailBody: starter.emailBody,
+        whatsappBody: starter.whatsappBody,
+        includeActions: starter.includeActions,
+      },
+    });
+    await audit({
+      ...actor(ctx),
+      action: "messaging.template.create",
+      entityType: "MessageTemplate",
+      entityId: saved.id,
+      data: { name: saved.name, starter: starter.id },
+    });
+    revalidate(ctx);
+    return { id: saved.id, name: saved.name, projectId: saved.projectId };
   },
 );
 

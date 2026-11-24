@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { enabledProjectFeatures, splitFullName } from "@mais/core";
 import type { Channel } from "@mais/core/messaging";
+import { fireAutomationEvent } from "@/server/automation-events";
+import { prisma } from "@/server/db";
 import { defineAction, v } from "@/server/action";
 import { audit } from "@/server/audit";
 import { AppError } from "@/server/errors";
@@ -413,13 +415,24 @@ export const setGuestStatus = defineAction(
   z.object({ ...ref, id: z.string(), status: z.enum(["CONFIRMED", "DECLINED", "PENDING"]) }),
   async (i) => {
     const p = await requireEventWriter(i.tenant, i.projectId);
-    await p.db.registration.updateMany({
-      where: { id: i.id, projectId: p.projectId, status: { not: "CANCELED" } },
+    const changed = await p.db.registration.updateMany({
+      where: {
+        id: i.id,
+        projectId: p.projectId,
+        status: { notIn: ["CANCELED", i.status] },
+      },
       data: {
         status: i.status,
         confirmedAt: i.status === "CONFIRMED" ? new Date() : null,
       },
     });
+    if (changed.count && i.status === "CONFIRMED")
+      await fireAutomationEvent(prisma, {
+        tenantId: p.tenantId,
+        projectId: p.projectId,
+        trigger: "REGISTRATION_CONFIRMED",
+        registrationIds: [i.id],
+      });
     refresh(i.tenant);
     return null;
   },

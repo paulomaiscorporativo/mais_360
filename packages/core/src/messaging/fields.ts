@@ -9,7 +9,7 @@ import { calendarDaysUntil, formatDateBR, formatTimeBR } from "./timezone";
  */
 
 export type FieldContextKind =
-  "pessoa" | "inscricao" | "projeto" | "cliente" | "convite" | "viagem";
+  "pessoa" | "inscricao" | "projeto" | "cliente" | "convite" | "viagem" | "grupo";
 
 export type MessageFieldDefinition = {
   key: string;
@@ -129,6 +129,57 @@ export const MESSAGE_FIELDS: readonly MessageFieldDefinition[] = [
     isLink: true,
     requires: { feature: "INVITES" },
   },
+  // Viagem em grupo (voos e documentos do viajante)
+  {
+    key: "voo_numero",
+    label: "Número do voo",
+    context: "grupo",
+    example: "TP 88",
+    requires: { feature: "FLIGHTS" },
+  },
+  {
+    key: "voo_trecho",
+    label: "Trecho do voo",
+    context: "grupo",
+    example: "GRU → LIS",
+    requires: { feature: "FLIGHTS" },
+  },
+  {
+    key: "voo_partida",
+    label: "Partida do voo (horário local)",
+    context: "grupo",
+    example: "01/12/2026 às 21:40",
+    requires: { feature: "FLIGHTS" },
+  },
+  {
+    key: "voo_localizador",
+    label: "Localizador da reserva",
+    context: "grupo",
+    example: "XPTO12",
+    requires: { feature: "FLIGHTS" },
+  },
+  {
+    key: "pendencias",
+    label: "Documentos pendentes",
+    context: "grupo",
+    example: "• Passaporte: falta enviar",
+    requires: { feature: "DOCUMENTS" },
+  },
+  {
+    key: "validade_passaporte",
+    label: "Validade do passaporte",
+    context: "grupo",
+    example: "15/03/2027",
+    requires: { feature: "DOCUMENTS" },
+  },
+  {
+    key: "link_portal",
+    label: "Link do portal do viajante",
+    context: "grupo",
+    example: "https://…/v/abc",
+    isLink: true,
+    requires: { module: "GROUP_TRAVEL" },
+  },
   // Viagem (linha direta)
   {
     key: "protocolo",
@@ -175,6 +226,7 @@ export const FIELD_CONTEXT_LABELS: Record<FieldContextKind, string> = {
   cliente: "Cliente",
   convite: "Convite",
   viagem: "Solicitação de viagem",
+  grupo: "Viagem em grupo",
 };
 
 const FIELD_KEYS = new Set(MESSAGE_FIELDS.map((f) => f.key));
@@ -196,6 +248,8 @@ export type FieldScope = {
 const FEATURE_LABEL: Partial<Record<ProjectFeature, string>> = {
   TABLES: "mapa de mesas",
   INVITES: "convites com cota",
+  FLIGHTS: "voos",
+  DOCUMENTS: "documentos do viajante",
 };
 
 /** Por que o campo fica vazio nesse escopo (null = disponível). */
@@ -279,6 +333,21 @@ export type MessageContext = {
     login?: string;
     platformUrl?: string;
   };
+  /** Viagem em grupo: o voo do lembrete (ou o próximo) e as pendências do viajante */
+  group?: {
+    flight?: {
+      number: string;
+      route: string;
+      departureAt: Date | null;
+      /** Fuso do aeroporto de origem (o horário do bilhete) */
+      departureTimeZone: string;
+      locator?: string;
+    } | null;
+    /** Já formatadas, uma por linha */
+    pendencies?: string;
+    passportExpiry?: Date | null;
+    portalUrl?: string;
+  };
   travel?: {
     protocol?: string;
     origin?: string;
@@ -319,6 +388,7 @@ export function buildFieldValues(
   const fullName = [p.firstName, p.lastName].filter(Boolean).join(" ").trim();
   const start = ctx.project?.startsAt ?? null;
   const days = start ? Math.max(0, calendarDaysUntil(start, now, tz)) : null;
+  const flight = ctx.group?.flight;
 
   return {
     nome: fullName,
@@ -354,6 +424,19 @@ export function buildFieldValues(
     data_limite: date(ctx.invite?.deadline),
     login: ctx.invite?.login ?? "",
     link_plataforma: ctx.invite?.platformUrl ?? "",
+
+    voo_numero: flight?.number ?? "",
+    voo_trecho: flight?.route ?? "",
+    voo_partida: flight?.departureAt
+      ? `${formatDateBR(flight.departureAt, flight.departureTimeZone)} às ${formatTimeBR(flight.departureAt, flight.departureTimeZone)}`
+      : "",
+    voo_localizador: flight?.locator ?? "",
+    pendencias: ctx.group?.pendencies ?? "",
+    // Validade é data de calendário (meio-dia UTC): exibe sem converter fuso
+    validade_passaporte: ctx.group?.passportExpiry
+      ? formatDateBR(ctx.group.passportExpiry, "UTC")
+      : "",
+    link_portal: ctx.group?.portalUrl ?? "",
 
     protocolo: ctx.travel?.protocol ?? "",
     origem: ctx.travel?.origin ?? "",
@@ -395,5 +478,17 @@ export function sampleContext(
       venueAddress: "Av. Exemplo, 1000 — São Paulo/SP",
     },
     invite: { table: 5, seat: 3, dressCode: "Esporte fino" },
+    group: {
+      flight: {
+        number: "TP 88",
+        route: "GRU → LIS",
+        departureAt: inAWeek,
+        departureTimeZone: timeZone,
+        locator: "XPTO12",
+      },
+      pendencies: "• Passaporte: falta enviar",
+      passportExpiry: new Date(now.getTime() + 400 * 86_400_000),
+      portalUrl: "https://exemplo.mais.tur.br/v/exemplo",
+    },
   };
 }

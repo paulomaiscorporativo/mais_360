@@ -6,7 +6,8 @@ import { config as loadEnv } from "dotenv";
 loadEnv({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../.env") });
 
 const { prisma } = await import("@mais/db");
-const { defaultDeps, messagingJobHandlers } = await import("@mais/messaging");
+const { automationJobHandlers, defaultDeps, messagingJobHandlers } =
+  await import("@mais/messaging");
 const { JobRunner, newWorkerId } = await import("./runner");
 const { apifyFlightSource, flightJobHandlers } = await import("./flights");
 const { domainJobHandlers } = await import("./domains");
@@ -23,6 +24,8 @@ const runner = new JobRunner({
   concurrency: Number(process.env.WORKER_CONCURRENCY || 4),
   handlers: {
     ...messagingJobHandlers(prisma, defaultDeps({ workerId })),
+    // Réguas automáticas: acontecimentos da inscrição e disparos por data
+    ...automationJobHandlers(prisma),
     // E-mails de sistema da equipe: convite, redefinição de senha, novo acesso
     ...authEmailJobHandlers(prisma),
     ...(apifyToken ? flightJobHandlers(prisma, apifyFlightSource(apifyToken)) : {}),
@@ -32,7 +35,7 @@ const runner = new JobRunner({
 
 if (!apifyToken) console.info("[worker] APIFY_TOKEN ausente: status de voo ao vivo desligado.");
 
-// Sinal de vida + tarefas periódicas (manutenção, voos, domínios, limpeza): ver operations.ts
+// Sinal de vida + tarefas periódicas (manutenção, réguas, voos, domínios, limpeza): ver operations.ts
 const ops = startOperations({ db: prisma, runner, flightsEnabled: Boolean(apifyToken) });
 
 runner.start();

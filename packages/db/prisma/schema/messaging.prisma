@@ -64,6 +64,8 @@ enum TemplatePurpose {
   APPROVAL_REQUEST
   PASSWORD_ACCESS
   SURVEY
+  FLIGHT_REMINDER // lembrete de voo (viagens de grupo)
+  TRAVEL_DOCUMENTS // documentos pendentes / passaporte (viagens de grupo)
 }
 
 // Modelo de mensagem com campos dinâmicos {{nome}}, {{link_cracha}}…
@@ -177,12 +179,16 @@ model MessageDelivery {
   sentAt            DateTime?
   deliveredAt       DateTime?
   readAt            DateTime?
+  // Régua que originou a entrega (histórico por régua). Sem chave estrangeira:
+  // remover a régua não apaga nem altera o histórico do que já saiu.
+  automationId      String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
   campaign MessageCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId, status])
+  @@index([automationId, status])
   @@index([tenantId, registrationId])
   @@index([channel, senderKey, sentAt]) // limite diário por número remetente
   @@index([providerMessageId])
@@ -195,22 +201,33 @@ enum AutomationTrigger {
   DAYS_BEFORE_START // offsetDays
   DAYS_AFTER_END
   INVITE_DEADLINE_BEFORE
+  // Viagens de grupo (regras em @mais/core/automations; guia em docs/REGUAS.md)
+  FLIGHT_DEPARTURE_BEFORE // offsetHours antes de cada voo do viajante
+  PASSPORT_EXPIRING // passaporte ausente/vencendo; repete até resolver (repeatEveryDays, maxSends)
+  DOCUMENTS_PENDING // documentos exigidos pendentes; repete até resolver
 }
 
 // Régua automática: gatilho → modelo → canais
 model MessageAutomation {
-  id         String            @id @default(cuid())
-  tenantId   String
-  projectId  String
-  templateId String
-  trigger    AutomationTrigger
-  offsetDays Int               @default(0)
-  sendAt     String            @default("09:00") // horário local para gatilhos por data
-  channels   ChannelKind[]
-  filter     Json              @default("{}") // categorias, papéis, status
-  active     Boolean           @default(true)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id              String            @id @default(cuid())
+  tenantId        String
+  projectId       String
+  templateId      String
+  trigger         AutomationTrigger
+  offsetDays      Int               @default(0)
+  offsetHours     Int               @default(0) // gatilhos por voo (horas antes da partida)
+  sendAt          String            @default("09:00") // horário local para gatilhos por data
+  // Lembretes que repetem até a pendência ser resolvida (0 = não repete)
+  repeatEveryDays Int               @default(0)
+  maxSends        Int               @default(1) // teto de envios por pessoa
+  channels        ChannelKind[]
+  filter          Json              @default("{}") // categorias, papéis, status
+  active          Boolean           @default(true)
+  // Quando foi ligada (ou teve o agendamento alterado): nada anterior a isso
+  // dispara retroativamente, além da tolerância curta (ver @mais/core/automations)
+  activatedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   template MessageTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 

@@ -11,6 +11,7 @@ import type { Channel } from "@mais/core/messaging";
 import type { InviteKind } from "@mais/db";
 import type { ProjectFeature } from "@mais/core";
 import { sendTransactional } from "@mais/messaging";
+import { fireAutomationEvent } from "./automation-events";
 import { checkInRegistration, undoCheckInRegistration } from "./checkin-core";
 import { prisma } from "./db";
 import { AppError } from "./errors";
@@ -301,6 +302,12 @@ export async function issueInvite(
       kind: input.kind,
     },
     update: { companyQuotaId: company?.id ?? null, kind: input.kind, sentAt: null },
+  });
+  await fireAutomationEvent(prisma, {
+    tenantId: ctx.tenantId,
+    projectId: ctx.projectId,
+    trigger: "REGISTRATION_CREATED",
+    registrationIds: [registration.id],
   });
   return registration;
 }

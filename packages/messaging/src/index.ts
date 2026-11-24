@@ -11,4 +11,6 @@ export * from "./transactional";
 export * from "./processor";
 export * from "./webhooks";
 export * from "./handlers";
+export * from "./automations";
+export * from "./group-travel";
 export * from "./providers";

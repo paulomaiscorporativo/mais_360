@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@mais/db";
-import { recoverStaleDeliveries } from "@mais/messaging";
+import { recoverStaleDeliveries, sweepAutomations } from "@mais/messaging";
 import type { CleanupConfig } from "@mais/core/ops";
 import { runCleanup } from "./cleanup";
 import { sweepDomains } from "./domains";
@@ -36,6 +36,16 @@ export function defaultScheduledTasks(o: {
             `[worker] manutenção: ${jobs} job(s) liberado(s), ${deliveries} entrega(s) interrompida(s)`,
           );
         return { jobs, deliveries };
+      },
+    },
+    {
+      // Réguas por data (D-1, pós-evento, voos, documentos); o envio tem dedupe próprio
+      name: "automations.sweep",
+      everyMs: 5 * MIN,
+      run: async () => {
+        const enqueued = await sweepAutomations(db);
+        if (enqueued) log.info(`[worker] ${enqueued} disparo(s) de régua enfileirado(s)`);
+        return { enqueued };
       },
     },
     {
