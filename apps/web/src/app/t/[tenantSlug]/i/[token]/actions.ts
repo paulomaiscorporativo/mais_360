@@ -48,7 +48,7 @@ const schema = z.object({
 export const submitPublicRegistration = defineAction(schema, async (input) => {
   const h = await headers();
   const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
-  if (!rateLimit(`public-reg:${ip}`, 12, 10 * 60_000).allowed) {
+  if (!(await rateLimit(`public-reg:${ip}`, 12, 10 * 60_000)).allowed) {
     throw new AppError("Muitas inscrições seguidas deste aparelho. Aguarde alguns minutos.");
   }
 

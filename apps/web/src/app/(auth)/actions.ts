@@ -31,7 +31,7 @@ const loginSchema = z.object({
 export const login = defineAction(loginSchema, async ({ email, password, remember, next }) => {
   const ip = ((await headers()).get("x-forwarded-for") ?? "local").split(",")[0]!.trim();
   const key = `login:${email}:${ip}`;
-  const limit = rateLimit(key, MAX_ATTEMPTS, WINDOW_MS);
+  const limit = await rateLimit(key, MAX_ATTEMPTS, WINDOW_MS);
   if (!limit.allowed) {
     const min = Math.ceil(limit.retryAfterMs / 60000);
     throw new AppError(`Muitas tentativas. Por segurança, tente de novo em ${min} min.`);
@@ -47,7 +47,7 @@ export const login = defineAction(loginSchema, async ({ email, password, remembe
     );
   }
 
-  resetRateLimit(key);
+  await resetRateLimit(key);
   await createSession({ kind: "USER", userId: user.id, remember });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await audit({

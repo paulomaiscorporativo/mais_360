@@ -27,11 +27,12 @@ export const requestPortalLink = defineAction(
   async ({ tenantSlug, email }) => {
     const h = await headers();
     const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
-    if (!rateLimit(`portal-link:${ip}`, 5, 15 * 60_000).allowed)
+    if (!(await rateLimit(`portal-link:${ip}`, 5, 15 * 60_000)).allowed)
       throw new AppError("Muitas tentativas seguidas. Aguarde alguns minutos.");
     const norm = normalizeEmail(email);
     if (!norm) throw invalidFields({ email: "Informe um e-mail válido." });
-    if (!rateLimit(`portal-link-email:${norm}`, 3, 60 * 60_000).allowed) return { sent: true };
+    if (!(await rateLimit(`portal-link-email:${norm}`, 3, 60 * 60_000)).allowed)
+      return { sent: true };
 
     const tenant = await resolvePublicTenant(tenantSlug);
     if (!tenant || tenant.status !== "ACTIVE") return { sent: true };

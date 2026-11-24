@@ -26,7 +26,7 @@ async function portal(tenantSlug: string, token: string, feature: ProjectFeature
   if (!t || !t.features.has(feature)) throw notFound("Este link não está mais disponível.");
   const h = await headers();
   const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
-  if (!rateLimit(`portal:${t.reg.id}:${ip}`, 30, 10 * 60_000).allowed)
+  if (!(await rateLimit(`portal:${t.reg.id}:${ip}`, 30, 10 * 60_000)).allowed)
     throw new AppError("Muitas ações seguidas. Aguarde alguns minutos e tente de novo.");
   return { ...t, name: travelerName(t.person) };
 }
