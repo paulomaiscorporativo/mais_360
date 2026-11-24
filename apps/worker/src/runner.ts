@@ -1,6 +1,7 @@
 import { hostname } from "node:os";
 import { randomBytes } from "node:crypto";
 import type { PrismaClient } from "@mais/db";
+import { STALE_LOCK_ERROR, WORKER_STALE_MS } from "@mais/core/ops";
 
 /**
  * Runner da tabela Job.
@@ -10,8 +11,11 @@ import type { PrismaClient } from "@mais/db";
  *  • Cada processo tem um `workerId` único; só quem travou finaliza o job.
  *  • Handler devolve { reschedule } para continuar depois (ritmo do WhatsApp)
  *    ou nada para concluir. Erro → nova tentativa com backoff; esgotou → DEAD.
- *  • Locks vencidos (processo morreu) voltam para PENDING.
- *  • stop() espera os jobs em andamento terminarem (SIGTERM do deploy).
+ *  • Lease: o sinal de vida do worker renova `lockedAt` dos jobs em andamento.
+ *    Trava vencida, ou dono sem sinal de vida (WorkerHeartbeat), devolve o job
+ *    para PENDING — ou DEAD, se a tentativa interrompida era a última.
+ *  • stop() espera os jobs em andamento terminarem (SIGTERM do deploy); se o
+ *    prazo acabar, devolve à fila o que ainda estiver rodando.
  */
 
 export type ClaimedJob = {
@@ -34,8 +38,10 @@ export type RunnerOptions = {
   workerId?: string;
   concurrency?: number;
   pollIntervalMs?: number;
-  /** Job RUNNING há mais tempo que isso é considerado abandonado */
+  /** Job RUNNING sem renovar a trava há mais tempo que isso é considerado abandonado */
   lockTimeoutMs?: number;
+  /** Dono sem sinal de vida há mais que isso → seus jobs são devolvidos */
+  workerStaleMs?: number;
   logger?: Logger;
 };
 
@@ -54,6 +60,7 @@ export class JobRunner {
   private readonly concurrency: number;
   private readonly pollIntervalMs: number;
   private readonly lockTimeoutMs: number;
+  private readonly workerStaleMs: number;
   private readonly log: Logger;
   private readonly inFlight = new Set<Promise<void>>();
   private running = false;
@@ -67,11 +74,18 @@ export class JobRunner {
     this.concurrency = Math.max(1, o.concurrency ?? 4);
     this.pollIntervalMs = o.pollIntervalMs ?? 1000;
     this.lockTimeoutMs = o.lockTimeoutMs ?? 10 * 60_000;
+    this.workerStaleMs = o.workerStaleMs ?? WORKER_STALE_MS;
     this.log = o.logger ?? console;
   }
 
-  private get queues(): string[] {
+  /** Filas que este worker atende (vão no sinal de vida). */
+  get queues(): string[] {
     return Object.keys(this.handlers);
+  }
+
+  /** Jobs em execução neste processo agora. */
+  get busy(): number {
+    return this.inFlight.size;
   }
 
   /** Reivindica até `limit` jobs prontos das filas que este worker conhece. */
@@ -135,13 +149,48 @@ export class JobRunner {
     }
   }
 
-  /** Devolve à fila jobs travados por processos que morreram. */
+  /**
+   * Devolve à fila jobs travados por processos que morreram: trava não renovada
+   * há mais de `lockTimeoutMs`, ou dono sem sinal de vida (ou encerrado). Se a
+   * tentativa interrompida era a última, o job vira DEAD em vez de voltar.
+   */
   async reclaimStale(): Promise<number> {
-    const cutoff = new Date(Date.now() - this.lockTimeoutMs);
+    const lockCutoff = new Date(Date.now() - this.lockTimeoutMs);
+    const deadCutoff = new Date(Date.now() - this.workerStaleMs);
     return this.db.$executeRaw`
-      UPDATE "Job" SET status = 'PENDING', "lockedAt" = NULL, "lockedBy" = '',
-             "lastError" = 'Trava expirada: o processo que executava este job parou.', "updatedAt" = now()
-       WHERE status = 'RUNNING' AND "lockedAt" < ${cutoff}`;
+      WITH stale AS (
+        SELECT j.id FROM "Job" j
+         WHERE j.status = 'RUNNING'
+           AND j."lockedBy" <> ${this.workerId}
+           AND (j."lockedAt" IS NULL OR j."lockedAt" < ${lockCutoff}
+                OR j."lockedBy" IN (SELECT "workerId" FROM "WorkerHeartbeat"
+                                     WHERE "stoppedAt" IS NOT NULL OR "lastSeenAt" < ${deadCutoff}))
+         FOR UPDATE SKIP LOCKED)
+      UPDATE "Job" j
+         SET status = CASE WHEN j.attempts >= j."maxAttempts" THEN 'DEAD'::"JobStatus"
+                           ELSE 'PENDING'::"JobStatus" END,
+             "lockedAt" = NULL, "lockedBy" = '', "lastError" = ${STALE_LOCK_ERROR}, "updatedAt" = now()
+        FROM stale WHERE j.id = stale.id`;
+  }
+
+  /** Renova a trava dos jobs deste processo (chamado pelo sinal de vida). */
+  async renewLeases(): Promise<number> {
+    if (this.inFlight.size === 0) return 0;
+    return this.db.$executeRaw`
+      UPDATE "Job" SET "lockedAt" = now()
+       WHERE status = 'RUNNING' AND "lockedBy" = ${this.workerId}`;
+  }
+
+  /**
+   * Devolve à fila, na hora, os jobs que este processo ainda segura (prazo do
+   * desligamento esgotado). A tentativa interrompida não conta.
+   */
+  async releaseOwned(): Promise<number> {
+    return this.db.$executeRaw`
+      UPDATE "Job" SET status = 'PENDING', "runAt" = now(), "lockedAt" = NULL, "lockedBy" = '',
+             attempts = GREATEST(attempts - 1, 0),
+             "lastError" = 'Interrompido no desligamento do worker; volta para a fila.', "updatedAt" = now()
+       WHERE status = 'RUNNING' AND "lockedBy" = ${this.workerId}`;
   }
 
   /** Uma rodada: reivindica o que couber e espera terminar. Útil em testes e scripts. */
@@ -179,11 +228,30 @@ export class JobRunner {
     })();
   }
 
-  /** Para de buscar e espera os jobs em andamento terminarem. */
-  async stop() {
+  /**
+   * Para de buscar e espera os jobs em andamento terminarem. Com `timeoutMs`,
+   * depois do prazo devolve à fila o que sobrou e responde quantos foram.
+   */
+  async stop(o: { timeoutMs?: number } = {}): Promise<{ released: number }> {
     this.running = false;
     this.wake?.();
     await this.loop;
-    await Promise.allSettled([...this.inFlight]);
+    const all = Promise.allSettled([...this.inFlight]).then(() => true);
+    if (o.timeoutMs === undefined) {
+      await all;
+      return { released: 0 };
+    }
+    let timer: NodeJS.Timeout | undefined;
+    const finished = await Promise.race([
+      all,
+      new Promise<false>((r) => (timer = setTimeout(() => r(false), o.timeoutMs))),
+    ]);
+    clearTimeout(timer);
+    if (finished) return { released: 0 };
+    const released = await this.releaseOwned();
+    this.log.warn(
+      `[worker] prazo de desligamento esgotado: ${released} job(s) devolvido(s) à fila`,
+    );
+    return { released };
   }
 }
