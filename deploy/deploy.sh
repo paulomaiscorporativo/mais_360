@@ -56,7 +56,8 @@ git archive --format=tar HEAD | remote "set -e
   rm -rf $DIR/src && mv $DIR/src.new $DIR/src
   cp $DIR/src/deploy/compose.yml $DIR/compose.yml
   cp $DIR/src/deploy/Caddyfile $DIR/Caddyfile
-  test -f $DIR/.env || { echo 'Falta $DIR/.env (ver docs/DEPLOY.md)'; exit 1; }"
+  test -f $DIR/.env || { echo 'Falta $DIR/.env (ver docs/DEPLOY.md)'; exit 1; }
+  docker network inspect edge >/dev/null 2>&1 || docker network create edge >/dev/null"
 
 step "Construindo a imagem no servidor (alguns minutos)"
 remote "cd $DIR && docker build --pull --build-arg APP_VERSION=$SHA -t mais360-app:$SHA src"

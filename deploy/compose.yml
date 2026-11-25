@@ -73,10 +73,14 @@ services:
     environment:
       CONSOLE_HOST: "${CONSOLE_HOST}"
       ACME_EMAIL: "${ACME_EMAIL}"
+      EVOLUTION_HOST: "${EVOLUTION_HOST:-wpp.mais.tur.br}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    # "edge": rede compartilhada com outras stacks do servidor (ex.: Evolution),
+    # para o Caddy servir todas com HTTPS sem abrir portas novas.
+    networks: [default, edge]
     mem_limit: 256m
     logging:
       driver: json-file
@@ -95,3 +99,7 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+
+networks:
+  edge:
+    external: true

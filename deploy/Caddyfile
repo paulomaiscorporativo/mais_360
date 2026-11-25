@@ -29,6 +29,12 @@
 	import app
 }
 
+# WhatsApp (Evolution API, stack em /srv/evolution, rede "edge")
+{$EVOLUTION_HOST} {
+	encode zstd gzip
+	reverse_proxy evolution-api:8080
+}
+
 https:// {
 	tls {
 		on_demand

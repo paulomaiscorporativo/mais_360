@@ -125,6 +125,27 @@ Registro do que foi feito, para recriar o servidor do zero se preciso.
 **Pendente:** cópia noturna de `/srv/mais360/storage` para um bucket do Spaces, para ter os
 arquivos fora do droplet.
 
+## WhatsApp (Evolution API)
+
+Stack própria em `/srv/evolution` (`deploy/evolution/compose.yml`): Evolution API v2, Postgres e
+Redis só dela — não consome conexões do banco gerenciado. Não publica porta: o Caddy da
+plataforma a alcança pela rede Docker compartilhada `edge` e serve em `https://wpp.mais.tur.br`
+(`A wpp → 159.89.37.95` na Hostinger).
+
+- **Chave**: `AUTHENTICATION_API_KEY` em `/srv/evolution/.env` = `EVOLUTION_APIKEY` em
+  `/srv/mais360/.env` (com `EVOLUTION_URL="https://wpp.mais.tur.br"`).
+- **Status de entrega**: webhook global da Evolution só com `MESSAGES_UPDATE`, para
+  `/api/webhooks/whatsapp/evolution?token=<WHATSAPP_WEBHOOK_SECRET>`.
+- **LGPD**: a Evolution guarda só os dados da sessão; conteúdo de conversas, contatos e
+  histórico não são salvos (`DATABASE_SAVE_DATA_*=false`).
+- **Conectar um número**: no console, cliente → Comunicação → Canais → WhatsApp (Evolution) →
+  conectar e ler o QR code com o celular. Cada cliente pode ter a própria instância. Para uma
+  instância global da plataforma, preencha `EVOLUTION_INSTANCE` só depois de conectada.
+- **Atualizar a Evolution**: trocar a tag da imagem no compose e
+  `cd /srv/evolution && docker compose pull && docker compose up -d`. As sessões ficam no
+  volume `instances` e no banco próprio; não é preciso ler o QR de novo.
+- O painel da própria Evolution fica em `https://wpp.mais.tur.br/manager` (pede a chave).
+
 ## Diagnóstico rápido
 
 ```bash

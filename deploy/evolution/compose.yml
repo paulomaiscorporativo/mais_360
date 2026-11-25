@@ -1,0 +1,60 @@
+# Evolution API (WhatsApp) dedicada à Mais 360. Fica em /srv/evolution no servidor,
+# ao lado do próprio .env (modelo: env.example). Guia: docs/DEPLOY.md → "WhatsApp".
+#
+# Stack separada da plataforma: sobe, para e atualiza sem afetar o site. Tem banco
+# e Redis próprios (não consome as conexões do banco gerenciado). Não publica porta:
+# o Caddy da plataforma alcança a API pela rede "edge" e serve em https://wpp.mais.tur.br.
+
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: evolution-api
+    restart: unless-stopped
+    env_file: .env
+    depends_on: [evolution-db, evolution-redis]
+    volumes:
+      - instances:/evolution/instances
+    networks: [default, edge]
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  evolution-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: "${EVOLUTION_DB_PASSWORD}"
+      POSTGRES_DB: evolution
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  evolution-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "64mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    mem_limit: 96m
+
+volumes:
+  instances:
+  pgdata:
+
+networks:
+  edge:
+    external: true
